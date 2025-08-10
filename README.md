@@ -1,4 +1,4 @@
-# stream_auth_old
+# misskey_auth
 
 A new Flutter project.
 

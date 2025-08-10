@@ -1,4 +1,4 @@
-package com.example.stream_auth_old
+package com.example.misskey_auth
 
 import io.flutter.embedding.android.FlutterActivity
 
