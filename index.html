@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Misskey Auth - Flutter OAuth認証ライブラリ</title>
+    <title>Misskey Auth - OAuth 2.0認証確認ページ</title>
     <link rel="redirect_uri" href="misskey_auth://oauth/callback">
     <style>
         body {
@@ -14,7 +14,7 @@
             background-color: #f5f5f5;
         }
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
             background: white;
             padding: 40px;
@@ -26,20 +26,6 @@
             border-bottom: 3px solid #007acc;
             padding-bottom: 10px;
         }
-        .feature {
-            background: #f8f9fa;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-            border-left: 4px solid #007acc;
-        }
-        .code {
-            background: #f4f4f4;
-            padding: 15px;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            overflow-x: auto;
-        }
         .warning {
             background: #fff3cd;
             border: 1px solid #ffeaa7;
@@ -48,17 +34,23 @@
             border-radius: 5px;
             margin: 20px 0;
         }
-        .github-link {
+        .link {
             display: inline-block;
             background: #333;
             color: white;
             padding: 10px 20px;
             text-decoration: none;
             border-radius: 5px;
-            margin: 10px 0;
+            margin: 10px 5px 10px 0;
         }
-        .github-link:hover {
+        .link:hover {
             background: #555;
+        }
+        .github-link {
+            background: #24292e;
+        }
+        .blog-link {
+            background: #007acc;
         }
     </style>
 </head>
@@ -67,72 +59,19 @@
         <h1>Misskey Auth</h1>
         <p>FlutterアプリケーションでMisskeyのOAuth認証とMiAuth認証を簡単に実装できるライブラリです。</p>
         
-        <div class="feature">
-            <h3>🚀 主な機能</h3>
-            <ul>
-                <li><strong>OAuth 2.0認証</strong>: Misskey 2023.9.0以降のサーバーでOAuth 2.0認証をサポート</li>
-                <li><strong>MiAuth認証</strong>: 古いバージョンのMisskeyサーバーでMiAuth認証をサポート</li>
-                <li><strong>自動認証方式選択</strong>: サーバーの対応状況に応じて自動的に適切な認証方式を選択</li>
-                <li><strong>セキュアなトークン保存</strong>: flutter_secure_storageを使用してトークンを安全に保存</li>
-                <li><strong>PKCE対応</strong>: OAuth 2.0でPKCE（Proof Key for Code Exchange）をサポート</li>
-                <li><strong>埋め込みWebView不使用</strong>: 外部ブラウザを使用してセキュリティを確保</li>
-            </ul>
-        </div>
-
         <div class="warning">
-            <strong>⚠️ 重要</strong><br>
+            <strong>⚠️ このページについて</strong><br>
             このページはMisskey OAuth 2.0認証のclient_idとして使用されています。
             認証時にこのページの情報が表示され、ユーザーがアプリの詳細を確認できます。
         </div>
 
-        <h3>📦 インストール</h3>
-        <div class="code">
-dependencies:
-  misskey_auth: ^1.0.0
-        </div>
-
-        <h3>🔧 基本的な使用方法</h3>
-        <div class="code">
-import 'package:misskey_auth/misskey_auth.dart';
-
-final client = MisskeyAuthClient();
-
-final config = AuthConfig(
-  host: 'misskey.io',
-  clientId: 'https://yourusername.github.io/misskey_auth', // このページのURL
-  clientSecret: 'your_client_secret',
-  redirectUri: 'your_app://oauth/callback',
-  appName: 'Your App Name',
-);
-
-final result = await client.authenticate(config);
-        </div>
-
-        <h3>🔗 リダイレクトURI設定</h3>
-        <p>このページには以下のリンクタグが含まれています：</p>
-        <div class="code">
-&lt;link rel="redirect_uri" href="misskey_auth://oauth/callback"&gt;
-        </div>
-        <p>アプリケーションでは、このURIスキーム（<code>misskey_auth://</code>）でリダイレクトを受け取るように設定してください。</p>
-
-        <h3>📚 詳細なドキュメント</h3>
-        <p>より詳細な使用方法や設定については、GitHubリポジトリのREADMEを参照してください。</p>
-        
-        <a href="https://github.com/yourusername/misskey_auth" class="github-link">
-            📖 GitHubリポジトリを見る
+        <h3>🔗 リンク</h3>
+        <a href="https://github.com/LibraryLibrarian/misskey_auth" class="link github-link">
+            📖 GitHubリポジトリ
         </a>
-
-        <h3>🛡️ セキュリティ</h3>
-        <p>このライブラリは以下のセキュリティ機能を提供します：</p>
-        <ul>
-            <li>PKCE（Proof Key for Code Exchange）による認証コード傍受攻撃の防止</li>
-            <li>flutter_secure_storageによるトークンの安全な保存</li>
-            <li>外部ブラウザを使用した認証（WebView不使用）</li>
-            <li>サーバー情報の事前検証</li>
-        </ul>
-
-        <h3>🤝 貢献</h3>
-        <p>バグ報告や機能要望、プルリクエストを歓迎します。GitHubのIssuesページからお気軽にお声がけください。</p>
+        <a href="https://librarylibrarian.com/" class="link blog-link">
+            📝 開発者ブログ
+        </a>
     </div>
 </body>
 </html>
