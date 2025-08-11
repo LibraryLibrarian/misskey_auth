@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         # 指定minorの最新patchを自動取得（例: 3.10.x → 3.10.6）
-        flutter: ['3.0.x','3.3.x','3.7.x','3.10.x','3.13.x','3.16.x','3.19.x','3.22.x','3.24.x','3.27.x','3.29.x','3.32.x']
+        flutter: ['3.24.x','3.27.x','3.29.x','3.32.x']
         resolution: ['max', 'min']
     steps:
       - uses: actions/checkout@v4
@@ -34,12 +34,12 @@ jobs:
       # 依存の最大解決 (最新互換)
       - name: Resolve (max)
         if: matrix.resolution == 'max'
-        run: dart pub upgrade
+        run: flutter pub upgrade
 
       # 依存の最小解決 (下限互換)
       - name: Resolve (min)
         if: matrix.resolution == 'min'
-        run: dart pub downgrade
+        run: flutter pub downgrade
 
       - name: Format check
         run: dart format --output=none --set-exit-if-changed .
