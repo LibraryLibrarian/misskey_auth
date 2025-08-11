@@ -1,5 +1,5 @@
 name: misskey_auth
-description: "A new Flutter project."
+description: "Misskey OAuth認証ライブラリ - FlutterアプリケーションでMisskeyのOAuth認証とMiAuth認証を簡単に実装できます"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,6 +34,10 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  dio: ^5.9.0
+  flutter_secure_storage: ^9.0.0
+  flutter_web_auth_2: ^4.0.0
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

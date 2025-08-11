@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misskey Auth - OAuth 2.0認証確認ページ</title>
+    <link rel="redirect_uri" href="https://librarylibrarian.github.io/misskey_auth/redirect.html">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .link {
+            display: inline-block;
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px 10px 0;
+        }
+        .link:hover {
+            background: #555;
+        }
+        .github-link {
+            background: #24292e;
+        }
+        .blog-link {
+            background: #007acc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="h-app">
+            <!-- Misskeyが認識するアプリ名 -->
+            <a href="https://librarylibrarian.github.io/misskey_auth/" class="u-url p-name"><h1>Misskey Auth</h1></a>
+        </div>
+        <p>FlutterアプリケーションでMisskeyのOAuth認証とMiAuth認証を簡単に実装できるライブラリです。</p>
+        
+        <div class="warning">
+            <strong>このページについて</strong><br>
+            このページはMisskey OAuth 2.0認証のclient_idとして使用されています。
+            認証時にこのページを元にclient_idを使い認証を行います。
+        </div>
+
+        <h3>リンク</h3>
+        <a href="https://github.com/LibraryLibrarian/misskey_auth" class="link github-link">
+            GitHubリポジトリ
+        </a>
+        <a href="https://librarylibrarian.com/" class="link blog-link">
+            ブログ
+        </a>
+    </div>
+</body>
+</html>
