@@ -1,0 +1,66 @@
+name: example-build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  android:
+    name: Android APK build (example)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.32.x'
+          cache: true
+
+      - name: Build example (APK)
+        run: |
+          cd example
+          flutter pub get
+          flutter build apk
+
+      - name: Keep artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-android-apk
+          path: example/build/app/outputs/flutter-apk/*.apk
+
+  ios:
+    name: iOS simulator build (example)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.32.x'
+          cache: true
+
+      # 署名不要のシミュレータ向けビルド（CI確認に向く）
+      - name: Build example (iOS simulator)
+        run: |
+          cd example
+          flutter pub get
+          flutter build ios --debug --simulator
+
+      - name: Keep artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-ios-simulator-app
+          path: example/build/ios/iphonesimulator/**/*.app
