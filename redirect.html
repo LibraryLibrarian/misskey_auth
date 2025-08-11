@@ -67,6 +67,8 @@
         if (code) {
             // 認証コードをアプリに渡すためのカスタムURLスキーム
             const appUrl = `misskeyauth://oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
+            
+            window.location.href = appUrl;
         } else {
             // エラーの場合
             document.querySelector('.container').innerHTML = `
