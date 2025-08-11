@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Misskey Auth - OAuth 2.0認証確認ページ</title>
-    <link rel="redirect_uri" href="https://LibraryLibrarian.github.io/misskey_auth/redirect.html">
+    <link rel="redirect_uri" href="https://librarylibrarian.github.io/misskey_auth/redirect.html">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -23,8 +23,7 @@
         }
         h1 {
             color: #333;
-            border-bottom: 3px solid #007acc;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
         }
         .warning {
             background: #fff3cd;
@@ -56,6 +55,11 @@
 </head>
 <body>
     <div class="container">
+        <div class="h-app">
+            <!-- Misskeyが認識するアプリ名 -->
+            <a href="https://librarylibrarian.github.io/misskey_auth/" class="u-url p-name">Misskey Auth - Sample App</a>
+        </div>
+        
         <h1>Misskey Auth</h1>
         <p>FlutterアプリケーションでMisskeyのOAuth認証とMiAuth認証を簡単に実装できるライブラリです。</p>
         
