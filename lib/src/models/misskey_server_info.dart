@@ -2,22 +2,22 @@
 class MisskeyServerInfo {
   /// サーバーのホスト
   final String host;
-  
+
   /// OAuth 2.0がサポートされているかどうか
   final bool supportsOAuth;
-  
+
   /// OAuth認証エンドポイント
   final String? authorizationEndpoint;
-  
+
   /// OAuthトークンエンドポイント
   final String? tokenEndpoint;
-  
+
   /// サーバーのバージョン情報
   final String? version;
-  
+
   /// サーバーの名前
   final String? name;
-  
+
   /// サーバーの説明
   final String? description;
 

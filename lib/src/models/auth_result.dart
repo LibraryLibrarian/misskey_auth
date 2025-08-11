@@ -2,22 +2,22 @@
 class AuthResult {
   /// アクセストークン
   final String accessToken;
-  
+
   /// リフレッシュトークン（OAuth認証の場合）
   final String? refreshToken;
-  
+
   /// トークンの有効期限（秒）
   final int? expiresIn;
-  
+
   /// 認証方式（oauth または miauth）
   final String authType;
-  
+
   /// ユーザー情報
   final Map<String, dynamic>? userInfo;
-  
+
   /// 認証が成功したかどうか
   final bool isSuccess;
-  
+
   /// エラーメッセージ（認証が失敗した場合）
   final String? errorMessage;
 

@@ -11,13 +11,13 @@ import '../models/oauth_models.dart';
 class MisskeyOAuthClient {
   final Dio _dio;
   final FlutterSecureStorage _storage;
-  
+
   // ストレージキー
   static const _accessTokenKey = 'misskey_access_token';
   static const _refreshTokenKey = 'misskey_refresh_token';
   static const _expiresAtKey = 'misskey_expires_at';
   static const _hostKey = 'misskey_host';
-  
+
   MisskeyOAuthClient({
     Dio? dio,
     FlutterSecureStorage? storage,
@@ -30,7 +30,7 @@ class MisskeyOAuthClient {
       final response = await _dio.get(
         'https://$host/.well-known/oauth-authorization-server',
       );
-      
+
       if (response.statusCode == 200) {
         return OAuthServerInfo.fromJson(response.data);
       }
@@ -46,9 +46,11 @@ class MisskeyOAuthClient {
 
   /// PKCE用のコードベリファイアを生成
   String generateCodeVerifier() {
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    const charset =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
     final random = Random.secure();
-    return List.generate(128, (_) => charset[random.nextInt(charset.length)]).join();
+    return List.generate(128, (_) => charset[random.nextInt(charset.length)])
+        .join();
   }
 
   /// コードチャレンジを生成
@@ -85,7 +87,7 @@ class MisskeyOAuthClient {
       final codeVerifier = generateCodeVerifier();
       final codeChallenge = generateCodeChallenge(codeVerifier);
       final state = generateState();
-      
+
       if (kDebugMode) {
         print('PKCE準備完了');
         print('code_challenge: $codeChallenge');
@@ -104,24 +106,28 @@ class MisskeyOAuthClient {
           'state': state,
         },
       );
-      
+
       if (kDebugMode) {
         print('認証URL: $authUrl');
       }
 
       // 4. flutter_web_auth_2で認証ページを開く
       // カスタムスキーム
-      final redirectUriScheme = Uri.parse(config.redirectUri).scheme.toLowerCase();
-      final callbackUrlScheme = (redirectUriScheme != 'http' && redirectUriScheme != 'https') ? redirectUriScheme : config.callbackScheme;
+      final redirectUriScheme =
+          Uri.parse(config.redirectUri).scheme.toLowerCase();
+      final callbackUrlScheme =
+          (redirectUriScheme != 'http' && redirectUriScheme != 'https')
+              ? redirectUriScheme
+              : config.callbackScheme;
       if (kDebugMode) {
         print('コールバックURLスキーム: $callbackUrlScheme');
       }
-      
+
       final result = await FlutterWebAuth2.authenticate(
         url: authUrl.toString(),
         callbackUrlScheme: callbackUrlScheme,
       );
-      
+
       if (kDebugMode) {
         print('認証結果URL: $result');
       }
@@ -130,7 +136,7 @@ class MisskeyOAuthClient {
       final uri = Uri.parse(result);
       final code = uri.queryParameters['code'];
       final returnedState = uri.queryParameters['state'];
-      
+
       if (kDebugMode) {
         print('認証コード: ${code?.substring(0, 10)}...');
         print('返却されたstate: $returnedState');
@@ -165,7 +171,7 @@ class MisskeyOAuthClient {
         refreshToken: tokenResponse.refreshToken,
         expiresIn: tokenResponse.expiresIn,
       );
-      
+
       if (kDebugMode) {
         print('認証成功！');
       }
@@ -202,7 +208,7 @@ class MisskeyOAuthClient {
           'code_verifier': codeVerifier,
         },
       );
-      
+
       if (response.statusCode == 200) {
         return OAuthTokenResponse.fromJson(response.data);
       }
@@ -226,14 +232,15 @@ class MisskeyOAuthClient {
   }) async {
     await _storage.write(key: _hostKey, value: host);
     await _storage.write(key: _accessTokenKey, value: accessToken);
-    
+
     if (refreshToken != null) {
       await _storage.write(key: _refreshTokenKey, value: refreshToken);
     }
-    
+
     if (expiresIn != null) {
       final expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
-      await _storage.write(key: _expiresAtKey, value: expiresAt.toIso8601String());
+      await _storage.write(
+          key: _expiresAtKey, value: expiresAt.toIso8601String());
     }
   }
 

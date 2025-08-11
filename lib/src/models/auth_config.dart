@@ -4,28 +4,28 @@ import '../exceptions/misskey_auth_exception.dart';
 class AuthConfig {
   /// Misskeyサーバーのホスト（例: misskey.io）
   final String host;
-  
+
   /// アプリケーションのクライアントID
   final String clientId;
-  
+
   /// アプリケーションのクライアントシークレット
   final String clientSecret;
-  
+
   /// 認証完了後のリダイレクトURI
   final String redirectUri;
-  
+
   /// 要求するスコープ（カンマ区切り）
   final String scopes;
-  
+
   /// アプリケーション名
   final String appName;
-  
+
   /// アプリケーションの説明
   final String? appDescription;
-  
+
   /// アプリケーションのアイコンURL
   final String? appIconUrl;
-  
+
   /// アプリケーションの権限
   final List<String>? permissions;
 

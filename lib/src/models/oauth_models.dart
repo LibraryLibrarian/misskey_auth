@@ -2,22 +2,22 @@
 class OAuthServerInfo {
   /// OAuth認証エンドポイント
   final String authorizationEndpoint;
-  
+
   /// トークンエンドポイント
   final String tokenEndpoint;
-  
+
   /// イントロスペクションエンドポイント（オプション）
   final String? introspectionEndpoint;
-  
+
   /// リボケーションエンドポイント（オプション）
   final String? revocationEndpoint;
-  
+
   /// スコープがサポートされているか
   final List<String>? scopesSupported;
-  
+
   /// レスポンスタイプがサポートされているか
   final List<String>? responseTypesSupported;
-  
+
   /// コードチャレンジメソッドがサポートされているか
   final List<String>? codeChallengeMethodsSupported;
 
@@ -40,12 +40,14 @@ class OAuthServerInfo {
       scopesSupported: (json['scopes_supported'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
-      responseTypesSupported: (json['response_types_supported'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      codeChallengeMethodsSupported: (json['code_challenge_methods_supported'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
+      responseTypesSupported:
+          (json['response_types_supported'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList(),
+      codeChallengeMethodsSupported:
+          (json['code_challenge_methods_supported'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList(),
     );
   }
 }
@@ -54,19 +56,19 @@ class OAuthServerInfo {
 class OAuthTokenResponse {
   /// アクセストークン
   final String accessToken;
-  
+
   /// トークンタイプ（通常は"Bearer"）
   final String tokenType;
-  
+
   /// リフレッシュトークン（オプション）
   final String? refreshToken;
-  
+
   /// トークンの有効期限（秒）
   final int? expiresIn;
-  
+
   /// スコープ
   final String? scope;
-  
+
   /// IDトークン（OpenID Connectの場合）
   final String? idToken;
 
@@ -95,13 +97,13 @@ class OAuthTokenResponse {
 class MisskeyOAuthConfig {
   /// Misskeyサーバーのホスト
   final String host;
-  
+
   /// クライアントID（アプリ紹介ページのURL）
   final String clientId;
-  
+
   /// リダイレクトURI
   final String redirectUri;
-  
+
   /// 要求するスコープ
   final String scope;
 

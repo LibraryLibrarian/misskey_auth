@@ -30,14 +30,14 @@ class AuthExamplePage extends StatefulWidget {
 
 class _AuthExamplePageState extends State<AuthExamplePage> {
   final _client = MisskeyOAuthClient();
-  
+
   // フォームコントローラー
   final _hostController = TextEditingController();
   final _clientIdController = TextEditingController();
   final _redirectUriController = TextEditingController();
   final _scopeController = TextEditingController();
   final _callbackSchemeController = TextEditingController();
-  
+
   // 状態
   bool _isLoading = false;
   String? _accessToken;
@@ -63,8 +63,10 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
 
   void _setDefaultValues() {
     _hostController.text = 'misskey.io';
-    _clientIdController.text = 'https://librarylibrarian.github.io/misskey_auth/';
-    _redirectUriController.text = 'https://librarylibrarian.github.io/misskey_auth/redirect.html';
+    _clientIdController.text =
+        'https://librarylibrarian.github.io/misskey_auth/';
+    _redirectUriController.text =
+        'https://librarylibrarian.github.io/misskey_auth/redirect.html';
     _scopeController.text = 'read:account write:notes';
     _callbackSchemeController.text = 'misskeyauth';
   }
@@ -90,7 +92,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       }
 
       final serverInfo = await _client.getOAuthServerInfo(host);
-      
+
       setState(() {
         _serverInfo = serverInfo;
         if (serverInfo == null) {
@@ -124,12 +126,12 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       );
 
       final tokenResponse = await _client.authenticate(config);
-      
+
       if (tokenResponse != null) {
         setState(() {
           _accessToken = tokenResponse.accessToken;
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('認証に成功しました！')),
@@ -140,7 +142,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       setState(() {
         _errorMessage = e.toString();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('認証エラー: $e')),
@@ -156,7 +158,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   Future<void> _clearToken() async {
     await _client.clearTokens();
     await _loadStoredToken();
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('トークンを削除しました')),
@@ -185,7 +187,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   children: [
                     const Text(
                       '保存されたトークン',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(_accessToken != null
@@ -206,9 +209,9 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // 認証設定フォーム
             Card(
               child: Padding(
@@ -218,7 +221,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   children: [
                     const Text(
                       'OAuth認証設定',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -281,7 +285,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                         ElevatedButton(
                           onPressed: _isLoading ? null : _startAuth,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                           ),
                           child: const Text('認証を開始'),
@@ -292,7 +297,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                 ),
               ),
             ),
-            
+
             // サーバー情報
             if (_serverInfo != null) ...[
               const SizedBox(height: 16),
@@ -304,7 +309,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                     children: [
                       const Text(
                         'サーバー情報',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text('認証エンドポイント:\n${_serverInfo!.authorizationEndpoint}'),
@@ -312,14 +318,15 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                       Text('トークンエンドポイント:\n${_serverInfo!.tokenEndpoint}'),
                       if (_serverInfo!.scopesSupported != null) ...[
                         const SizedBox(height: 4),
-                        Text('サポートされているスコープ:\n${_serverInfo!.scopesSupported!.join(', ')}'),
+                        Text(
+                            'サポートされているスコープ:\n${_serverInfo!.scopesSupported!.join(', ')}'),
                       ],
                     ],
                   ),
                 ),
               ),
             ],
-            
+
             // エラーメッセージ
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
@@ -348,7 +355,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                 ),
               ),
             ],
-            
+
             // ローディング
             if (_isLoading) ...[
               const SizedBox(height: 16),

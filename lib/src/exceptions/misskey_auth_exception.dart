@@ -2,10 +2,10 @@
 class MisskeyAuthException implements Exception {
   /// エラーメッセージ
   final String message;
-  
+
   /// エラーの詳細情報
   final String? details;
-  
+
   /// 元の例外
   final Exception? originalException;
 
