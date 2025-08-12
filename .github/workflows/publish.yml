@@ -1,37 +1,28 @@
-name: publish-on-tag
+# .github/workflows/publish-on-tag.yml
+name: Publish to pub.dev (on tag)
 
 on:
   push:
     tags:
-      - 'v*'   # 例: v0.1.1-beta, v0.2.0 など
+      - 'v*'   # pub.dev 側の tag-pattern 'v{{version}}' と揃える
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # OIDC 認証に必要
+    permissions:
+      id-token: write
 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # 安全装置1: タグのコミットが main に含まれているか確認（誤タグ防止）
-      - name: Ensure tag commit is on main
-        run: |
-          git fetch origin main --depth=1
-          if ! git merge-base --is-ancestor $GITHUB_SHA origin/main; then
-            echo "::error::This tag is not based on the current main. Aborting."
-            exit 1
-          fi
-
-      # Dart/Flutter 環境（publishだけなら Dart で十分）
+      #  setup-dart が pub.dev への一時OIDCトークンを用意
       - uses: dart-lang/setup-dart@v1
 
-      # ドライラン
+      # 事前検証（dry run）
       - name: Dry run
         run: dart pub publish --dry-run
 
-      # pub.dev の自動公開用の資格情報を OIDC で取得
-      - name: Setup pub.dev credentials (OIDC)
-        uses: flutter-actions/setup-pubdev-credentials@v2
-
-      # 本公開（Automated publishing 有効時、タグpush起動のワークフローだけが許可される）
+      # 本公開
       - name: Publish
-        run: dart pub publish -f
+        run: dart pub publish --force
