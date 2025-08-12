@@ -21,8 +21,7 @@ jobs:
 
       # 事前検証（dry run）
       - name: Dry run
-        run: dart pub publish --dry-run
-
-      # 本公開
+        run: flutter pub publish --dry-run
+      
       - name: Publish
-        run: dart pub publish --force
+        run: flutter pub publish --force
