@@ -1,0 +1,132 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      package: ${{ steps.filter.outputs.package }}
+      example: ${{ steps.filter.outputs.example }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            package:
+              - 'pubspec.yaml'
+              - 'analysis_options.yaml'
+              - 'lib/**'
+              - 'test/**'
+            example:
+              - 'example/**'
+
+  package:
+    name: package (${{ matrix.flutter }} / ${{ matrix.resolution }})
+    needs: changes
+    if: needs.changes.outputs.package == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flutter: ['3.24.x','3.27.x','3.29.x','3.32.x']
+        resolution: ['min','max']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ matrix.flutter }}
+          cache: true
+      - name: Resolve (min)
+        if: matrix.resolution == 'min'
+        run: flutter pub downgrade
+      - name: Resolve (max)
+        if: matrix.resolution == 'max'
+        run: flutter pub upgrade
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze (fail on infos)
+        run: dart analyze --fatal-infos
+      - name: Test
+        run: flutter test
+
+  example-android:
+    needs: changes
+    if: needs.changes.outputs.example == 'true' || needs.changes.outputs.package == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.32.x', cache: true }
+      - run: cd example && flutter pub get && flutter build apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: example-android-apk
+          path: example/build/app/outputs/flutter-apk/*.apk
+
+  example-ios:
+    needs: changes
+    if: needs.changes.outputs.example == 'true' || needs.changes.outputs.package == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.32.x', cache: true }
+      - run: cd example && flutter pub get && flutter build ios --debug --simulator
+      - uses: actions/upload-artifact@v4
+        with:
+          name: example-ios-simulator-app
+          path: example/build/ios/iphonesimulator/**/*.app
+
+  publish-dry-run:
+    needs: [package, example-android, example-ios]
+    if: always()  # 依存が落ちても実行し、ここで集約判定
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - name: Dry run publish (fail on warnings)
+        run: |
+          set -o pipefail
+          dart pub publish --dry-run 2>&1 | tee /tmp/pub.txt
+          # エラーはここで非0終了するので拾える
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "::error::pub dry-run failed with exit code $code"
+            exit $code
+          fi
+
+          # 例: "Package has 0 warnings." から件数だけ抜き取る
+          WARN=$(grep -Eo 'Package has [0-9]+ warnings' /tmp/pub.txt | grep -Eo '[0-9]+' | head -n1)
+          : "${WARN:=0}"  # 未取得なら0扱い
+
+          echo "pub dry-run warnings: ${WARN}"
+          if [ "$WARN" -gt 0 ]; then
+            echo "::error::pub dry run reported ${WARN} warning(s)"
+            exit 1
+          fi
+
+  gate:
+    name: all checks passed
+    needs: [publish-dry-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure all deps succeeded
+        run: |
+          echo 'Needs: ${{ toJson(needs) }}'
+          if [[ "${{ needs.publish-dry-run.result }}" != "success" ]]; then exit 1; fi
