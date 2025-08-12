@@ -8,7 +8,6 @@ on:
 
 jobs:
   publish:
-    # OIDC 認証に必要
     permissions:
       id-token: write
 
@@ -16,12 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      #  setup-dart が pub.dev への一時OIDCトークンを用意
-      - uses: dart-lang/setup-dart@v1
+      # Sets up Flutter (and Dart) SDK
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
 
-      # 事前検証（dry run）
-      - name: Dry run
-        run: flutter pub publish --dry-run
-      
-      - name: Publish
-        run: flutter pub publish --force
+      - run: flutter --version
+      - run: flutter pub publish --dry-run
+      - run: flutter pub publish --force
