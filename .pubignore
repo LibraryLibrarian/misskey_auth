@@ -1,0 +1,14 @@
+# Example app files that shouldn't be published
+example/pubspec.lock
+example/.dart_tool/
+example/build/
+example/.flutter-plugins
+example/.flutter-plugins-dependencies
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
