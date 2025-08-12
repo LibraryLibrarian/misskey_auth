@@ -171,7 +171,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Misskey Auth Example'),
+        title: const Text('Misskey Auth Sample'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -192,7 +192,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(_accessToken != null
-                        ? 'トークンあり: ${_accessToken!.substring(0, 10)}...'
+                        ? '${_accessToken!.substring(0, 10)}...'
                         : 'トークンなし'),
                     if (_accessToken != null) ...[
                       const SizedBox(height: 8),
@@ -246,7 +246,6 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                       decoration: const InputDecoration(
                         labelText: 'クライアントID (URL)',
                         hintText: '例: https://example.com/my-app',
-                        helperText: 'Misskey OAuth 2.0では有効なURLを指定する必要があります',
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -255,7 +254,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                       decoration: const InputDecoration(
                         labelText: 'リダイレクトURI',
                         hintText: '例: https://example.com/redirect',
-                        helperText: 'HTTPSのURLを指定してください',
+                        helperText: '要HTTPS',
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -264,14 +263,6 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                       decoration: const InputDecoration(
                         labelText: 'スコープ',
                         hintText: '例: read:account write:notes',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _callbackSchemeController,
-                      decoration: const InputDecoration(
-                        labelText: 'コールバックスキーム',
-                        hintText: '例: misskeyauth',
                       ),
                     ),
                     const SizedBox(height: 16),
