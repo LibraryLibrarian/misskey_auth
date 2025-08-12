@@ -21,6 +21,15 @@ jobs:
           channel: stable
           cache: true
 
+      # OIDC 認証トークンをセット（これがないと「Allow access」で止まる）
+      - uses: dart-lang/setup-dart@v1
+
       - run: flutter --version
-      - run: flutter pub publish --dry-run
-      - run: flutter pub publish --force
+
+      - name: Dry run
+      # Dryrun
+        run: flutter pub publish --dry-run
+
+      - name: Publish
+      # 対話なしで公開
+        run: flutter pub publish --force
