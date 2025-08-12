@@ -1,5 +1,9 @@
 # Misskey Auth
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/librarylibrarian/misskey_auth/main/assets/demo_thumb.gif" alt="Demo" width="200" />
+</p>
+
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 **Language**: [🇺🇸 English](#english) | [🇯🇵 日本語](#japanese)
