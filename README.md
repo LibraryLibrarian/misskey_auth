@@ -152,6 +152,7 @@ final miConfig = MisskeyMiAuthConfig(
   appName: 'Your App',
   callbackScheme: 'yourscheme',          // Scheme registered on the app side
   permissions: ['read:account', 'write:notes'],
+  iconUrl: 'https://example.com/icon.png', // Optional
 );
 final miRes = await miClient.authenticate(miConfig);
 ```
@@ -208,26 +209,52 @@ class MisskeyOAuthConfig {
 
 #### MisskeyOAuthClient
 
-Main client for handling Misskey authentication.
+Main client for handling Misskey OAuth authentication.
 
 ```dart
 class MisskeyOAuthClient {
   /// Authenticate with Misskey server
-  Future<OAuthTokenResponse> authenticate(MisskeyOAuthConfig config);
+  Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config);
   
-  /// Check if server supports OAuth 2.0
-  Future<bool> isOAuthSupported(String host);
+  /// Get OAuth server information
+  Future<OAuthServerInfo?> getOAuthServerInfo(String host);
+  
+  /// Get stored access token
+  Future<String?> getStoredAccessToken();
+  
+  /// Clear stored tokens
+  Future<void> clearTokens();
+}
+```
+
+#### MisskeyMiAuthClient
+
+Main client for handling Misskey MiAuth authentication.
+
+```dart
+class MisskeyMiAuthClient {
+  /// Authenticate with Misskey server using MiAuth
+  Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config);
+  
+  /// Get stored access token
+  Future<String?> getStoredAccessToken();
+  
+  /// Clear stored tokens
+  Future<void> clearTokens();
 }
 ```
 
 ### Error Handling
 
-The library provides custom exceptions for different error scenarios:
+The library provides comprehensive error handling with custom exception classes for different scenarios. For detailed information about each exception class and their usage, please refer to the documentation on pub.dev.
 
-- `MisskeyAuthException` - Base exception class
-- `OAuthNotSupportedException` - When server doesn't support OAuth 2.0
-- `AuthenticationFailedException` - When authentication fails
-- `TokenExchangeException` - When token exchange fails
+The library includes exception classes for:
+- Authentication configuration errors
+- Network and connectivity issues
+- OAuth and MiAuth specific errors
+- User cancellation and authorization failures
+- Secure storage operations
+- Response parsing errors
 
 ### Common Errors
 
@@ -429,9 +456,8 @@ final miConfig = MisskeyMiAuthConfig(
   host: 'misskey.io',
   appName: 'Your App',
   callbackScheme: 'yourscheme',          // アプリ側で登録したスキーム
-  callbackHost: 'oauth',                  // 任意（例と合わせておく）
-  callbackPath: '/callback',              // 任意（例と合わせておく）
   permissions: ['read:account', 'write:notes'],
+  iconUrl: 'https://example.com/icon.png', // 任意
 );
 final miRes = await miClient.authenticate(miConfig);
 ```
@@ -489,26 +515,52 @@ class MisskeyOAuthConfig {
 
 #### MisskeyOAuthClient
 
-Misskey認証を処理するメインクライアント。
+Misskey OAuth認証を処理するメインクラス
 
 ```dart
 class MisskeyOAuthClient {
   /// Misskeyサーバーで認証を実行
-  Future<OAuthTokenResponse> authenticate(MisskeyOAuthConfig config);
+  Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config);
   
-  /// サーバーがOAuth 2.0をサポートしているかチェック
-  Future<bool> isOAuthSupported(String host);
+  /// OAuthサーバー情報を取得
+  Future<OAuthServerInfo?> getOAuthServerInfo(String host);
+  
+  /// 保存されたアクセストークンを取得
+  Future<String?> getStoredAccessToken();
+  
+  /// 保存されたトークンを削除
+  Future<void> clearTokens();
+}
+```
+
+#### MisskeyMiAuthClient
+
+Misskey MiAuth認証を処理するメインクラス
+
+```dart
+class MisskeyMiAuthClient {
+  /// MisskeyサーバーでMiAuth認証を実行
+  Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config);
+  
+  /// 保存されたアクセストークンを取得
+  Future<String?> getStoredAccessToken();
+  
+  /// 保存されたトークンを削除
+  Future<void> clearTokens();
 }
 ```
 
 ### エラーハンドリング
 
-ライブラリは様々なエラーシナリオに対応するカスタム例外を提供します：
+ライブラリには以下のカテゴリの例外クラスが含まれています：
+- 認証設定エラー
+- ネットワーク・接続エラー
+- OAuth・MiAuth固有のエラー
+- ユーザーキャンセル・認可失敗
+- セキュアストレージ操作エラー
+- レスポンス解析エラー
 
-- `MisskeyAuthException` - ベース例外クラス
-- `OAuthNotSupportedException` - サーバーがOAuth 2.0をサポートしていない場合
-- `AuthenticationFailedException` - 認証が失敗した場合
-- `TokenExchangeException` - トークン交換が失敗した場合
+詳細についてはpub.devのドキュメントを参考にして下さい
 
 ### よくあるエラー
 
