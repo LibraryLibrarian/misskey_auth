@@ -30,7 +30,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.1-beta
+  misskey_auth: ^0.1.2-beta
 ```
 
 ### Quick Start
@@ -134,6 +134,63 @@ Add to `android/app/src/main/AndroidManifest.xml`:
 </activity>
 ```
 
+#### Differences in MiAuth and OAuth Configuration (Key Points for App Integration)
+- This configuration (registration of the URL scheme) is done on the "app side." It is not included in the library's Manifest.
+- Both methods require a "custom URL scheme" to return from an external browser to the app.
+- The difference lies in how to specify "where to return from the browser."
+- OAuth: Since it needs to return to an HTTPS `redirect_uri` from the authorization server, `redirect.html` placed there ultimately redirects back to `yourscheme://...` for the app.
+- MiAuth: The `callback` query of the authentication start URL specifies `yourscheme://...` from the beginning (no need for `https`).
+
+##### Example of MiAuth
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final miClient = MisskeyMiAuthClient();
+final miConfig = MisskeyMiAuthConfig(
+  host: 'misskey.io',
+  appName: 'Your App',
+  callbackScheme: 'yourscheme',          // Scheme registered on the app side
+  permissions: ['read:account', 'write:notes'],
+  iconUrl: 'https://example.com/icon.png', // Optional
+);
+final miRes = await miClient.authenticate(miConfig);
+```
+
+##### Example of OAuth
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final oauthClient = MisskeyOAuthClient();
+final oauthConfig = MisskeyOAuthConfig(
+  host: 'misskey.io',
+  clientId: 'https://yourpage/yourapp/',
+  redirectUri: 'https://yourpage/yourapp/redirect.html',
+  scope: 'read:account write:notes',
+  callbackScheme: 'yourscheme',          // Scheme registered on the app side
+);
+final token = await oauthClient.authenticate(oauthConfig);
+```
+
+##### How to Support Both Methods in the Same App
+- By registering the same `scheme` (e.g., `yourscheme`) in iOS's `Info.plist` and Android's `AndroidManifest.xml`, it can be shared between OAuth and MiAuth.
+- If you implement the OAuth `redirect.html` to redirect to `yourscheme://oauth/callback?...`, you can reuse the same path expression (`yourscheme://oauth/callback`) for MiAuth's `callback`.
+- For Android, matching only on the `scheme` is sufficient as shown below (the `host` and `path` are optional).
+
+```xml
+<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
+    <intent-filter android:label="flutter_web_auth">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="yourscheme" />
+    </intent-filter>
+    <!-- Add this only if you want to restrict by host/path -->
+    <!-- <intent-filter> ... <data android:scheme="yourscheme" android:host="oauth" android:path="/callback"/> ... </intent-filter> -->
+  </activity>
+```
+
 ### API Reference
 
 #### MisskeyOAuthConfig
@@ -152,26 +209,52 @@ class MisskeyOAuthConfig {
 
 #### MisskeyOAuthClient
 
-Main client for handling Misskey authentication.
+Main client for handling Misskey OAuth authentication.
 
 ```dart
 class MisskeyOAuthClient {
   /// Authenticate with Misskey server
-  Future<OAuthTokenResponse> authenticate(MisskeyOAuthConfig config);
+  Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config);
   
-  /// Check if server supports OAuth 2.0
-  Future<bool> isOAuthSupported(String host);
+  /// Get OAuth server information
+  Future<OAuthServerInfo?> getOAuthServerInfo(String host);
+  
+  /// Get stored access token
+  Future<String?> getStoredAccessToken();
+  
+  /// Clear stored tokens
+  Future<void> clearTokens();
+}
+```
+
+#### MisskeyMiAuthClient
+
+Main client for handling Misskey MiAuth authentication.
+
+```dart
+class MisskeyMiAuthClient {
+  /// Authenticate with Misskey server using MiAuth
+  Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config);
+  
+  /// Get stored access token
+  Future<String?> getStoredAccessToken();
+  
+  /// Clear stored tokens
+  Future<void> clearTokens();
 }
 ```
 
 ### Error Handling
 
-The library provides custom exceptions for different error scenarios:
+The library provides comprehensive error handling with custom exception classes for different scenarios. For detailed information about each exception class and their usage, please refer to the documentation on pub.dev.
 
-- `MisskeyAuthException` - Base exception class
-- `OAuthNotSupportedException` - When server doesn't support OAuth 2.0
-- `AuthenticationFailedException` - When authentication fails
-- `TokenExchangeException` - When token exchange fails
+The library includes exception classes for:
+- Authentication configuration errors
+- Network and connectivity issues
+- OAuth and MiAuth specific errors
+- User cancellation and authorization failures
+- Secure storage operations
+- Response parsing errors
 
 ### Common Errors
 
@@ -251,7 +334,7 @@ MisskeyのOAuth認証・MiAuth認証をFlutterアプリで簡単に扱うため�
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.1-beta
+  misskey_auth: ^0.1.2-beta
 ```
 
 ### クイックスタート
@@ -355,6 +438,65 @@ final token = await client.authenticate(config);
 </activity>
 ```
 
+#### MiAuth と OAuth の設定の違い（アプリ組み込み時のポイント）
+
+- この設定（URLスキームの登録）は「アプリ側」で行います。ライブラリ内のManifestには含めません。
+- 両方式とも、外部ブラウザからアプリへ戻すために「カスタムURLスキーム」が必要です。
+- 相違点は「ブラウザからどこに戻すか」の指定方法です。
+  - OAuth: 認可サーバーからはHTTPSの`redirect_uri`に戻る必要があるため、そこに配置した`redirect.html`が最終的に`yourscheme://...`へリダイレクトしてアプリに戻します。
+  - MiAuth: 認証開始URLの`callback`クエリに、最初から`yourscheme://...`を指定します（`https`は不要）。
+
+##### MiAuth の例（Dart）
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final miClient = MisskeyMiAuthClient();
+final miConfig = MisskeyMiAuthConfig(
+  host: 'misskey.io',
+  appName: 'Your App',
+  callbackScheme: 'yourscheme',          // アプリ側で登録したスキーム
+  permissions: ['read:account', 'write:notes'],
+  iconUrl: 'https://example.com/icon.png', // 任意
+);
+final miRes = await miClient.authenticate(miConfig);
+```
+
+##### OAuth の例
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final oauthClient = MisskeyOAuthClient();
+final oauthConfig = MisskeyOAuthConfig(
+  host: 'misskey.io',
+  clientId: 'https://yourpage/yourapp/',
+  redirectUri: 'https://yourpage/yourapp/redirect.html',
+  scope: 'read:account write:notes',
+  callbackScheme: 'yourscheme',          // アプリ側で登録したスキーム
+);
+final token = await oauthClient.authenticate(oauthConfig);
+```
+
+##### 両方式を同一アプリでサポートするには
+
+- iOSの`Info.plist`・Androidの`AndroidManifest.xml`で同じ`sheme`（例: `yourscheme`）を1つ登録すれば、OAuth/MiAuthで共用可能です。
+- OAuth用の`redirect.html`は、`yourscheme://oauth/callback?...`へ飛ばす実装にしておくと、MiAuthの`callback`でも同じパス表現（`yourscheme://oauth/callback`）を使い回せます。
+- Androidは以下のように`scheme`のみのマッチで十分です（`host`や`path`は任意）。
+
+```xml
+<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
+    <intent-filter android:label="flutter_web_auth">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="yourscheme" />
+    </intent-filter>
+    <!-- 必要に応じて、host/pathで限定したい場合のみ追記 -->
+    <!-- <intent-filter> ... <data android:scheme="yourscheme" android:host="oauth" android:path="/callback"/> ... </intent-filter> -->
+  </activity>
+```
+
 ### API リファレンス
 
 #### MisskeyOAuthConfig
@@ -373,26 +515,52 @@ class MisskeyOAuthConfig {
 
 #### MisskeyOAuthClient
 
-Misskey認証を処理するメインクライアント。
+Misskey OAuth認証を処理するメインクラス
 
 ```dart
 class MisskeyOAuthClient {
   /// Misskeyサーバーで認証を実行
-  Future<OAuthTokenResponse> authenticate(MisskeyOAuthConfig config);
+  Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config);
   
-  /// サーバーがOAuth 2.0をサポートしているかチェック
-  Future<bool> isOAuthSupported(String host);
+  /// OAuthサーバー情報を取得
+  Future<OAuthServerInfo?> getOAuthServerInfo(String host);
+  
+  /// 保存されたアクセストークンを取得
+  Future<String?> getStoredAccessToken();
+  
+  /// 保存されたトークンを削除
+  Future<void> clearTokens();
+}
+```
+
+#### MisskeyMiAuthClient
+
+Misskey MiAuth認証を処理するメインクラス
+
+```dart
+class MisskeyMiAuthClient {
+  /// MisskeyサーバーでMiAuth認証を実行
+  Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config);
+  
+  /// 保存されたアクセストークンを取得
+  Future<String?> getStoredAccessToken();
+  
+  /// 保存されたトークンを削除
+  Future<void> clearTokens();
 }
 ```
 
 ### エラーハンドリング
 
-ライブラリは様々なエラーシナリオに対応するカスタム例外を提供します：
+ライブラリには以下のカテゴリの例外クラスが含まれています：
+- 認証設定エラー
+- ネットワーク・接続エラー
+- OAuth・MiAuth固有のエラー
+- ユーザーキャンセル・認可失敗
+- セキュアストレージ操作エラー
+- レスポンス解析エラー
 
-- `MisskeyAuthException` - ベース例外クラス
-- `OAuthNotSupportedException` - サーバーがOAuth 2.0をサポートしていない場合
-- `AuthenticationFailedException` - 認証が失敗した場合
-- `TokenExchangeException` - トークン交換が失敗した場合
+詳細についてはpub.devのドキュメントを参考にして下さい
 
 ### よくあるエラー
 

@@ -4,8 +4,10 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import '../models/oauth_models.dart';
+import '../exceptions/misskey_auth_exception.dart';
 
 /// MisskeyのOAuth認証を管理するクライアント
 class MisskeyOAuthClient {
@@ -34,13 +36,24 @@ class MisskeyOAuthClient {
       if (response.statusCode == 200) {
         return OAuthServerInfo.fromJson(response.data);
       }
-      return null;
+      if (response.statusCode == 404 || response.statusCode == 501) {
+        // 非対応と判断
+        return null;
+      }
+      // その他のステータスはサーバー側の問題として扱う
+      throw ServerInfoException('OAuth情報の取得に失敗しました: ${response.statusCode}');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 501) {
+        return null; // 非対応
+      }
+      throw NetworkException(details: e.message, originalException: e);
+    } on FormatException catch (e) {
+      throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
-      // OAuth非対応の場合はnullを返す
       if (kDebugMode) {
         print('OAuth情報取得エラー: $e');
       }
-      return null;
+      throw ServerInfoException('OAuth情報の取得に失敗しました: $e');
     }
   }
 
@@ -76,7 +89,7 @@ class MisskeyOAuthClient {
       }
       final serverInfo = await getOAuthServerInfo(config.host);
       if (serverInfo == null) {
-        throw Exception('このサーバーはOAuth認証に対応していません');
+        throw OAuthNotSupportedException(config.host);
       }
       if (kDebugMode) {
         print('認証エンドポイント: ${serverInfo.authorizationEndpoint}');
@@ -123,10 +136,30 @@ class MisskeyOAuthClient {
         print('コールバックURLスキーム: $callbackUrlScheme');
       }
 
-      final result = await FlutterWebAuth2.authenticate(
-        url: authUrl.toString(),
-        callbackUrlScheme: callbackUrlScheme,
-      );
+      late final String result;
+      try {
+        result = await FlutterWebAuth2.authenticate(
+          url: authUrl.toString(),
+          callbackUrlScheme: callbackUrlScheme,
+        );
+      } on PlatformException catch (e) {
+        // FlutterWebAuth2 の代表的なケースをマッピング
+        final code = (e.code).toLowerCase();
+        if (code.contains('cancel')) {
+          throw const UserCancelledException();
+        }
+        // コールバックスキーム不一致/未設定の可能性
+        if (e.message != null &&
+            e.message!.toLowerCase().contains('callback')) {
+          throw CallbackSchemeErrorException(
+              details: e.message, originalException: e);
+        }
+        throw AuthorizationLaunchException(
+            details: e.message, originalException: e);
+      } catch (e) {
+        if (e is MisskeyAuthException) rethrow;
+        throw AuthorizationLaunchException(details: e.toString());
+      }
 
       if (kDebugMode) {
         print('認証結果URL: $result');
@@ -134,6 +167,16 @@ class MisskeyOAuthClient {
 
       // 5. コールバックURLからパラメータを取得
       final uri = Uri.parse(result);
+      // 認可サーバーからのエラー（RFC6749）
+      final authError = uri.queryParameters['error'];
+      if (authError != null && authError.isNotEmpty) {
+        final desc = uri.queryParameters['error_description'];
+        final errMsg = desc == null || desc.isEmpty
+            ? 'error=$authError'
+            : 'error=$authError, description=$desc';
+        throw AuthorizationServerErrorException(details: errMsg);
+      }
+
       final code = uri.queryParameters['code'];
       final returnedState = uri.queryParameters['state'];
 
@@ -144,11 +187,11 @@ class MisskeyOAuthClient {
 
       // 6. stateを検証
       if (returnedState != state) {
-        throw Exception('stateが一致しません');
+        throw const StateMismatchException();
       }
 
       if (code == null) {
-        throw Exception('認証コードが取得できませんでした');
+        throw const AuthorizationCodeMissingException();
       }
 
       // 7. 認証コードをトークンと交換
@@ -165,22 +208,42 @@ class MisskeyOAuthClient {
       );
 
       // 8. トークンを保存
-      await _saveTokens(
-        host: config.host,
-        accessToken: tokenResponse.accessToken,
-        refreshToken: tokenResponse.refreshToken,
-        expiresIn: tokenResponse.expiresIn,
-      );
+      try {
+        await _saveTokens(
+          host: config.host,
+          accessToken: tokenResponse.accessToken,
+          refreshToken: tokenResponse.refreshToken,
+          expiresIn: tokenResponse.expiresIn,
+        );
+      } on PlatformException catch (e) {
+        throw SecureStorageException(details: e.message, originalException: e);
+      } catch (e) {
+        if (e is MisskeyAuthException) rethrow;
+        throw SecureStorageException(details: e.toString());
+      }
 
       if (kDebugMode) {
         print('認証成功！');
       }
       return tokenResponse;
+    } on MisskeyAuthException {
+      rethrow;
+    } on DioException catch (e) {
+      // ネットワーク層の例外
+      throw NetworkException(details: e.message, originalException: e);
+    } on PlatformException catch (e) {
+      final code = (e.code).toLowerCase();
+      if (code.contains('cancel')) {
+        throw const UserCancelledException();
+      }
+      throw AuthorizationLaunchException(
+          details: e.message, originalException: e);
     } catch (e) {
       if (kDebugMode) {
         print('認証エラー: $e');
       }
-      rethrow;
+      // 想定外はベース例外に包む
+      throw MisskeyAuthException(e.toString());
     }
   }
 
@@ -212,14 +275,43 @@ class MisskeyOAuthClient {
       if (response.statusCode == 200) {
         return OAuthTokenResponse.fromJson(response.data);
       }
-      throw Exception('トークン交換に失敗しました: ${response.statusCode}');
-    } catch (e) {
-      if (e is DioException) {
-        if (kDebugMode) {
-          print('DioException: ${e.response?.data}');
+      final status = response.statusCode;
+      String message = 'トークン交換に失敗しました: $status';
+      // RFC準拠のエラーフィールドがあれば詳細に含める
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        final err = data['error'];
+        final desc = data['error_description'];
+        if (err != null) {
+          message =
+              '$message (error=$err${desc != null ? ', description=$desc' : ''})';
         }
       }
-      throw Exception('トークン交換中にエラーが発生しました: $e');
+      throw TokenExchangeException(message);
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('DioException: ${e.response?.data}');
+      }
+      if (e.response != null) {
+        final status = e.response?.statusCode;
+        String message = 'トークン交換に失敗しました: $status';
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          final err = data['error'];
+          final desc = data['error_description'];
+          if (err != null) {
+            message =
+                '$message (error=$err${desc != null ? ', description=$desc' : ''})';
+          }
+        }
+        throw TokenExchangeException(message);
+      }
+      // レスポンスが無い＝ネットワーク層の失敗
+      throw NetworkException(details: e.message, originalException: e);
+    } on FormatException catch (e) {
+      throw ResponseParseException(details: e.message, originalException: e);
+    } catch (e) {
+      throw MisskeyAuthException('トークン交換中にエラーが発生しました', details: e.toString());
     }
   }
 
@@ -246,11 +338,19 @@ class MisskeyOAuthClient {
 
   /// 保存されたアクセストークンを取得
   Future<String?> getStoredAccessToken() async {
-    return await _storage.read(key: _accessTokenKey);
+    try {
+      return await _storage.read(key: _accessTokenKey);
+    } on PlatformException catch (e) {
+      throw SecureStorageException(details: e.message, originalException: e);
+    }
   }
 
   /// トークンをクリア
   Future<void> clearTokens() async {
-    await _storage.deleteAll();
+    try {
+      await _storage.deleteAll();
+    } on PlatformException catch (e) {
+      throw SecureStorageException(details: e.message, originalException: e);
+    }
   }
 }
