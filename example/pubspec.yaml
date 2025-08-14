@@ -15,6 +15,7 @@ dependencies:
   misskey_auth:
     path: ../
   http: ^1.1.0
+  loader_overlay: ^3.0.0
 
 dev_dependencies:
   flutter_test:
