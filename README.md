@@ -30,7 +30,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.1-beta
+  misskey_auth: ^0.1.2-beta
 ```
 
 ### Quick Start
@@ -334,7 +334,7 @@ MisskeyのOAuth認証・MiAuth認証をFlutterアプリで簡単に扱うため�
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.1-beta
+  misskey_auth: ^0.1.2-beta
 ```
 
 ### クイックスタート
