@@ -12,17 +12,19 @@
 
 ## English
 
-A Flutter library for Misskey OAuth authentication with automatic fallback to MiAuth for older servers.
+A Flutter library for Misskey OAuth authentication with MiAuth support and multi-account token management.
 
 ### Features
 
 - OAuth 2.0 authentication for Misskey servers (v2023.9.0+)
-- Automatic fallback to MiAuth for older servers (Planned response in the future.)
+- MiAuth authentication for older servers
 - External browser authentication (no embedded WebViews)
-- Secure token storage using flutter_secure_storage
+- Secure token storage using `flutter_secure_storage`
 - Cross-platform support (iOS/Android)
 - PKCE (Proof Key for Code Exchange) implementation
 - Custom URL scheme handling for authentication callbacks
+- Multi-account token storage and account switching
+- High-level `MisskeyAuthManager` to run flows and persist tokens
 
 ### Installation
 
@@ -30,7 +32,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.2-beta
+  misskey_auth: ^0.1.3-beta
 ```
 
 ### Quick Start
@@ -80,23 +82,47 @@ Misskey's OAuth 2.0 follows the IndieAuth specification. You need:
 </html>
 ```
 
-#### 2. Basic Authentication
+#### 2. Basic Authentication (Recommended: via MisskeyAuthManager)
 
 ```dart
 import 'package:misskey_auth/misskey_auth.dart';
 
-// Authentication configuration
-final config = MisskeyOAuthConfig(
-  host: 'misskey.io',
-  clientId: 'https://yourpage/yourapp/',
-  redirectUri: 'https://yourpage/yourapp/redirect.html',
-  scope: 'read:account write:notes',
-  callbackScheme: 'yourscheme',
+// Create manager with default dependencies
+final auth = MisskeyAuthManager.defaultInstance();
+
+// OAuth
+final oauthKey = await auth.loginWithOAuth(
+  MisskeyOAuthConfig(
+    host: 'misskey.io',
+    clientId: 'https://yourpage/yourapp/',
+    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    scope: 'read:account write:notes',
+    callbackScheme: 'yourscheme',
+  ),
+  setActive: true,
 );
 
-// Create client and authenticate
-final client = MisskeyOAuthClient();
-final token = await client.authenticate(config);
+// MiAuth
+final miKey = await auth.loginWithMiAuth(
+  MisskeyMiAuthConfig(
+    host: 'misskey.io',
+    appName: 'Your App',
+    callbackScheme: 'yourscheme',
+    permissions: ['read:account', 'write:notes'],
+    iconUrl: 'https://example.com/icon.png',
+  ),
+  setActive: true,
+);
+
+// Tokens
+final current = await auth.currentToken();
+final specific = await auth.tokenOf(oauthKey);
+
+// Accounts
+final accounts = await auth.listAccounts();
+await auth.setActive(miKey);
+await auth.signOut(oauthKey);
+await auth.signOutAll();
 ```
 
 #### 3. Platform Configuration
@@ -141,12 +167,12 @@ Add to `android/app/src/main/AndroidManifest.xml`:
 - OAuth: Since it needs to return to an HTTPS `redirect_uri` from the authorization server, `redirect.html` placed there ultimately redirects back to `yourscheme://...` for the app.
 - MiAuth: The `callback` query of the authentication start URL specifies `yourscheme://...` from the beginning (no need for `https`).
 
-##### Example of MiAuth
+##### Example of MiAuth (no persistence)
 
 ```dart
 import 'package:misskey_auth/misskey_auth.dart';
 
-final miClient = MisskeyMiAuthClient();
+final miClient = MisskeyMiAuthClient(); // does not save tokens
 final miConfig = MisskeyMiAuthConfig(
   host: 'misskey.io',
   appName: 'Your App',
@@ -154,15 +180,35 @@ final miConfig = MisskeyMiAuthConfig(
   permissions: ['read:account', 'write:notes'],
   iconUrl: 'https://example.com/icon.png', // Optional
 );
-final miRes = await miClient.authenticate(miConfig);
+final miRes = await miClient.authenticate(miConfig); // returns token only
 ```
 
-##### Example of OAuth
+##### Example of MiAuth (with persistence via MisskeyAuthManager)
 
 ```dart
 import 'package:misskey_auth/misskey_auth.dart';
 
-final oauthClient = MisskeyOAuthClient();
+final auth = MisskeyAuthManager.defaultInstance();
+final key = await auth.loginWithMiAuth(
+  MisskeyMiAuthConfig(
+    host: 'misskey.io',
+    appName: 'Your App',
+    callbackScheme: 'yourscheme',
+    permissions: ['read:account', 'write:notes'],
+    iconUrl: 'https://example.com/icon.png',
+  ),
+  setActive: true, // also mark as active account
+);
+// Token is saved via SecureTokenStore; you can read it later:
+final current = await auth.currentToken();
+```
+
+##### Example of OAuth (no persistence)
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final oauthClient = MisskeyOAuthClient(); // does not save tokens
 final oauthConfig = MisskeyOAuthConfig(
   host: 'misskey.io',
   clientId: 'https://yourpage/yourapp/',
@@ -170,7 +216,27 @@ final oauthConfig = MisskeyOAuthConfig(
   scope: 'read:account write:notes',
   callbackScheme: 'yourscheme',          // Scheme registered on the app side
 );
-final token = await oauthClient.authenticate(oauthConfig);
+final token = await oauthClient.authenticate(oauthConfig); // returns token only
+```
+
+##### Example of OAuth (with persistence via MisskeyAuthManager)
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final auth = MisskeyAuthManager.defaultInstance();
+final key = await auth.loginWithOAuth(
+  MisskeyOAuthConfig(
+    host: 'misskey.io',
+    clientId: 'https://yourpage/yourapp/',
+    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    scope: 'read:account write:notes',
+    callbackScheme: 'yourscheme',
+  ),
+  setActive: true,
+);
+// Token is saved via SecureTokenStore; you can read it later:
+final current = await auth.currentToken();
 ```
 
 ##### How to Support Both Methods in the Same App
@@ -213,17 +279,11 @@ Main client for handling Misskey OAuth authentication.
 
 ```dart
 class MisskeyOAuthClient {
-  /// Authenticate with Misskey server
+  /// Authenticate with Misskey server (no persistence)
   Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config);
   
   /// Get OAuth server information
   Future<OAuthServerInfo?> getOAuthServerInfo(String host);
-  
-  /// Get stored access token
-  Future<String?> getStoredAccessToken();
-  
-  /// Clear stored tokens
-  Future<void> clearTokens();
 }
 ```
 
@@ -233,15 +293,71 @@ Main client for handling Misskey MiAuth authentication.
 
 ```dart
 class MisskeyMiAuthClient {
-  /// Authenticate with Misskey server using MiAuth
+  /// Authenticate with Misskey server using MiAuth (no persistence)
   Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config);
-  
-  /// Get stored access token
-  Future<String?> getStoredAccessToken();
-  
-  /// Clear stored tokens
-  Future<void> clearTokens();
 }
+
+#### MisskeyAuthManager
+
+High-level API to run OAuth/MiAuth and persist tokens via `TokenStore`.
+The default `defaultInstance()` uses `SecureTokenStore`.
+
+```dart
+class MisskeyAuthManager {
+  static MisskeyAuthManager defaultInstance();
+
+  Future<AccountKey> loginWithOAuth(MisskeyOAuthConfig config, { bool setActive = true });
+  Future<AccountKey> loginWithMiAuth(MisskeyMiAuthConfig config, { bool setActive = true });
+
+  Future<StoredToken?> currentToken();
+  Future<StoredToken?> tokenOf(AccountKey key);
+
+  Future<void> setActive(AccountKey key);
+  Future<AccountKey?> getActive();
+  Future<void> clearActive();
+
+  Future<List<AccountEntry>> listAccounts();
+  Future<void> signOut(AccountKey key);
+  Future<void> signOutAll();
+}
+```
+
+#### TokenStore / SecureTokenStore
+
+```dart
+abstract class TokenStore {
+  Future<void> upsert(AccountKey key, StoredToken token);
+  Future<StoredToken?> read(AccountKey key);
+  Future<List<AccountEntry>> list();
+  Future<void> delete(AccountKey key);
+  Future<void> clearAll();
+  Future<void> setActive(AccountKey? key);
+  Future<AccountKey?> getActive();
+}
+```
+
+#### Models (excerpt)
+
+```dart
+class StoredToken {
+  final String accessToken;
+  final String tokenType; // 'MiAuth' | 'OAuth'
+  final String? scope;
+  final Map<String, dynamic>? user;
+  final DateTime? createdAt;
+}
+
+class AccountKey {
+  final String host;
+  final String accountId;
+}
+
+class AccountEntry {
+  final AccountKey key;
+  final String? userName;
+  final DateTime? createdAt;
+}
+```
 ```
 
 ### Error Handling
@@ -265,47 +381,6 @@ The library includes exception classes for:
 
 This project is licensed under the 3-Clause BSD License - see the [LICENSE](LICENSE) file for details.
 
-### Example App Verification
-
-This library includes a sample app to verify its functionality.
-
-#### Running the Example App
-
-1. Clone or download the repository
-2. Navigate to the example directory:
-   ```bash
-   cd example
-   ```
-3. Install dependencies:
-   ```bash
-   flutter pub get
-   ```
-
-4. Run the app:
-   ```bash
-   flutter run
-   ```
-
-#### Features in the Example App
-
-- **Server Info Check**: Verify if Misskey server supports OAuth 2.0
-- **Authentication Setup**: Configure host, client ID, redirect URI, scope, and callback scheme
-- **OAuth Flow**: Execute authentication using actual browser
-- **Token Management**: Display and delete access tokens after successful authentication
-- **Error Handling**: Verify behavior in various error scenarios
-
-#### Default Configuration
-
-The example app comes with the following default values:
-
-- **Host**: `misskey.io`
-- **Client ID**: `https://librarylibrarian.github.io/misskey_auth/`
-- **Redirect URI**: `https://librarylibrarian.github.io/misskey_auth/redirect.html`
-- **Scope**: `read:account write:notes`
-- **Callback Scheme**: `misskeyauth`
-
-These values are provided for testing purposes, but you should change them to your own values when developing actual apps.
-
 ### Related Links
 
 - [Misskey OAuth Documentation](https://misskey-hub.net/en/docs/for-developers/api/token/oauth/)
@@ -316,17 +391,19 @@ These values are provided for testing purposes, but you should change them to yo
 
 ## Japanese
 
-MisskeyのOAuth認証・MiAuth認証をFlutterアプリで簡単に扱うためのライブラリ。
+MisskeyのOAuth認証・MiAuth認証に加え、マルチアカウントのトークン管理を提供するFlutterライブラリ。
 
 ### 内容
 
 - MisskeyサーバーのOAuth 2.0認証対応（v2023.9.0以降）
-- 古いサーバーでは自動的にMiAuth認証にフォールバック（今後対応予定）
+- 古いサーバー向けMiAuth認証
 - 埋め込みWebViewを使用しない認証
-- flutter_secure_storageを使用したトークン保存
+- `flutter_secure_storage` を使用したセキュアなトークン保存
 - クロスプラットフォーム対応（iOS/Android）
 - PKCE（Proof Key for Code Exchange）実装
 - 認証コールバック用カスタムURLスキーム対応
+- マルチアカウントのトークン保存とアカウント切替
+- 認証と保存を仲介する高レベルAPI `MisskeyAuthManager`
 
 ### インストール
 
@@ -334,10 +411,30 @@ MisskeyのOAuth認証・MiAuth認証をFlutterアプリで簡単に扱うため�
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.2-beta
+  misskey_auth: ^0.1.3-beta
 ```
 
 ### クイックスタート
+
+#### かんたん例（MisskeyAuthManager）
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final auth = MisskeyAuthManager.defaultInstance();
+
+// 認証後にトークンを自動保存
+final key = await auth.loginWithOAuth(
+  MisskeyOAuthConfig(
+    host: 'misskey.io',
+    clientId: 'https://yourpage/yourapp/',
+    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    scope: 'read:account write:notes',
+    callbackScheme: 'yourscheme',
+  ),
+  setActive: true,
+);
+```
 
 #### 1. client_idページの設定
 
@@ -384,23 +481,46 @@ MisskeyのOAuth 2.0はIndieAuth仕様に準拠しています。以下が必要�
 </html>
 ```
 
-#### 2. 基本的な認証
+#### 2. 基本的な認証（推奨: MisskeyAuthManager 経由）
 
 ```dart
 import 'package:misskey_auth/misskey_auth.dart';
 
-// 認証設定
-final config = MisskeyOAuthConfig(
-  host: 'misskey.io',
-  clientId: 'https://yourpage/yourapp/',
-  redirectUri: 'https://yourpage/yourapp/redirect.html',
-  scope: 'read:account write:notes',
-  callbackScheme: 'yourscheme',
+final auth = MisskeyAuthManager.defaultInstance();
+
+// OAuth
+final oauthKey = await auth.loginWithOAuth(
+  MisskeyOAuthConfig(
+    host: 'misskey.io',
+    clientId: 'https://yourpage/yourapp/',
+    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    scope: 'read:account write:notes',
+    callbackScheme: 'yourscheme',
+  ),
+  setActive: true,
 );
 
-// クライアント生成と認証
-final client = MisskeyOAuthClient();
-final token = await client.authenticate(config);
+// MiAuth
+final miKey = await auth.loginWithMiAuth(
+  MisskeyMiAuthConfig(
+    host: 'misskey.io',
+    appName: 'Your App',
+    callbackScheme: 'yourscheme',
+    permissions: ['read:account', 'write:notes'],
+    iconUrl: 'https://example.com/icon.png',
+  ),
+  setActive: true,
+);
+
+// トークン取得
+final current = await auth.currentToken();
+final specific = await auth.tokenOf(oauthKey);
+
+// アカウント管理
+final accounts = await auth.listAccounts();
+await auth.setActive(miKey);
+await auth.signOut(oauthKey);
+await auth.signOutAll();
 ```
 
 #### 3. プラットフォーム設定
@@ -446,12 +566,12 @@ final token = await client.authenticate(config);
   - OAuth: 認可サーバーからはHTTPSの`redirect_uri`に戻る必要があるため、そこに配置した`redirect.html`が最終的に`yourscheme://...`へリダイレクトしてアプリに戻します。
   - MiAuth: 認証開始URLの`callback`クエリに、最初から`yourscheme://...`を指定します（`https`は不要）。
 
-##### MiAuth の例（Dart）
+##### MiAuth の例（保存無し）
 
 ```dart
 import 'package:misskey_auth/misskey_auth.dart';
 
-final miClient = MisskeyMiAuthClient();
+final miClient = MisskeyMiAuthClient(); // 保存はしません
 final miConfig = MisskeyMiAuthConfig(
   host: 'misskey.io',
   appName: 'Your App',
@@ -459,15 +579,35 @@ final miConfig = MisskeyMiAuthConfig(
   permissions: ['read:account', 'write:notes'],
   iconUrl: 'https://example.com/icon.png', // 任意
 );
-final miRes = await miClient.authenticate(miConfig);
+final miRes = await miClient.authenticate(miConfig); // トークンのみ返します
 ```
 
-##### OAuth の例
+##### MiAuth の例（MisskeyAuthManager による保存あり）
 
 ```dart
 import 'package:misskey_auth/misskey_auth.dart';
 
-final oauthClient = MisskeyOAuthClient();
+final auth = MisskeyAuthManager.defaultInstance();
+final key = await auth.loginWithMiAuth(
+  MisskeyMiAuthConfig(
+    host: 'misskey.io',
+    appName: 'Your App',
+    callbackScheme: 'yourscheme',
+    permissions: ['read:account', 'write:notes'],
+    iconUrl: 'https://example.com/icon.png',
+  ),
+  setActive: true,
+);
+// トークンは SecureTokenStore に保存され、後から取得できます
+final current = await auth.currentToken();
+```
+
+##### OAuth の例（保存無し）
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final oauthClient = MisskeyOAuthClient(); // 保存はしません
 final oauthConfig = MisskeyOAuthConfig(
   host: 'misskey.io',
   clientId: 'https://yourpage/yourapp/',
@@ -475,7 +615,27 @@ final oauthConfig = MisskeyOAuthConfig(
   scope: 'read:account write:notes',
   callbackScheme: 'yourscheme',          // アプリ側で登録したスキーム
 );
-final token = await oauthClient.authenticate(oauthConfig);
+final token = await oauthClient.authenticate(oauthConfig); // トークンのみ返します
+```
+
+##### OAuth の例（MisskeyAuthManager による保存あり）
+
+```dart
+import 'package:misskey_auth/misskey_auth.dart';
+
+final auth = MisskeyAuthManager.defaultInstance();
+final key = await auth.loginWithOAuth(
+  MisskeyOAuthConfig(
+    host: 'misskey.io',
+    clientId: 'https://yourpage/yourapp/',
+    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    scope: 'read:account write:notes',
+    callbackScheme: 'yourscheme',
+  ),
+  setActive: true,
+);
+// トークンは SecureTokenStore に保存され、後から取得できます
+final current = await auth.currentToken();
 ```
 
 ##### 両方式を同一アプリでサポートするには
@@ -519,17 +679,11 @@ Misskey OAuth認証を処理するメインクラス
 
 ```dart
 class MisskeyOAuthClient {
-  /// Misskeyサーバーで認証を実行
+  /// Misskeyサーバーで認証を実行（保存は行いません）
   Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config);
   
   /// OAuthサーバー情報を取得
   Future<OAuthServerInfo?> getOAuthServerInfo(String host);
-  
-  /// 保存されたアクセストークンを取得
-  Future<String?> getStoredAccessToken();
-  
-  /// 保存されたトークンを削除
-  Future<void> clearTokens();
 }
 ```
 
@@ -539,14 +693,68 @@ Misskey MiAuth認証を処理するメインクラス
 
 ```dart
 class MisskeyMiAuthClient {
-  /// MisskeyサーバーでMiAuth認証を実行
+  /// MisskeyサーバーでMiAuth認証を実行（Tokenの保存はされません）
   Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config);
-  
-  /// 保存されたアクセストークンを取得
-  Future<String?> getStoredAccessToken();
-  
-  /// 保存されたトークンを削除
-  Future<void> clearTokens();
+}
+
+#### MisskeyAuthManager
+
+`TokenStore` を介して OAuth/MiAuth を実行し、トークンを保存する高レベルAPI。
+
+```dart
+class MisskeyAuthManager {
+  static MisskeyAuthManager defaultInstance();
+
+  Future<AccountKey> loginWithOAuth(MisskeyOAuthConfig config, { bool setActive = true });
+  Future<AccountKey> loginWithMiAuth(MisskeyMiAuthConfig config, { bool setActive = true });
+
+  Future<StoredToken?> currentToken();
+  Future<StoredToken?> tokenOf(AccountKey key);
+
+  Future<void> setActive(AccountKey key);
+  Future<AccountKey?> getActive();
+  Future<void> clearActive();
+
+  Future<List<AccountEntry>> listAccounts();
+  Future<void> signOut(AccountKey key);
+  Future<void> signOutAll();
+}
+```
+
+#### TokenStore / SecureTokenStore
+
+```dart
+abstract class TokenStore {
+  Future<void> upsert(AccountKey key, StoredToken token);
+  Future<StoredToken?> read(AccountKey key);
+  Future<List<AccountEntry>> list();
+  Future<void> delete(AccountKey key);
+  Future<void> clearAll();
+  Future<void> setActive(AccountKey? key);
+  Future<AccountKey?> getActive();
+}
+```
+
+#### モデル（抜粋）
+
+```dart
+class StoredToken {
+  final String accessToken;
+  final String tokenType; // 'MiAuth' | 'OAuth'
+  final String? scope;
+  final Map<String, dynamic>? user;
+  final DateTime? createdAt;
+}
+
+class AccountKey {
+  final String host;
+  final String accountId;
+}
+
+class AccountEntry {
+  final AccountKey key;
+  final String? userName;
+  final DateTime? createdAt;
 }
 ```
 
@@ -570,48 +778,6 @@ class MisskeyMiAuthClient {
 ### ライセンス
 
 このプロジェクトは3-Clause BSD Licenseの下で公開されています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。
-
-### サンプルアプリでの確認方法
-
-このライブラリには動作を確認できるサンプルアプリが同梱されています。
-
-#### サンプルアプリの実行
-
-1. リポジトリをクローンまたはダウンロード
-2. サンプルアプリディレクトリに移動：
-   ```bash
-   cd example
-   ```
-3. 依存関係をインストール：
-   ```bash
-   flutter pub get
-   ```
-
-4. アプリを実行：
-   ```bash
-   flutter run
-   ```
-
-#### サンプルアプリの機能
-
-- **サーバー情報の確認**: MisskeyサーバーがOAuth 2.0をサポートしているかチェック
-- **認証設定**: ホスト、クライアントID、リダイレクトURI、スコープ、コールバックスキームの設定
-- **OAuth認証フロー**: 実際のブラウザを使った認証の実行
-- **トークン管理**: 認証成功時のアクセストークンの表示・削除
-- **エラーハンドリング**: 各種エラー状況での動作確認
-
-#### デフォルト設定
-
-サンプルアプリには以下のデフォルト値が設定されています：
-
-- **ホスト**: `misskey.io`
-- **クライアントID**: `https://librarylibrarian.github.io/misskey_auth/`
-- **リダイレクトURI**: `https://librarylibrarian.github.io/misskey_auth/redirect.html`
-- **スコープ**: `read:account write:notes`
-- **コールバックスキーム**: `misskeyauth`
-
-これらの値は動作確認用として提供されていますが、実際のアプリ開発時は独自の値に変更してください。
-自分が対象としているサーバーでライブラリが利用できるかのチェックにも使えます。
 
 ### リンク
 
