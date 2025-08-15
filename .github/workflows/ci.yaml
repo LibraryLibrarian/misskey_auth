@@ -59,6 +59,7 @@ jobs:
       - name: Analyze (fail on infos)
         run: dart analyze --fatal-infos
       - name: Test
+        if: ${{ hashFiles('test/**/*_test.dart') != '' }}
         run: flutter test
 
   example-android:
