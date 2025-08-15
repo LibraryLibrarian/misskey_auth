@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import '../models/oauth_models.dart';
@@ -12,19 +11,32 @@ import '../exceptions/misskey_auth_exception.dart';
 /// MisskeyのOAuth認証を管理するクライアント
 class MisskeyOAuthClient {
   final Dio _dio;
-  final FlutterSecureStorage _storage;
+  // 保存責務は削除（TokenStore が担当）
 
-  // ストレージキー
-  static const _accessTokenKey = 'misskey_access_token';
-  static const _refreshTokenKey = 'misskey_refresh_token';
-  static const _expiresAtKey = 'misskey_expires_at';
-  static const _hostKey = 'misskey_host';
-
+  /// 認証通信で使用するHTTPクライアント
+  ///
+  /// [dio] を渡さない場合は、次のデフォルトタイムアウトで初期化：
+  /// - 接続: 10秒
+  /// - 送信:  20秒
+  /// - 受信:  20秒
+  /// これらは [connectTimeout]/[sendTimeout]/[receiveTimeout] で上書き可能
   MisskeyOAuthClient({
     Dio? dio,
-    FlutterSecureStorage? storage,
-  })  : _dio = dio ?? Dio(),
-        _storage = storage ?? const FlutterSecureStorage();
+    Duration? connectTimeout,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
+  }) : _dio = dio ??
+            Dio(BaseOptions(
+              connectTimeout: connectTimeout ?? const Duration(seconds: 10),
+              sendTimeout: sendTimeout ?? const Duration(seconds: 20),
+              receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
+            )) {
+    if (dio != null) {
+      if (connectTimeout != null) _dio.options.connectTimeout = connectTimeout;
+      if (sendTimeout != null) _dio.options.sendTimeout = sendTimeout;
+      if (receiveTimeout != null) _dio.options.receiveTimeout = receiveTimeout;
+    }
+  }
 
   /// OAuth認証サーバー情報を取得
   Future<OAuthServerInfo?> getOAuthServerInfo(String host) async {
@@ -207,24 +219,8 @@ class MisskeyOAuthClient {
         codeVerifier: codeVerifier,
       );
 
-      // 8. トークンを保存
-      try {
-        await _saveTokens(
-          host: config.host,
-          accessToken: tokenResponse.accessToken,
-          refreshToken: tokenResponse.refreshToken,
-          expiresIn: tokenResponse.expiresIn,
-        );
-      } on PlatformException catch (e) {
-        throw SecureStorageException(details: e.message, originalException: e);
-      } catch (e) {
-        if (e is MisskeyAuthException) rethrow;
-        throw SecureStorageException(details: e.toString());
-      }
-
-      if (kDebugMode) {
-        print('認証成功！');
-      }
+      // 8. 成功（保存は呼び出し側で TokenStore が担当）
+      if (kDebugMode) print('認証成功！');
       return tokenResponse;
     } on MisskeyAuthException {
       rethrow;
@@ -315,42 +311,5 @@ class MisskeyOAuthClient {
     }
   }
 
-  /// トークンを保存
-  Future<void> _saveTokens({
-    required String host,
-    required String accessToken,
-    String? refreshToken,
-    int? expiresIn,
-  }) async {
-    await _storage.write(key: _hostKey, value: host);
-    await _storage.write(key: _accessTokenKey, value: accessToken);
-
-    if (refreshToken != null) {
-      await _storage.write(key: _refreshTokenKey, value: refreshToken);
-    }
-
-    if (expiresIn != null) {
-      final expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
-      await _storage.write(
-          key: _expiresAtKey, value: expiresAt.toIso8601String());
-    }
-  }
-
-  /// 保存されたアクセストークンを取得
-  Future<String?> getStoredAccessToken() async {
-    try {
-      return await _storage.read(key: _accessTokenKey);
-    } on PlatformException catch (e) {
-      throw SecureStorageException(details: e.message, originalException: e);
-    }
-  }
-
-  /// トークンをクリア
-  Future<void> clearTokens() async {
-    try {
-      await _storage.deleteAll();
-    } on PlatformException catch (e) {
-      throw SecureStorageException(details: e.message, originalException: e);
-    }
-  }
+  // 保存・読み出し・クリアの責務は廃止
 }

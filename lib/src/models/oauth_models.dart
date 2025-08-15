@@ -60,9 +60,6 @@ class OAuthTokenResponse {
   /// トークンタイプ（通常は"Bearer"）
   final String tokenType;
 
-  /// リフレッシュトークン（オプション）
-  final String? refreshToken;
-
   /// トークンの有効期限（秒）
   final int? expiresIn;
 
@@ -75,7 +72,6 @@ class OAuthTokenResponse {
   const OAuthTokenResponse({
     required this.accessToken,
     required this.tokenType,
-    this.refreshToken,
     this.expiresIn,
     this.scope,
     this.idToken,
@@ -85,7 +81,6 @@ class OAuthTokenResponse {
     return OAuthTokenResponse(
       accessToken: json['access_token'] as String,
       tokenType: json['token_type'] as String,
-      refreshToken: json['refresh_token'] as String?,
       expiresIn: json['expires_in'] as int?,
       scope: json['scope'] as String?,
       idToken: json['id_token'] as String?,
