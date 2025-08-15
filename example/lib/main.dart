@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:misskey_auth/misskey_auth.dart';
 import 'package:loader_overlay/loader_overlay.dart';
@@ -32,8 +34,8 @@ class AuthExamplePage extends StatefulWidget {
 }
 
 class _AuthExamplePageState extends State<AuthExamplePage> {
-  final _client = MisskeyOAuthClient();
-  final _miClient = MisskeyMiAuthClient();
+  final _auth = MisskeyAuthManager.defaultInstance();
+  final _oauthClient = MisskeyOAuthClient(); // サーバー情報の確認用
   int _currentIndex = 0;
 
   // フォームコントローラー
@@ -49,7 +51,6 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   final _miIconUrlController = TextEditingController();
 
   // 状態
-  String? _accessToken;
   OAuthServerInfo? _serverInfo;
 
   String _mapErrorToMessage(Object error) {
@@ -116,7 +117,6 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   void initState() {
     super.initState();
     _setDefaultValues();
-    _loadStoredToken();
   }
 
   @override
@@ -147,21 +147,6 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     _miIconUrlController.text = '';
   }
 
-  Future<void> _loadStoredToken() async {
-    try {
-      final token = await _client.getStoredAccessToken();
-      setState(() {
-        _accessToken = token;
-      });
-    } on MisskeyAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mapErrorToMessage(e))),
-        );
-      }
-    } catch (_) {}
-  }
-
   Future<void> _checkServerInfo() async {
     setState(() {
       _serverInfo = null;
@@ -176,7 +161,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
         throw Exception('ホストを入力してください');
       }
 
-      final serverInfo = await _client.getOAuthServerInfo(host);
+      final serverInfo = await _oauthClient.getOAuthServerInfo(host);
 
       if (!mounted) return;
       setState(() {
@@ -221,18 +206,20 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
         callbackScheme: _callbackSchemeController.text.trim(),
       );
 
-      final tokenResponse = await _client.authenticate(config);
+      final key = await _auth.loginWithOAuth(config, setActive: true);
+      if (kDebugMode) {
+        final t = await _auth.tokenOf(key);
+        developer
+            .log('[OAuth] account=${key.accountId} token=${t?.accessToken}');
+      }
 
-      if (tokenResponse != null && mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('認証に成功しました！')),
+        );
         setState(() {
-          _accessToken = tokenResponse.accessToken;
+          _currentIndex = 3; // アカウント一覧タブへ
         });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('認証に成功しました！')),
-          );
-        }
       }
     } on MisskeyAuthException catch (e) {
       if (mounted) {
@@ -283,18 +270,20 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
             : _miIconUrlController.text.trim(),
       );
 
-      final res = await _miClient.authenticate(config);
+      final key = await _auth.loginWithMiAuth(config, setActive: true);
+      if (kDebugMode) {
+        final t = await _auth.tokenOf(key);
+        developer
+            .log('[MiAuth] account=${key.accountId} token=${t?.accessToken}');
+      }
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('MiAuth に成功しました！')),
+        );
         setState(() {
-          _accessToken = res.token;
+          _currentIndex = 3; // アカウント一覧タブへ
         });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('MiAuth に成功しました！')),
-          );
-        }
       }
     } on MisskeyAuthException catch (e) {
       if (mounted) {
@@ -306,32 +295,6 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('MiAuth エラー: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        context.loaderOverlay.hide();
-      }
-    }
-  }
-
-  Future<void> _clearToken() async {
-    if (!mounted) return;
-    context.loaderOverlay.show();
-
-    try {
-      await _client.clearTokens();
-      await _loadStoredToken();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('トークンを削除しました')),
-        );
-      }
-    } on MisskeyAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mapErrorToMessage(e))),
         );
       }
     } finally {
@@ -353,15 +316,14 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildStoredTokenCard(),
-            const SizedBox(height: 16),
             if (_currentIndex == 0)
               _buildOAuthForm(context)
             else if (_currentIndex == 1)
               _buildMiAuthForm(context)
+            else if (_currentIndex == 2)
+              _buildServerInfoTab(context)
             else
-              _buildServerInfoTab(context),
-            // 画面内のエラーカード表示は行わず、Snackbarのみで通知
+              _buildAccountsTab(context),
           ],
         ),
       ),
@@ -372,44 +334,13 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
           NavigationDestination(icon: Icon(Icons.vpn_key), label: 'MiAuth'),
           NavigationDestination(
               icon: Icon(Icons.info_outline), label: 'サーバー情報'),
+          NavigationDestination(icon: Icon(Icons.people), label: 'アカウント一覧'),
         ],
         onDestinationSelected: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-      ),
-    );
-  }
-
-  Widget _buildStoredTokenCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '保存されたトークン',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(_accessToken != null
-                ? '${_accessToken!.substring(0, 10)}...'
-                : 'トークンなし'),
-            if (_accessToken != null) ...[
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: _clearToken,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('トークンを削除'),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }
@@ -619,5 +550,115 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     );
   }
 
-  // 画面内のエラーカードは廃止（Snackbarのみ使用）
+  Widget _buildAccountsTab(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'ログイン済みアカウント',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: '再読込',
+                  onPressed: () {
+                    setState(() {}); // FutureBuilder を再評価
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bug_report),
+                  tooltip: 'デバッグログにトークンを出力',
+                  onPressed: () async {
+                    if (!kDebugMode) return;
+                    final accounts = await _auth.listAccounts();
+                    for (final entry in accounts) {
+                      final key = entry.key;
+                      final t = await _auth.tokenOf(key);
+                      developer.log(
+                          '[Dump] ${key.host}/${key.accountId} token=${t?.accessToken}');
+                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('デバッグログにトークンを出力しました')),
+                    );
+                  },
+                )
+              ],
+            ),
+            const SizedBox(height: 8),
+            FutureBuilder<List<Object?>>(
+              future: Future.wait<Object?>([
+                _auth.listAccounts(),
+                _auth.getActive(),
+              ]),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                      child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ));
+                }
+                if (!snapshot.hasData) {
+                  return const Text('アカウント情報を取得できませんでした');
+                }
+                final accounts = (snapshot.data![0] as List<AccountEntry>);
+                final active = snapshot.data![1] as AccountKey?;
+                if (accounts.isEmpty) {
+                  return const Text('ログイン済みのアカウントはありません');
+                }
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: accounts.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final entry = accounts[index];
+                    final key = entry.key;
+                    final isActive = active != null && active == key;
+                    final title = entry.userName ?? key.accountId;
+                    final saved = entry.createdAt != null
+                        ? '保存: ${entry.createdAt!.toLocal().toString().substring(0, 19)}'
+                        : null;
+                    return ListTile(
+                      leading: Icon(
+                          isActive ? Icons.star : Icons.person_outline,
+                          color: isActive ? Colors.amber : null),
+                      title: Text(title),
+                      subtitle: Text(
+                          '${key.host} / ${key.accountId}${saved != null ? '\n$saved' : ''}'),
+                      isThreeLine: saved != null,
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          await _auth.signOut(key);
+                          if (mounted) setState(() {});
+                        },
+                        tooltip: 'このアカウントを削除',
+                      ),
+                      onTap: () async {
+                        await _auth.setActive(key);
+                        if (mounted) setState(() {});
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('デフォルトを変更: ${key.accountId}')),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -9,7 +9,7 @@ class MisskeyMiAuthConfig {
   /// カスタム URL スキーム（例: misskeyauth）
   final String callbackScheme;
 
-  /// 要求する権限一覧（例: ['read:account', 'write:notes']）
+  /// 要求する権限一覧（例: `read:account`, `write:notes`）
   final List<String> permissions;
 
   /// アプリアイコンの URL（任意）

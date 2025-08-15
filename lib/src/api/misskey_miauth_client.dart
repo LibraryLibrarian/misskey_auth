@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
@@ -12,17 +11,30 @@ import '../exceptions/misskey_auth_exception.dart';
 /// Misskey の MiAuth 認証を扱うクライアント
 class MisskeyMiAuthClient {
   final Dio _dio;
-  final FlutterSecureStorage _storage;
 
-  // ストレージキー（OAuth 実装と揃える）
-  static const _accessTokenKey = 'misskey_access_token';
-  static const _hostKey = 'misskey_host';
-
+  /// 認証通信で使用するHTTPクライアント
+  ///
+  /// [dio] を渡さない場合は、次のデフォルトタイムアウトで初期化
+  /// - 接続: 10秒
+  /// - 送信:  20秒
+  /// - 受信:  20秒
   MisskeyMiAuthClient({
     Dio? dio,
-    FlutterSecureStorage? storage,
-  })  : _dio = dio ?? Dio(),
-        _storage = storage ?? const FlutterSecureStorage();
+    Duration? connectTimeout,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
+  }) : _dio = dio ??
+            Dio(BaseOptions(
+              connectTimeout: connectTimeout ?? const Duration(seconds: 10),
+              sendTimeout: sendTimeout ?? const Duration(seconds: 20),
+              receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
+            )) {
+    if (dio != null) {
+      if (connectTimeout != null) _dio.options.connectTimeout = connectTimeout;
+      if (sendTimeout != null) _dio.options.sendTimeout = sendTimeout;
+      if (receiveTimeout != null) _dio.options.receiveTimeout = receiveTimeout;
+    }
+  }
 
   /// ランダムなセッション ID を生成（URL セーフな英数字）
   String generateSessionId({int length = 32}) {
@@ -128,20 +140,8 @@ class MisskeyMiAuthClient {
         throw const MiAuthDeniedException();
       }
 
-      // 5. トークン保存
-      try {
-        await _storage.write(key: _hostKey, value: config.host);
-        await _storage.write(key: _accessTokenKey, value: check.token);
-      } on PlatformException catch (e) {
-        throw SecureStorageException(details: e.message, originalException: e);
-      } catch (e) {
-        if (e is MisskeyAuthException) rethrow;
-        throw SecureStorageException(details: e.toString());
-      }
-
-      if (kDebugMode) {
-        print('MiAuth 成功');
-      }
+      // 5. 成功応答（保存は呼び出し側で TokenStore が担当）
+      if (kDebugMode) print('MiAuth 成功');
       return MiAuthTokenResponse(token: check.token!, user: check.user);
     } on MisskeyAuthException {
       rethrow;
@@ -164,21 +164,5 @@ class MisskeyMiAuthClient {
     }
   }
 
-  /// 保存された MiAuth トークンを取得
-  Future<String?> getStoredAccessToken() async {
-    try {
-      return _storage.read(key: _accessTokenKey);
-    } on PlatformException catch (e) {
-      throw SecureStorageException(details: e.message, originalException: e);
-    }
-  }
-
-  /// MiAuth の保存情報を削除
-  Future<void> clearTokens() async {
-    try {
-      await _storage.deleteAll();
-    } on PlatformException catch (e) {
-      throw SecureStorageException(details: e.message, originalException: e);
-    }
-  }
+  // ストレージ操作は廃止
 }

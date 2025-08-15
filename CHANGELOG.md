@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3-beta] - 2025-08-15
+
+### Added
+- Multi-account token management via `TokenStore` abstraction
+- Default secure implementation: `SecureTokenStore` (backed by `flutter_secure_storage`)
+- High-level API `MisskeyAuthManager` to orchestrate OAuth/MiAuth authentication and token persistence
+- Models and types for account/token management: `StoredToken`, `AccountKey`, `AccountEntry`
+- Public exports for store/manager types from `misskey_auth.dart`
+
+### Changed
+- `MisskeyOAuthClient` and `MisskeyMiAuthClient` no longer persist tokens; they only perform the authentication flow and return results
+- Constructors now focus on networking concerns (`Dio` and timeouts)
+
+### Removed
+- Storage-related APIs from clients:
+  - `MisskeyOAuthClient.getStoredAccessToken()`
+  - `MisskeyOAuthClient.clearTokens()`
+  - `MisskeyMiAuthClient.getStoredAccessToken()`
+  - `MisskeyMiAuthClient.clearTokens()`
+- `MisskeyMiAuthClient` constructor parameter for storage injection
+
+### Breaking Changes
+- Removed storage APIs from both `MisskeyOAuthClient` and `MisskeyMiAuthClient` (use `MisskeyAuthManager` and `TokenStore` instead)
+- `MisskeyMiAuthClient` constructor signature changed (storage parameter removed)
+- Token lifecycle (save/read/delete) responsibilities moved from clients to `TokenStore`/`MisskeyAuthManager`
+
 ## [0.1.2-beta] - 2025-08-15
 
 ### Added
