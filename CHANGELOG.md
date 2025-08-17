@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4-beta] - 2025-08-18
+
+### Added
+- Network stability improvements:
+  - Introduced `RetryPolicy` and `retry()` utility (`lib/src/net/retry.dart`)
+  - Applied retry to OAuth server info fetch, token exchange, MiAuth check API, and `/api/i` user fetch
+- Default networking timeouts (overridable): connect 10s / send 20s / receive 20s
+  - `MisskeyOAuthClient`, `MisskeyMiAuthClient`, and `MisskeyAuthManager` now accept timeout overrides
+- Documentation:
+  - Added API doc comments for `AccountKey`, `StoredToken`, `AccountEntry`, `TokenStore`, `SecureTokenStore`, and `MisskeyAuthManager`
+
+### Changed
+- `/api/i` request now follows common Misskey style: send token in JSON body with `{"i": "<token>"}` (instead of Authorization header)
+- `Dio` now receives Map bodies directly (Dio handles JSON encoding internally)
+
+### Removed
+- Unused/duplicated config model: `lib/src/models/auth_config.dart`
+- Accidental `lib/main.dart` (prevented dartdoc pollution; example retains its own main)
+
 ## [0.1.3-beta] - 2025-08-15
 
 ### Added
