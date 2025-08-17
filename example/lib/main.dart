@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:misskey_auth/misskey_auth.dart';
 import 'package:loader_overlay/loader_overlay.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -52,6 +53,38 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
 
   // 状態
   OAuthServerInfo? _serverInfo;
+
+  // スコープ入力（カスタムのみを採用）
+  final TextEditingController _oauthCustomScopesController =
+      TextEditingController();
+  final TextEditingController _miCustomScopesController =
+      TextEditingController();
+
+  void _addOAuthCustomScopesFromInput() {
+    final List<String> items = _oauthCustomScopesController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (items.isEmpty) return;
+    _scopeController.text = items.join(' ');
+    setState(() {
+      _oauthCustomScopesController.clear();
+    });
+  }
+
+  void _addMiCustomScopesFromInput() {
+    final List<String> items = _miCustomScopesController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (items.isEmpty) return;
+    _miPermissionsController.text = items.join(' ');
+    setState(() {
+      _miCustomScopesController.clear();
+    });
+  }
 
   String _mapErrorToMessage(Object error) {
     // MisskeyAuth のカスタム例外をユーザー向け日本語に整形
@@ -145,6 +178,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     _miAppNameController.text = 'Misskey Auth Example';
     _miPermissionsController.text = 'read:account write:notes';
     _miIconUrlController.text = '';
+
+    // 候補配列は廃止（カスタム欄から確定時にTextControllerへ反映）
   }
 
   Future<void> _checkServerInfo() async {
@@ -169,22 +204,24 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       });
 
       if (serverInfo == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('OAuth認証はサポートされていません（MiAuth認証を使用してください）')),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+                content: Text('OAuth認証はサポートされていません（MiAuth認証を使用してください）')),
+          );
       }
     } on MisskeyAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mapErrorToMessage(e))),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(_mapErrorToMessage(e))));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) {
@@ -198,6 +235,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     context.loaderOverlay.show();
 
     try {
+      // 未確定のカスタムスコープ入力を確定して反映
+      _addOAuthCustomScopesFromInput();
       final config = MisskeyOAuthConfig(
         host: _hostController.text.trim(),
         clientId: _clientIdController.text.trim(),
@@ -214,24 +253,24 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('認証に成功しました！')),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('認証に成功しました！')));
         setState(() {
           _currentIndex = 3; // アカウント一覧タブへ
         });
       }
     } on MisskeyAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mapErrorToMessage(e))),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(_mapErrorToMessage(e))));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('認証エラー: $e')),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('認証エラー: $e')));
       }
     } finally {
       if (mounted) {
@@ -245,6 +284,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     context.loaderOverlay.show();
 
     try {
+      // 未確定のカスタムスコープ入力を確定して反映
+      _addMiCustomScopesFromInput();
       final host = _hostController.text.trim();
       if (host.isEmpty) {
         throw Exception('ホストを入力してください');
@@ -278,24 +319,24 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('MiAuth に成功しました！')),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('MiAuth に成功しました！')));
         setState(() {
           _currentIndex = 3; // アカウント一覧タブへ
         });
       }
     } on MisskeyAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mapErrorToMessage(e))),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(_mapErrorToMessage(e))));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('MiAuth エラー: $e')),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('MiAuth エラー: $e')));
       }
     } finally {
       if (mounted) {
@@ -364,7 +405,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                 hintText: '例: misskeyauth',
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             TextField(
               controller: _hostController,
               decoration: const InputDecoration(
@@ -390,25 +431,31 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
               ),
             ),
             const SizedBox(height: 8),
+            const Text(
+              'カスタムスコープ（カンマ区切り）',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
             TextField(
-              controller: _scopeController,
+              controller: _oauthCustomScopesController,
               decoration: const InputDecoration(
-                labelText: 'スコープ',
-                hintText: '例: read:account write:notes',
+                labelText: '例: write:drive, read:favorites',
               ),
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _addOAuthCustomScopesFromInput(),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _startAuth,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('認証を開始'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _startAuth,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
                 ),
-              ],
+                child: const Text('OAuthで認証'),
+              ),
             ),
           ],
         ),
@@ -452,12 +499,19 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
               ),
             ),
             const SizedBox(height: 8),
+            const Text(
+              'カスタムスコープ（カンマ区切り）',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
             TextField(
-              controller: _miPermissionsController,
+              controller: _miCustomScopesController,
               decoration: const InputDecoration(
-                labelText: '権限（空白/カンマ区切り）',
-                hintText: '例: read:account write:notes',
+                labelText: '例: write:drive, read:favorites',
               ),
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _addMiCustomScopesFromInput(),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -467,17 +521,16 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _startMiAuth,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('MiAuthで認証'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _startMiAuth,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
                 ),
-              ],
+                child: const Text('MiAuthで認証'),
+              ),
             ),
           ],
         ),
@@ -497,13 +550,45 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text('認証エンドポイント:\n${_serverInfo!.authorizationEndpoint}'),
+            const Text('認証エンドポイント'),
             const SizedBox(height: 4),
-            Text('トークンエンドポイント:\n${_serverInfo!.tokenEndpoint}'),
-            if (_serverInfo!.scopesSupported != null) ...[
+            SelectableText(_serverInfo!.authorizationEndpoint),
+            const SizedBox(height: 8),
+            const Text('トークンエンドポイント'),
+            const SizedBox(height: 4),
+            SelectableText(_serverInfo!.tokenEndpoint),
+            if (_serverInfo!.scopesSupported != null &&
+                _serverInfo!.scopesSupported!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('サポートされているスコープ（タップでコピー）'),
               const SizedBox(height: 4),
-              Text(
-                  'サポートされているスコープ:\n${_serverInfo!.scopesSupported!.join(', ')}'),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: Scrollbar(
+                  child: ListView.separated(
+                    itemCount: _serverInfo!.scopesSupported!.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final scope = _serverInfo!.scopesSupported![index];
+                      return InkWell(
+                        onTap: () async {
+                          await Clipboard.setData(ClipboardData(text: scope));
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(content: Text('コピーしました: $scope')),
+                            );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10.0),
+                          child: Text(scope),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ],
           ],
         ),
@@ -534,9 +619,12 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _checkServerInfo,
-                  child: const Text('サーバー情報を確認'),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _checkServerInfo,
+                    child: const Text('サーバー情報を確認'),
+                  ),
                 ),
               ],
             ),
@@ -585,9 +673,11 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                           '[Dump] ${key.host}/${key.accountId} token=${t?.accessToken}');
                     }
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('デバッグログにトークンを出力しました')),
-                    );
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        const SnackBar(content: Text('デバッグログにトークンを出力しました')),
+                      );
                   },
                 )
               ],
@@ -647,9 +737,12 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                         await _auth.setActive(key);
                         if (mounted) setState(() {});
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('デフォルトを変更: ${key.accountId}')),
-                        );
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                                content: Text('デフォルトを変更: ${key.accountId}')),
+                          );
                       },
                     );
                   },

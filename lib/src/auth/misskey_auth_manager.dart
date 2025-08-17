@@ -9,6 +9,7 @@ import '../store/account_key.dart';
 import '../store/secure_token_store.dart';
 import '../store/stored_token.dart';
 import '../store/token_store.dart';
+import '../net/retry.dart';
 
 /// Misskey 認証の高レベル管理クラス
 ///
@@ -102,10 +103,13 @@ class MisskeyAuthManager {
       String host, String accessToken) async {
     try {
       final url = 'https://$host/api/i';
-      final response = await dio.post(
-        url,
-        // Misskeyの一般的な仕様に従い、リクエストボディに `i` でトークンを渡す
-        data: <String, dynamic>{'i': accessToken},
+      final response = await retry(
+        () => dio.post(
+          url,
+          // Misskeyの一般的な仕様に従い、リクエストボディに `i` でトークンを渡す
+          data: <String, dynamic>{'i': accessToken},
+        ),
+        const RetryPolicy(maxAttempts: 3),
       );
       if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
         return response.data as Map<String, dynamic>;

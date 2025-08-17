@@ -7,6 +7,7 @@ import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../models/miauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
+import '../net/retry.dart';
 
 /// Misskey の MiAuth 認証を扱うクライアント
 class MisskeyMiAuthClient {
@@ -110,10 +111,13 @@ class MisskeyMiAuthClient {
         path: '/api/miauth/$sessionId/check',
       );
 
-      final response = await _dio.post(
-        checkUrl.toString(),
-        options: Options(contentType: 'application/json'),
-        data: <String, dynamic>{},
+      final response = await retry(
+        () => _dio.post(
+          checkUrl.toString(),
+          options: Options(contentType: 'application/json'),
+          data: <String, dynamic>{},
+        ),
+        const RetryPolicy(maxAttempts: 3),
       );
 
       if (response.statusCode != 200) {

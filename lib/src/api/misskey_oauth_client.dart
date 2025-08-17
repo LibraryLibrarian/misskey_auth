@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import '../models/oauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
+import '../net/retry.dart';
 
 /// MisskeyのOAuth認証を管理するクライアント
 class MisskeyOAuthClient {
@@ -41,8 +42,9 @@ class MisskeyOAuthClient {
   /// OAuth認証サーバー情報を取得
   Future<OAuthServerInfo?> getOAuthServerInfo(String host) async {
     try {
-      final response = await _dio.get(
-        'https://$host/.well-known/oauth-authorization-server',
+      final response = await retry(
+        () => _dio.get('https://$host/.well-known/oauth-authorization-server'),
+        const RetryPolicy(maxAttempts: 3),
       );
 
       if (response.statusCode == 200) {
@@ -253,19 +255,22 @@ class MisskeyOAuthClient {
     required String codeVerifier,
   }) async {
     try {
-      final response = await _dio.post(
-        tokenEndpoint,
-        options: Options(
-          contentType: 'application/x-www-form-urlencoded',
+      final response = await retry(
+        () => _dio.post(
+          tokenEndpoint,
+          options: Options(
+            contentType: 'application/x-www-form-urlencoded',
+          ),
+          data: {
+            'grant_type': 'authorization_code',
+            'client_id': clientId,
+            'redirect_uri': redirectUri,
+            'scope': scope,
+            'code': code,
+            'code_verifier': codeVerifier,
+          },
         ),
-        data: {
-          'grant_type': 'authorization_code',
-          'client_id': clientId,
-          'redirect_uri': redirectUri,
-          'scope': scope,
-          'code': code,
-          'code_verifier': codeVerifier,
-        },
+        const RetryPolicy(maxAttempts: 3),
       );
 
       if (response.statusCode == 200) {
