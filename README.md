@@ -151,7 +151,7 @@ Add to `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
 <activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth">
+    <intent-filter android:label="flutter_web_auth_2">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
@@ -160,12 +160,17 @@ Add to `android/app/src/main/AndroidManifest.xml`:
 </activity>
 ```
 
+Notes:
+- The `android:label` attribute on the `<intent-filter>` is optional. You can omit it or set any string.
+- On Android 12+ (API level 31+), any Activity with an `intent-filter` must declare `android:exported="true"`.
+- Use the same callback scheme string on both platforms: iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
+
 #### Differences in MiAuth and OAuth Configuration (Key Points for App Integration)
 - This configuration (registration of the URL scheme) is done on the "app side." It is not included in the library's Manifest.
 - Both methods require a "custom URL scheme" to return from an external browser to the app.
 - The difference lies in how to specify "where to return from the browser."
 - OAuth: Since it needs to return to an HTTPS `redirect_uri` from the authorization server, `redirect.html` placed there ultimately redirects back to `yourscheme://...` for the app.
-- MiAuth: The `callback` query of the authentication start URL specifies `yourscheme://...` from the beginning (no need for `https`).
+- MiAuth: The `callback` query of the authentication start URL points to the app via the custom scheme only (e.g., `yourscheme://`). No `https` is needed.
 
 ##### Example of MiAuth (no persistence)
 
@@ -180,7 +185,7 @@ final miConfig = MisskeyMiAuthConfig(
   permissions: ['read:account', 'write:notes'],
   iconUrl: 'https://example.com/icon.png', // Optional
 );
-final miRes = await miClient.authenticate(miConfig); // returns token only
+final miRes = await miClient.authenticate(miConfig); // returns token (and user if available)
 ```
 
 ##### Example of MiAuth (with persistence via MisskeyAuthManager)
@@ -241,12 +246,12 @@ final current = await auth.currentToken();
 
 ##### How to Support Both Methods in the Same App
 - By registering the same `scheme` (e.g., `yourscheme`) in iOS's `Info.plist` and Android's `AndroidManifest.xml`, it can be shared between OAuth and MiAuth.
-- If you implement the OAuth `redirect.html` to redirect to `yourscheme://oauth/callback?...`, you can reuse the same path expression (`yourscheme://oauth/callback`) for MiAuth's `callback`.
+- This library uses a scheme-only callback for MiAuth (e.g., `yourscheme://`). You do not need to reuse a path like `yourscheme://oauth/callback` for MiAuth.
 - For Android, matching only on the `scheme` is sufficient as shown below (the `host` and `path` are optional).
 
 ```xml
 <activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth">
+    <intent-filter android:label="flutter_web_auth_2">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
@@ -296,6 +301,7 @@ class MisskeyMiAuthClient {
   /// Authenticate with Misskey server using MiAuth (no persistence)
   Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config);
 }
+```
 
 #### MisskeyAuthManager
 
@@ -358,7 +364,6 @@ class AccountEntry {
   final DateTime? createdAt;
 }
 ```
-```
 
 ### Error Handling
 
@@ -379,7 +384,7 @@ The library includes exception classes for:
 
 ### License
 
-This project is licensed under the 3-Clause BSD License - see the [LICENSE](LICENSE) file for details.
+This project is published by 司書 (LibraryLibrarian) under the 3-Clause BSD License. For details, please see the [LICENSE](LICENSE) file.
 
 ### Related Links
 
@@ -415,26 +420,6 @@ dependencies:
 ```
 
 ### クイックスタート
-
-#### かんたん例（MisskeyAuthManager）
-
-```dart
-import 'package:misskey_auth/misskey_auth.dart';
-
-final auth = MisskeyAuthManager.defaultInstance();
-
-// 認証後にトークンを自動保存
-final key = await auth.loginWithOAuth(
-  MisskeyOAuthConfig(
-    host: 'misskey.io',
-    clientId: 'https://yourpage/yourapp/',
-    redirectUri: 'https://yourpage/yourapp/redirect.html',
-    scope: 'read:account write:notes',
-    callbackScheme: 'yourscheme',
-  ),
-  setActive: true,
-);
-```
 
 #### 1. client_idページの設定
 
@@ -549,7 +534,7 @@ await auth.signOutAll();
 
 ```xml
 <activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth">
+    <intent-filter android:label="flutter_web_auth_2">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
@@ -558,13 +543,18 @@ await auth.signOutAll();
 </activity>
 ```
 
+補足:
+- `<intent-filter>` の `android:label` は省略可能です（省略しても動作します）。
+- Android 12+（API 31 以降）では、`intent-filter` を持つ Activity に `android:exported="true"` の指定が必須です。
+- iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）で登録するカスタムスキーム名は同一にしてください（完全一致が必要）。
+
 #### MiAuth と OAuth の設定の違い（アプリ組み込み時のポイント）
 
 - この設定（URLスキームの登録）は「アプリ側」で行います。ライブラリ内のManifestには含めません。
 - 両方式とも、外部ブラウザからアプリへ戻すために「カスタムURLスキーム」が必要です。
 - 相違点は「ブラウザからどこに戻すか」の指定方法です。
   - OAuth: 認可サーバーからはHTTPSの`redirect_uri`に戻る必要があるため、そこに配置した`redirect.html`が最終的に`yourscheme://...`へリダイレクトしてアプリに戻します。
-  - MiAuth: 認証開始URLの`callback`クエリに、最初から`yourscheme://...`を指定します（`https`は不要）。
+  - MiAuth: 認証開始URLの`callback`クエリには、アプリのカスタムスキームのみ（例: `yourscheme://`）を指定します（`https`は不要）。
 
 ##### MiAuth の例（保存無し）
 
@@ -579,7 +569,7 @@ final miConfig = MisskeyMiAuthConfig(
   permissions: ['read:account', 'write:notes'],
   iconUrl: 'https://example.com/icon.png', // 任意
 );
-final miRes = await miClient.authenticate(miConfig); // トークンのみ返します
+final miRes = await miClient.authenticate(miConfig); // トークン（必要に応じて user も）を返します
 ```
 
 ##### MiAuth の例（MisskeyAuthManager による保存あり）
@@ -640,13 +630,13 @@ final current = await auth.currentToken();
 
 ##### 両方式を同一アプリでサポートするには
 
-- iOSの`Info.plist`・Androidの`AndroidManifest.xml`で同じ`sheme`（例: `yourscheme`）を1つ登録すれば、OAuth/MiAuthで共用可能です。
-- OAuth用の`redirect.html`は、`yourscheme://oauth/callback?...`へ飛ばす実装にしておくと、MiAuthの`callback`でも同じパス表現（`yourscheme://oauth/callback`）を使い回せます。
+- iOSの`Info.plist`・Androidの`AndroidManifest.xml`で同じ`scheme`（例: `yourscheme`）を1つ登録すれば、OAuth/MiAuthで共用可能です。
+- 本ライブラリの MiAuth は scheme のみ（`yourscheme://`）を callback に使います。`yourscheme://oauth/callback` のようなパス付きに揃える必要はありません。
 - Androidは以下のように`scheme`のみのマッチで十分です（`host`や`path`は任意）。
 
 ```xml
 <activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth">
+    <intent-filter android:label="flutter_web_auth_2">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
@@ -777,7 +767,7 @@ class AccountEntry {
 
 ### ライセンス
 
-このプロジェクトは3-Clause BSD Licenseの下で公開されています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。
+このプロジェクトは司書(LibraryLibrarian)によって、3-Clause BSD Licenseの下で公開されています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。
 
 ### リンク
 
