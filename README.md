@@ -150,12 +150,15 @@ Add to `ios/Runner/Info.plist`:
 Add to `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth_2">
+<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
+    <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
+        <!-- Minimum: scheme only -->
         <data android:scheme="yourscheme" />
+        <!-- Optional (recommended when you control redirect.html): also restrict host/path -->
+        <!-- <data android:scheme="yourscheme" android:host="oauth" android:path="/callback" /> -->
     </intent-filter>
 </activity>
 ```
@@ -164,6 +167,18 @@ Notes:
 - The `android:label` attribute on the `<intent-filter>` is optional. You can omit it or set any string.
 - On Android 12+ (API level 31+), any Activity with an `intent-filter` must declare `android:exported="true"`.
 - Use the same callback scheme string on both platforms: iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
+
+Important (OAuth redirect on Android):
+- Misskey OAuth requires `redirect_uri` to be HTTPS and exactly match the link in your client_id page.
+- Typical pattern is:
+  - `client_id` = `https://yourpage/yourapp/`
+  - `redirect_uri` = `https://yourpage/yourapp/redirect.html`
+  - The `redirect.html` then navigates to your custom scheme: `yourscheme://oauth/callback?code=...&state=...`
+- If you restrict the Android intent-filter by host/path, make sure it matches the URL used in `redirect.html` (e.g., `yourscheme://oauth/callback`).
+- If you see `PlatformException(CANCELED, User canceled login, ...)` on Android, common causes are:
+  1) The device did not deliver the callback to the app. Ensure `com.linusu.flutter_web_auth_2.CallbackActivity` has a matching `<intent-filter>`.
+  2) A PWA or another app intercepted the link. Using HTTPS → `redirect.html` → custom scheme flow usually mitigates this.
+  3) The `redirect_uri` did not exactly match the `<link rel="redirect_uri">` in the client_id page.
 
 #### Differences in MiAuth and OAuth Configuration (Key Points for App Integration)
 - This configuration (registration of the URL scheme) is done on the "app side." It is not included in the library's Manifest.
