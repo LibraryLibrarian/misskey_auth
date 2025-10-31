@@ -1,6 +1,6 @@
 {
   "debug.internalConsoleOptions": "openOnSessionStart",
-  "dart.flutterSdkPath": ".fvm/versions/3.35.5",
+  "dart.flutterSdkPath": ".fvm/versions/3.35.7",
   "[dart]": {
     "editor.defaultFormatter": "Dart-Code.dart-code",
     "editor.formatOnSave": true,
