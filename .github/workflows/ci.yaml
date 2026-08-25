@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flutter: ['3.24.x','3.27.x','3.29.x','3.32.x']
+        flutter: ['3.24.x','3.32.x','3.41.x','3.47.x']
         resolution: ['min','max']
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: '3.32.x', cache: true }
+        with: { channel: stable, flutter-version: '3.47.x', cache: true }
       - run: cd example && flutter pub get && flutter build apk
       - uses: actions/upload-artifact@v4
         with:
@@ -85,7 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: '3.32.x', cache: true }
+        with: { channel: stable, flutter-version: '3.47.x', cache: true }
       - run: cd example && flutter pub get && flutter build ios --debug --simulator
       - uses: actions/upload-artifact@v4
         with:
