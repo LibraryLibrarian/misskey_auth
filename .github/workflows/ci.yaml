@@ -94,7 +94,7 @@ jobs:
 
   publish-dry-run:
     needs: [package, example-android, example-ios]
-    if: always()  # 依存が落ちても実行し、ここで集約判定
+    if: always()  # 依存が落ちても実行する（成否の集約判定は gate ジョブで行う）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -123,11 +123,17 @@ jobs:
 
   gate:
     name: all checks passed
-    needs: [publish-dry-run]
+    needs: [changes, package, example-android, example-ios, publish-dry-run]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Ensure all deps succeeded
+        env:
+          # paths-filter でスキップされたジョブは skipped となり、失敗扱いにしない
+          FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
           echo 'Needs: ${{ toJson(needs) }}'
-          if [[ "${{ needs.publish-dry-run.result }}" != "success" ]]; then exit 1; fi
+          if [[ "$FAILED" == "true" ]]; then
+            echo "::error::One or more required jobs failed or were cancelled"
+            exit 1
+          fi
