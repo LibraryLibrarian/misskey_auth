@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       package: ${{ steps.filter.outputs.package }}
-      example: ${{ steps.filter.outputs.example }}
+      android: ${{ steps.filter.outputs.android }}
       ios: ${{ steps.filter.outputs.ios }}
       publish: ${{ steps.filter.outputs.publish }}
     steps:
@@ -37,13 +37,17 @@ jobs:
               - 'lib/**'
               - 'test/**'
               - '.github/workflows/ci.yaml'
-            example:
-              - 'example/**'
+            # ネイティブビルド固有のリスク（ツールチェーン / プラグイン結合）がある変更のみを対象にする。
+            # Dart レベルの破壊は package ジョブの dart analyze が example/lib まで検出するため含めない
+            android:
+              - 'example/android/**'
+              - 'example/pubspec.yaml'
+              - 'pubspec.yaml'
               - '.github/workflows/ci.yaml'
             ios:
               - 'example/ios/**'
-              - 'pubspec.yaml'
               - 'example/pubspec.yaml'
+              - 'pubspec.yaml'
               - '.github/workflows/ci.yaml'
             # pub.dev への公開可否に影響しうるファイル
             publish:
@@ -99,9 +103,17 @@ jobs:
         if: ${{ hashFiles('test/**/*_test.dart') != '' }}
         run: flutter test
 
+  # example-android / example-ios の実行条件は同一の原則で揃える:
+  #   - ネイティブビルド固有のリスクがある変更（プラットフォーム雛形 / 依存の変更）
+  #   - リリース経路（main 向け PR / main への push）
+  #   - 手動実行
   example-android:
     needs: changes
-    if: needs.changes.outputs.example == 'true' || needs.changes.outputs.package == 'true' || github.event_name == 'workflow_dispatch'
+    if: >-
+      needs.changes.outputs.android == 'true' ||
+      github.base_ref == 'main' ||
+      github.ref == 'refs/heads/main' ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -118,14 +130,13 @@ jobs:
           path: example/build/app/outputs/flutter-apk/*.apk
           retention-days: 7
 
-  # macOS ランナーは高コストなため、リリース経路（main 向け PR）・iOS/依存の変更時・手動実行に限定する
   example-ios:
     needs: changes
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.ios == 'true' ||
       github.base_ref == 'main' ||
       github.ref == 'refs/heads/main' ||
-      needs.changes.outputs.ios == 'true'
+      github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
