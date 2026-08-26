@@ -24,6 +24,7 @@ jobs:
       package: ${{ steps.filter.outputs.package }}
       example: ${{ steps.filter.outputs.example }}
       ios: ${{ steps.filter.outputs.ios }}
+      publish: ${{ steps.filter.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -43,6 +44,16 @@ jobs:
               - 'example/ios/**'
               - 'pubspec.yaml'
               - 'example/pubspec.yaml'
+              - '.github/workflows/ci.yaml'
+            # pub.dev への公開可否に影響しうるファイル
+            publish:
+              - 'pubspec.yaml'
+              - 'lib/**'
+              - 'README.md'
+              - 'CHANGELOG.md'
+              - 'LICENSE'
+              - '.pubignore'
+              - '.gitignore'
               - '.github/workflows/ci.yaml'
 
   package:
@@ -95,7 +106,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { distribution: 'temurin', java-version: '17' }
+        # Kotlin plugin 等の再ダウンロードを避ける。実行時間の短縮に加え、
+        # Maven Central / plugins.gradle.org からの 429 応答による失敗も減らせる
+        with: { distribution: 'temurin', java-version: '17', cache: 'gradle' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
       - run: cd example && flutter pub get && flutter build apk
@@ -120,12 +133,15 @@ jobs:
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
       - run: cd example && flutter pub get && flutter build ios --debug --simulator
 
-  # 公開直前の経路（main 向け PR / main への push）と手動実行でのみ検証する
+  # 公開不能な状態は持ち込んだ PR の時点で検出する（40 秒程度で完了するため常時実行に見合う）。
+  # リリース経路（main 向け PR / main への push）では paths に関わらず必ず実行する
   publish-dry-run:
+    needs: changes
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.publish == 'true' ||
       github.base_ref == 'main' ||
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main' ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
