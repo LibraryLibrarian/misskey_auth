@@ -3,12 +3,18 @@ name: ci
 on:
   pull_request:
     branches: [ "main", "develop" ]
+  # feature ブランチへの push は PR 側で検証するため、統合先ブランチのみを対象にする
+  # （push と pull_request の二重起動を防ぐ）
   push:
-    branches: [ "**" ]
+    branches: [ "main", "develop" ]
   workflow_dispatch:
 
+# CI は読み取りのみで完結する
+permissions:
+  contents: read
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,6 +23,8 @@ jobs:
     outputs:
       package: ${{ steps.filter.outputs.package }}
       example: ${{ steps.filter.outputs.example }}
+      ios: ${{ steps.filter.outputs.ios }}
+      publish: ${{ steps.filter.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -28,8 +36,25 @@ jobs:
               - 'analysis_options.yaml'
               - 'lib/**'
               - 'test/**'
+              - '.github/workflows/ci.yaml'
             example:
               - 'example/**'
+              - '.github/workflows/ci.yaml'
+            ios:
+              - 'example/ios/**'
+              - 'pubspec.yaml'
+              - 'example/pubspec.yaml'
+              - '.github/workflows/ci.yaml'
+            # pub.dev への公開可否に影響しうるファイル
+            publish:
+              - 'pubspec.yaml'
+              - 'lib/**'
+              - 'README.md'
+              - 'CHANGELOG.md'
+              - 'LICENSE'
+              - '.pubignore'
+              - '.gitignore'
+              - '.github/workflows/ci.yaml'
 
   package:
     name: package (${{ matrix.flutter }} / ${{ matrix.resolution }})
@@ -39,8 +64,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flutter: ['3.24.x','3.32.x','3.41.x','3.47.x']
-        resolution: ['min','max']
+        # 意味のある境界のみを検証する
+        #   3.24.x/min : pubspec で宣言した下限環境そのもの
+        #   3.24.x/max : 下限 SDK のユーザーが pub upgrade した状態（依存が SDK 下限を割っていないか）
+        #   3.47.x/max : 新規ユーザーが実際に取得する現行環境
+        include:
+          - flutter: '3.24.x'
+            resolution: 'min'
+          - flutter: '3.24.x'
+            resolution: 'max'
+          - flutter: '3.47.x'
+            resolution: 'max'
+            format: true
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -54,7 +89,9 @@ jobs:
       - name: Resolve (max)
         if: matrix.resolution == 'max'
         run: flutter pub upgrade
+      # dart format の整形結果は SDK バージョンで変わりうるため、最新 SDK の1本のみを正とする
       - name: Format check
+        if: matrix.format
         run: dart format --output=none --set-exit-if-changed .
       - name: Analyze (fail on infos)
         run: dart analyze --fatal-infos
@@ -69,7 +106,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { distribution: 'temurin', java-version: '17' }
+        # Kotlin plugin 等の再ダウンロードを避ける。実行時間の短縮に加え、
+        # Maven Central / plugins.gradle.org からの 429 応答による失敗も減らせる
+        with: { distribution: 'temurin', java-version: '17', cache: 'gradle' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
       - run: cd example && flutter pub get && flutter build apk
@@ -77,24 +116,32 @@ jobs:
         with:
           name: example-android-apk
           path: example/build/app/outputs/flutter-apk/*.apk
+          retention-days: 7
 
+  # macOS ランナーは高コストなため、リリース経路（main 向け PR）・iOS/依存の変更時・手動実行に限定する
   example-ios:
     needs: changes
-    if: needs.changes.outputs.example == 'true' || needs.changes.outputs.package == 'true' || github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.base_ref == 'main' ||
+      github.ref == 'refs/heads/main' ||
+      needs.changes.outputs.ios == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
       - run: cd example && flutter pub get && flutter build ios --debug --simulator
-      - uses: actions/upload-artifact@v4
-        with:
-          name: example-ios-simulator-app
-          path: example/build/ios/iphonesimulator/**/*.app
 
+  # 公開不能な状態は持ち込んだ PR の時点で検出する（40 秒程度で完了するため常時実行に見合う）。
+  # リリース経路（main 向け PR / main への push）では paths に関わらず必ず実行する
   publish-dry-run:
-    needs: [package, example-android, example-ios]
-    if: always()  # 依存が落ちても実行する（成否の集約判定は gate ジョブで行う）
+    needs: changes
+    if: >-
+      needs.changes.outputs.publish == 'true' ||
+      github.base_ref == 'main' ||
+      github.ref == 'refs/heads/main' ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,17 +149,12 @@ jobs:
         with: { channel: stable, cache: true }
       - name: Dry run publish (fail on warnings)
         run: |
+          # Actions の既定シェルは bash -e のため、dry-run が失敗した時点でステップは終了する
           set -o pipefail
           dart pub publish --dry-run 2>&1 | tee /tmp/pub.txt
-          # エラーはここで非0終了するので拾える
-          code=$?
-          if [ $code -ne 0 ]; then
-            echo "::error::pub dry-run failed with exit code $code"
-            exit $code
-          fi
 
-          # 例: "Package has 0 warnings." から件数だけ抜き取る
-          WARN=$(grep -Eo 'Package has [0-9]+ warnings' /tmp/pub.txt | grep -Eo '[0-9]+' | head -n1)
+          # "Package has 1 warning." / "Package has 2 warnings." の双方に一致させる
+          WARN=$(grep -Eo 'Package has [0-9]+ warning' /tmp/pub.txt | grep -Eo '[0-9]+' | head -n1)
           : "${WARN:=0}"  # 未取得なら0扱い
 
           echo "pub dry-run warnings: ${WARN}"
@@ -129,7 +171,7 @@ jobs:
     steps:
       - name: Ensure all deps succeeded
         env:
-          # paths-filter でスキップされたジョブは skipped となり、失敗扱いにしない
+          # paths-filter や if 条件でスキップされたジョブは skipped となり、失敗扱いにしない
           FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
           echo 'Needs: ${{ toJson(needs) }}'
