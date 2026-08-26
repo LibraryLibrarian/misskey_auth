@@ -265,7 +265,7 @@ final current = await auth.currentToken();
 - For Android, matching only on the `scheme` is sufficient as shown below (the `host` and `path` are optional).
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
+<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
     <intent-filter android:label="flutter_web_auth_2">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
@@ -548,7 +548,7 @@ await auth.signOutAll();
 `android/app/src/main/AndroidManifest.xml`に追加：
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
+<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
     <intent-filter android:label="flutter_web_auth_2">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
@@ -650,7 +650,7 @@ final current = await auth.currentToken();
 - Androidは以下のように`scheme`のみのマッチで十分です（`host`や`path`は任意）。
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
+<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
     <intent-filter android:label="flutter_web_auth_2">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
