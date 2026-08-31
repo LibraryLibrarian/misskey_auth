@@ -52,7 +52,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.9.0
   flutter_secure_storage: ^9.0.0
-  flutter_web_auth_2: ^4.0.0
+  flutter_web_auth_2: ^5.1.0
   crypto: ^3.0.3
 
 dev_dependencies:
