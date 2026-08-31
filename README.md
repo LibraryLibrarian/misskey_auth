@@ -150,7 +150,10 @@ Add to `ios/Runner/Info.plist`:
 Add to `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
+<activity
+    android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+    android:exported="true"
+    android:taskAffinity="">
     <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
@@ -171,6 +174,8 @@ Notes:
 
 - The `android:label` attribute on the `<intent-filter>` is optional. You can omit it or set any string.
 - On Android 12+ (API level 31+), any Activity with an `intent-filter` must declare `android:exported="true"`.
+- Set `android:taskAffinity=""` on both the exported `MainActivity` and `CallbackActivity` so the browser closes and the app returns to the foreground after authentication.
+- Apps that perform network requests must declare `<uses-permission android:name="android.permission.INTERNET" />` directly under the `<manifest>` element in `android/app/src/main/AndroidManifest.xml`. A declaration in `debug` or `profile` does not apply to release builds.
 - Use the same callback scheme string on both platforms: iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
 
 Important (OAuth redirect on Android):
@@ -542,7 +547,10 @@ await auth.signOutAll();
 `android/app/src/main/AndroidManifest.xml`に追加：
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
+<activity
+    android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+    android:exported="true"
+    android:taskAffinity="">
     <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
@@ -563,6 +571,8 @@ await auth.signOutAll();
 
 - `<intent-filter>` の `android:label` は省略可能です（省略しても動作します）。
 - Android 12+（API 31 以降）では、`intent-filter` を持つ Activity に `android:exported="true"` の指定が必須です。
+- 認証後にブラウザを閉じてアプリを前面へ戻すため、exportedな`MainActivity`と`CallbackActivity`の両方に`android:taskAffinity=""`を設定してください。
+- ネットワーク通信を行うアプリでは、`android/app/src/main/AndroidManifest.xml`の`<manifest>`直下に`<uses-permission android:name="android.permission.INTERNET" />`を宣言してください。`debug`または`profile`側だけの宣言はreleaseビルドへ適用されません。
 - iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）で登録するカスタムスキーム名は同一にしてください（完全一致が必要）。
 
 #### MiAuth と OAuth の設定の違い（アプリ組み込み時のポイント）

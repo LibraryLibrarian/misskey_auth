@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Upgraded `flutter_web_auth_2` to 5.1.0 and aligned the Android callback Activity configuration with its updated authentication flow
+
+### Fixed
+- Android authentication now closes the browser and returns the example app to the foreground after MiAuth or OAuth authorization
+- Android release builds of the example app now declare the `INTERNET` permission required for authentication requests
+- Corrected the Android callback Activity class name and consolidated the English and Japanese setup guidance around the canonical example Manifest
+
 ### Removed
 - Unused private `MisskeyServerInfo` model (`lib/src/models/misskey_server_info.dart`)
 
