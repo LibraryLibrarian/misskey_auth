@@ -150,7 +150,10 @@ Add to `ios/Runner/Info.plist`:
 Add to `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
+<activity
+    android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+    android:exported="true"
+    android:taskAffinity="">
     <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
@@ -163,9 +166,16 @@ Add to `android/app/src/main/AndroidManifest.xml`:
 </activity>
 ```
 
+A complete, copyable configuration is available in
+[`example/android/app/src/main/AndroidManifest.xml`](example/android/app/src/main/AndroidManifest.xml).
+Treat that sample Manifest as the canonical working example for Android.
+
 Notes:
+
 - The `android:label` attribute on the `<intent-filter>` is optional. You can omit it or set any string.
 - On Android 12+ (API level 31+), any Activity with an `intent-filter` must declare `android:exported="true"`.
+- Set `android:taskAffinity=""` on both the exported `MainActivity` and `CallbackActivity` so the browser closes and the app returns to the foreground after authentication.
+- Apps that perform network requests must declare `<uses-permission android:name="android.permission.INTERNET" />` directly under the `<manifest>` element in `android/app/src/main/AndroidManifest.xml`. A declaration in `debug` or `profile` does not apply to release builds.
 - Use the same callback scheme string on both platforms: iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
 
 Important (OAuth redirect on Android):
@@ -260,22 +270,11 @@ final current = await auth.currentToken();
 ```
 
 ##### How to Support Both Methods in the Same App
+
 - By registering the same `scheme` (e.g., `yourscheme`) in iOS's `Info.plist` and Android's `AndroidManifest.xml`, it can be shared between OAuth and MiAuth.
 - This library uses a scheme-only callback for MiAuth (e.g., `yourscheme://`). You do not need to reuse a path like `yourscheme://oauth/callback` for MiAuth.
-- For Android, matching only on the `scheme` is sufficient as shown below (the `host` and `path` are optional).
-
-```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth_2">
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="yourscheme" />
-    </intent-filter>
-    <!-- Add this only if you want to restrict by host/path -->
-    <!-- <intent-filter> ... <data android:scheme="yourscheme" android:host="oauth" android:path="/callback"/> ... </intent-filter> -->
-  </activity>
-```
+- For Android, use the scheme-only configuration in [Android Configuration](#android-configuration).
+  The `host` and `path` restrictions remain optional; the complete sample Manifest is linked from that section.
 
 ### API Reference
 
@@ -548,19 +547,32 @@ await auth.signOutAll();
 `android/app/src/main/AndroidManifest.xml`に追加：
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth_2">
+<activity
+    android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+    android:exported="true"
+    android:taskAffinity="">
+    <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
+        <!-- 最小構成: schemeのみ -->
         <data android:scheme="yourscheme" />
+        <!-- 任意（redirect.htmlを管理できる場合に推奨）: host/pathも制限 -->
+        <!-- <data android:scheme="yourscheme" android:host="oauth" android:path="/callback" /> -->
     </intent-filter>
 </activity>
 ```
 
+動作する完全な設定例は
+[`example/android/app/src/main/AndroidManifest.xml`](example/android/app/src/main/AndroidManifest.xml)です。
+このサンプルManifestを、利用者がコピーできるAndroid設定の正しい実例として扱います。
+
 補足:
+
 - `<intent-filter>` の `android:label` は省略可能です（省略しても動作します）。
 - Android 12+（API 31 以降）では、`intent-filter` を持つ Activity に `android:exported="true"` の指定が必須です。
+- 認証後にブラウザを閉じてアプリを前面へ戻すため、exportedな`MainActivity`と`CallbackActivity`の両方に`android:taskAffinity=""`を設定してください。
+- ネットワーク通信を行うアプリでは、`android/app/src/main/AndroidManifest.xml`の`<manifest>`直下に`<uses-permission android:name="android.permission.INTERNET" />`を宣言してください。`debug`または`profile`側だけの宣言はreleaseビルドへ適用されません。
 - iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）で登録するカスタムスキーム名は同一にしてください（完全一致が必要）。
 
 #### MiAuth と OAuth の設定の違い（アプリ組み込み時のポイント）
@@ -647,20 +659,8 @@ final current = await auth.currentToken();
 
 - iOSの`Info.plist`・Androidの`AndroidManifest.xml`で同じ`scheme`（例: `yourscheme`）を1つ登録すれば、OAuth/MiAuthで共用可能です。
 - 本ライブラリの MiAuth は scheme のみ（`yourscheme://`）を callback に使います。`yourscheme://oauth/callback` のようなパス付きに揃える必要はありません。
-- Androidは以下のように`scheme`のみのマッチで十分です（`host`や`path`は任意）。
-
-```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth_2">
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="yourscheme" />
-    </intent-filter>
-    <!-- 必要に応じて、host/pathで限定したい場合のみ追記 -->
-    <!-- <intent-filter> ... <data android:scheme="yourscheme" android:host="oauth" android:path="/callback"/> ... </intent-filter> -->
-  </activity>
-```
+- Androidは[Android設定](#android設定)にある`scheme`のみの構成を使用してください。
+  `host`や`path`による制限は任意で、完全なサンプルManifestは同セクションから参照できます。
 
 ### API リファレンス
 
