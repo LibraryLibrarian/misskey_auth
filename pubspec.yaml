@@ -1,5 +1,5 @@
 name: misskey_auth
-description: "Flutter library for Misskey OAuth authentication. Support for MiAuth format is planned in the future."
+description: "Flutter library for Misskey authentication. Supports OAuth 2.0 with PKCE, MiAuth, and secure multi-account token management for iOS and Android."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 #publish_to: 'none' # Remove this line if you wish to publish to pub.dev
