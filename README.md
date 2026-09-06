@@ -26,6 +26,18 @@ A Flutter library for Misskey OAuth authentication with MiAuth support and multi
 - Multi-account token storage and account switching
 - High-level `MisskeyAuthManager` to run flows and persist tokens
 
+### Requirements and upgrading
+
+- Flutter 3.47.1 or later; Dart 3.13.1 or later, before Dart 4.
+- Android API 24 or later and compileSdk 37 or later. The example uses AGP 9.1.1, Gradle 9.3.1, and Kotlin Gradle Plugin 2.3.20. AGP requires JDK 17 or later.
+- iOS 15 or later. Align the Xcode and Podfile deployment targets. The example includes Flutter's UIScene migration and Swift Package Manager integration.
+
+Keep `android.builtInKotlin=false` and `android.newDsl=false` while the stable `flutter_web_auth_2` release still applies the Kotlin Android plugin. Retain that plugin, but replace `android.kotlinOptions` with `kotlin.compilerOptions` to configure its JVM target. Future Flutter versions may require built-in Kotlin support from dependencies.
+
+This beta upgrades `flutter_secure_storage` from 9.x to 11.x without a 10.x migration step. On Android, credentials encrypted with the old defaults cannot be carried over directly; users may need to authenticate again for each account. Host apps must handle missing credentials and storage errors. Deleting local credentials does not revoke server-side tokens.
+
+The default `SecureTokenStore` uses the shared default storage namespace. Version 11 enables `resetOnError` by default, so recovery can also delete other values in that namespace. Review shared-storage configurations before upgrading. See the [secure-storage changelog](https://pub.dev/packages/flutter_secure_storage/changelog) and [Flutter UIScene migration guide](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate).
+
 ### Installation
 
 Add this to your package's `pubspec.yaml` file:
@@ -423,6 +435,18 @@ MisskeyのOAuth認証・MiAuth認証に加え、マルチアカウントのト�
 - 認証コールバック用カスタムURLスキーム対応
 - マルチアカウントのトークン保存とアカウント切替
 - 認証と保存を仲介する高レベルAPI `MisskeyAuthManager`
+
+### 動作要件と更新時の注意
+
+- Flutter 3.47.1以上、Dart 3.13.1以上4.0未満。
+- Android API 24以上、compileSdk 37以上。exampleはAGP 9.1.1、Gradle 9.3.1、Kotlin Gradle Plugin 2.3.20を使用します。AGPの実行にはJDK 17以上が必要です。
+- iOS 15以上。XcodeとPodfileの最低対応バージョンを揃えてください。exampleにはFlutterのUIScene移行とSwift Package Manager統合を含めています。
+
+安定版の`flutter_web_auth_2`がKotlin Androidプラグインを適用する間は、`android.builtInKotlin=false`と`android.newDsl=false`を維持してください。プラグインの適用は残し、JVMターゲット設定を`android.kotlinOptions`から`kotlin.compilerOptions`へ変更します。将来のFlutterでは依存プラグイン側の内蔵Kotlin対応が必要になる可能性があります。
+
+このbetaでは`flutter_secure_storage`を9系から11系へ更新し、10系を経由する移行処理は提供しません。Androidで旧既定暗号方式により保存された認証情報は直接引き継げず、アカウントごとの再認証が必要になる場合があります。利用側アプリで認証情報の欠落とストレージエラーを処理してください。端末上の認証情報の削除は、サーバー側のトークン失効を意味しません。
+
+既定の`SecureTokenStore`は共通の既定保存領域を使用します。11系では`resetOnError`が既定で有効となり、復旧時に同じ領域の別用途の値も削除される可能性があります。同じ保存領域を共有する場合は更新前に設定を確認してください。[secure-storageの変更履歴](https://pub.dev/packages/flutter_secure_storage/changelog)と[FlutterのUIScene移行ガイド](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate)も参照してください。
 
 ### インストール
 
