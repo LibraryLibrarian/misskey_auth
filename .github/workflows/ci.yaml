@@ -36,6 +36,9 @@ jobs:
               - 'analysis_options.yaml'
               - 'lib/**'
               - 'test/**'
+              - 'example/lib/**'
+              - 'example/test/**'
+              - 'example/pubspec.yaml'
               - '.github/workflows/ci.yaml'
             # ネイティブビルド固有のリスク（ツールチェーン / プラグイン結合）がある変更のみを対象にする。
             # Dart レベルの破壊は package ジョブの dart analyze が example/lib まで検出するため含めない
@@ -69,13 +72,13 @@ jobs:
       fail-fast: false
       matrix:
         # 意味のある境界のみを検証する
-        #   3.24.x/min : pubspec で宣言した下限環境そのもの
-        #   3.24.x/max : 下限 SDK のユーザーが pub upgrade した状態（依存が SDK 下限を割っていないか）
+        #   3.47.1/min : pubspec で宣言した下限環境そのもの
+        #   3.47.1/max : 下限 SDK のユーザーが pub upgrade した状態（依存が SDK 下限を割っていないか）
         #   3.47.x/max : 新規ユーザーが実際に取得する現行環境
         include:
-          - flutter: '3.24.x'
+          - flutter: '3.47.1'
             resolution: 'min'
-          - flutter: '3.24.x'
+          - flutter: '3.47.1'
             resolution: 'max'
           - flutter: '3.47.x'
             resolution: 'max'
@@ -101,6 +104,9 @@ jobs:
         run: dart analyze --fatal-infos
       - name: Test
         if: ${{ hashFiles('test/**/*_test.dart') != '' }}
+        run: flutter test
+      - name: Test example
+        working-directory: example
         run: flutter test
 
   # example-android / example-ios の実行条件は同一の原則で揃える:
