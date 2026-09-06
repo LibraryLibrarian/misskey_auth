@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+### Breaking changes
 - Raised the minimum supported versions to Flutter 3.47.1, Dart 3.13.1, and iOS 15; Android requires API 24 or later and compileSdk 37 or later.
+- Android credentials saved with the default `SecureTokenStore` on `flutter_secure_storage` 9.x are not carried over when upgrading directly to 11.x. Users must authenticate again for each account. No 10.x migration step is provided; automatic recovery can also reset other values in the shared default storage namespace. This is a storage compatibility break, not an API removal, and does not revoke server-side tokens.
+
+### Changed
 - Updated stable dependencies, including `flutter_secure_storage` 11.0.0, `dio` 5.11.1, `flutter_lints` 6.0.0, and the example's `loader_overlay` 5.0.0.
 - Updated Android builds to AGP 9.1.1, Gradle 9.3.1, and Kotlin 2.3.20 while retaining legacy Kotlin plugin support.
 - Migrated the iOS example to UIScene and integrated Swift Package Manager.
-- Android credentials stored with the old secure-storage defaults may require reauthentication. No 10.x migration is provided; automatic recovery can reset the shared default storage namespace.
 - Upgraded `flutter_web_auth_2` to 5.1.0 and aligned the Android callback Activity configuration with its updated authentication flow
 
 ### Fixed

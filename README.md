@@ -34,7 +34,7 @@ A Flutter library for Misskey OAuth authentication with MiAuth support and multi
 
 Keep `android.builtInKotlin=false` and `android.newDsl=false` while the stable `flutter_web_auth_2` release still applies the Kotlin Android plugin. Retain that plugin, but replace `android.kotlinOptions` with `kotlin.compilerOptions` to configure its JVM target. Future Flutter versions may require built-in Kotlin support from dependencies.
 
-This beta upgrades `flutter_secure_storage` from 9.x to 11.x without a 10.x migration step. On Android, credentials encrypted with the old defaults cannot be carried over directly; users may need to authenticate again for each account. Host apps must handle missing credentials and storage errors. Deleting local credentials does not revoke server-side tokens.
+This beta upgrades `flutter_secure_storage` from 9.x to 11.x without a 10.x migration step. On Android, credentials encrypted with the old defaults cannot be carried over directly; users must authenticate again for each affected account. This is a breaking change in Android storage compatibility; it does not imply the same data loss on iOS. Host apps must handle missing credentials and storage errors. Deleting local credentials does not revoke server-side tokens.
 
 The default `SecureTokenStore` uses the shared default storage namespace. Version 11 enables `resetOnError` by default, so recovery can also delete other values in that namespace. Review shared-storage configurations before upgrading. See the [secure-storage changelog](https://pub.dev/packages/flutter_secure_storage/changelog) and [Flutter UIScene migration guide](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate).
 
@@ -444,7 +444,7 @@ MisskeyのOAuth認証・MiAuth認証に加え、マルチアカウントのト�
 
 安定版の`flutter_web_auth_2`がKotlin Androidプラグインを適用する間は、`android.builtInKotlin=false`と`android.newDsl=false`を維持してください。プラグインの適用は残し、JVMターゲット設定を`android.kotlinOptions`から`kotlin.compilerOptions`へ変更します。将来のFlutterでは依存プラグイン側の内蔵Kotlin対応が必要になる可能性があります。
 
-このbetaでは`flutter_secure_storage`を9系から11系へ更新し、10系を経由する移行処理は提供しません。Androidで旧既定暗号方式により保存された認証情報は直接引き継げず、アカウントごとの再認証が必要になる場合があります。利用側アプリで認証情報の欠落とストレージエラーを処理してください。端末上の認証情報の削除は、サーバー側のトークン失効を意味しません。
+このbetaでは`flutter_secure_storage`を9系から11系へ更新し、10系を経由する移行処理は提供しません。Androidで旧既定暗号方式により保存された認証情報は直接引き継げず、対象アカウントごとの再認証が必要です。これはAndroidの保存データ互換性に関する破壊的変更であり、iOSでも同様にデータが失われるという意味ではありません。利用側アプリで認証情報の欠落とストレージエラーを処理してください。端末上の認証情報の削除は、サーバー側のトークン失効を意味しません。
 
 既定の`SecureTokenStore`は共通の既定保存領域を使用します。11系では`resetOnError`が既定で有効となり、復旧時に同じ領域の別用途の値も削除される可能性があります。同じ保存領域を共有する場合は更新前に設定を確認してください。[secure-storageの変更履歴](https://pub.dev/packages/flutter_secure_storage/changelog)と[FlutterのUIScene移行ガイド](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate)も参照してください。
 
