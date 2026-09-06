@@ -24,12 +24,15 @@ class MisskeyMiAuthClient {
     Duration? connectTimeout,
     Duration? sendTimeout,
     Duration? receiveTimeout,
-  }) : _dio = dio ??
-            Dio(BaseOptions(
-              connectTimeout: connectTimeout ?? const Duration(seconds: 10),
-              sendTimeout: sendTimeout ?? const Duration(seconds: 20),
-              receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
-            )) {
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: connectTimeout ?? const Duration(seconds: 10),
+               sendTimeout: sendTimeout ?? const Duration(seconds: 20),
+               receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
+             ),
+           ) {
     if (dio != null) {
       if (connectTimeout != null) _dio.options.connectTimeout = connectTimeout;
       if (sendTimeout != null) _dio.options.sendTimeout = sendTimeout;
@@ -42,8 +45,10 @@ class MisskeyMiAuthClient {
     const charset =
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
-        .join();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
   }
 
   /// MiAuth 認証を開始し、成功すればアクセストークンを返す
@@ -91,10 +96,14 @@ class MisskeyMiAuthClient {
         if (e.message != null &&
             e.message!.toLowerCase().contains('callback')) {
           throw CallbackSchemeErrorException(
-              details: e.message, originalException: e);
+            details: e.message,
+            originalException: e,
+          );
         }
         throw AuthorizationLaunchException(
-            details: e.message, originalException: e);
+          details: e.message,
+          originalException: e,
+        );
       } catch (e) {
         if (e is MisskeyAuthException) rethrow;
         throw AuthorizationLaunchException(details: e.toString());
@@ -157,7 +166,9 @@ class MisskeyMiAuthClient {
         throw const UserCancelledException();
       }
       throw AuthorizationLaunchException(
-          details: e.message, originalException: e);
+        details: e.message,
+        originalException: e,
+      );
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {

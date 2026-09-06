@@ -28,23 +28,23 @@ class StoredToken {
 
   /// JSON へ変換
   Map<String, dynamic> toJson() => {
-        'accessToken': accessToken,
-        'tokenType': tokenType,
-        if (scope != null) 'scope': scope,
-        if (user != null) 'user': user,
-        if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
-      };
+    'accessToken': accessToken,
+    'tokenType': tokenType,
+    if (scope != null) 'scope': scope,
+    if (user != null) 'user': user,
+    if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+  };
 
   /// JSON から復元
   factory StoredToken.fromJson(Map<String, dynamic> json) => StoredToken(
-        accessToken: json['accessToken'] as String,
-        tokenType: json['tokenType'] as String,
-        scope: json['scope'] as String?,
-        user: json['user'] as Map<String, dynamic>?,
-        createdAt: json['createdAt'] != null
-            ? DateTime.tryParse(json['createdAt'] as String)
-            : null,
-      );
+    accessToken: json['accessToken'] as String,
+    tokenType: json['tokenType'] as String,
+    scope: json['scope'] as String?,
+    user: json['user'] as Map<String, dynamic>?,
+    createdAt: json['createdAt'] != null
+        ? DateTime.tryParse(json['createdAt'] as String)
+        : null,
+  );
 }
 
 /// アカウント一覧に表示するメタ情報

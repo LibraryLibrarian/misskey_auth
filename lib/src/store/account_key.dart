@@ -18,16 +18,13 @@ class AccountKey {
   String storageKey() => 'misskey_token::$host::$accountId';
 
   /// JSON へ変換
-  Map<String, dynamic> toJson() => {
-        'host': host,
-        'accountId': accountId,
-      };
+  Map<String, dynamic> toJson() => {'host': host, 'accountId': accountId};
 
   /// JSON から復元
   factory AccountKey.fromJson(Map<String, dynamic> json) => AccountKey(
-        host: json['host'] as String,
-        accountId: json['accountId'] as String,
-      );
+    host: json['host'] as String,
+    accountId: json['accountId'] as String,
+  );
 
   @override
   bool operator ==(Object other) =>

@@ -18,10 +18,9 @@ class SecureTokenStore implements TokenStore {
   static const String _activeKey = 'misskey_active_account';
 
   const SecureTokenStore({FlutterSecureStorage? storage})
-      : storage = storage ?? const FlutterSecureStorage();
+    : storage = storage ?? const FlutterSecureStorage();
 
   @override
-
   /// トークンを保存または更新
   Future<void> upsert(AccountKey key, StoredToken token) async {
     final Map<String, dynamic> value = token.toJson();
@@ -30,7 +29,6 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-
   /// トークンを取得する。存在しない場合は `null` を返す
   Future<StoredToken?> read(AccountKey key) async {
     final raw = await storage.read(key: key.storageKey());
@@ -40,7 +38,6 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-
   /// 保存済みアカウントの一覧を返す
   Future<List<AccountEntry>> list() async {
     final keys = await _readIndex();
@@ -63,7 +60,6 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-
   /// 指定アカウントのトークンを削除する。アクティブ一致時は解除する
   Future<void> delete(AccountKey key) async {
     await storage.delete(key: key.storageKey());
@@ -75,7 +71,6 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-
   /// すべてのトークンと関連メタ情報（インデックス/アクティブ）を削除
   Future<void> clearAll() async {
     final keys = await _readIndex();
@@ -87,7 +82,6 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-
   /// アクティブアカウントを設定する。`null` で解除
   Future<void> setActive(AccountKey? key) async {
     if (key == null) {
@@ -99,7 +93,6 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-
   /// 現在のアクティブアカウントを取得。未設定時は `null`
   Future<AccountKey?> getActive() async {
     final raw = await storage.read(key: _activeKey);

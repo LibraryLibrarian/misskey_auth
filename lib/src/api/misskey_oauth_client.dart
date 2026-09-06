@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+
 import '../models/oauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
 import '../net/retry.dart';
@@ -26,12 +28,15 @@ class MisskeyOAuthClient {
     Duration? connectTimeout,
     Duration? sendTimeout,
     Duration? receiveTimeout,
-  }) : _dio = dio ??
-            Dio(BaseOptions(
-              connectTimeout: connectTimeout ?? const Duration(seconds: 10),
-              sendTimeout: sendTimeout ?? const Duration(seconds: 20),
-              receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
-            )) {
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: connectTimeout ?? const Duration(seconds: 10),
+               sendTimeout: sendTimeout ?? const Duration(seconds: 20),
+               receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
+             ),
+           ) {
     if (dio != null) {
       if (connectTimeout != null) _dio.options.connectTimeout = connectTimeout;
       if (sendTimeout != null) _dio.options.sendTimeout = sendTimeout;
@@ -76,8 +81,10 @@ class MisskeyOAuthClient {
     const charset =
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
     final random = Random.secure();
-    return List.generate(128, (_) => charset[random.nextInt(charset.length)])
-        .join();
+    return List.generate(
+      128,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
   }
 
   /// コードチャレンジを生成
@@ -140,12 +147,12 @@ class MisskeyOAuthClient {
 
       // 4. flutter_web_auth_2で認証ページを開く
       // カスタムスキーム
-      final redirectUriScheme =
-          Uri.parse(config.redirectUri).scheme.toLowerCase();
+      final redirectUriScheme = Uri.parse(config.redirectUri).scheme
+          .toLowerCase();
       final callbackUrlScheme =
           (redirectUriScheme != 'http' && redirectUriScheme != 'https')
-              ? redirectUriScheme
-              : config.callbackScheme;
+          ? redirectUriScheme
+          : config.callbackScheme;
       if (kDebugMode) {
         print('コールバックURLスキーム: $callbackUrlScheme');
       }
@@ -166,10 +173,14 @@ class MisskeyOAuthClient {
         if (e.message != null &&
             e.message!.toLowerCase().contains('callback')) {
           throw CallbackSchemeErrorException(
-              details: e.message, originalException: e);
+            details: e.message,
+            originalException: e,
+          );
         }
         throw AuthorizationLaunchException(
-            details: e.message, originalException: e);
+          details: e.message,
+          originalException: e,
+        );
       } catch (e) {
         if (e is MisskeyAuthException) rethrow;
         throw AuthorizationLaunchException(details: e.toString());
@@ -235,7 +246,9 @@ class MisskeyOAuthClient {
         throw const UserCancelledException();
       }
       throw AuthorizationLaunchException(
-          details: e.message, originalException: e);
+        details: e.message,
+        originalException: e,
+      );
     } catch (e) {
       if (kDebugMode) {
         print('認証エラー: $e');
@@ -258,9 +271,7 @@ class MisskeyOAuthClient {
       final response = await retry(
         () => _dio.post(
           tokenEndpoint,
-          options: Options(
-            contentType: 'application/x-www-form-urlencoded',
-          ),
+          options: Options(contentType: 'application/x-www-form-urlencoded'),
           data: {
             'grant_type': 'authorization_code',
             'client_id': clientId,

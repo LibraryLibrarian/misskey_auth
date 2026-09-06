@@ -30,19 +30,22 @@ class MisskeyAuthManager {
     Duration? connectTimeout,
     Duration? sendTimeout,
     Duration? receiveTimeout,
-  }) : dio = dio ??
-            Dio(BaseOptions(
-              connectTimeout: connectTimeout ?? const Duration(seconds: 10),
-              sendTimeout: sendTimeout ?? const Duration(seconds: 20),
-              receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
-            ));
+  }) : dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: connectTimeout ?? const Duration(seconds: 10),
+               sendTimeout: sendTimeout ?? const Duration(seconds: 20),
+               receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
+             ),
+           );
 
   /// 依存を既定実装で組み立てたインスタンスを返す
   factory MisskeyAuthManager.defaultInstance() => MisskeyAuthManager(
-        miauth: MisskeyMiAuthClient(),
-        oauth: MisskeyOAuthClient(),
-        store: const SecureTokenStore(),
-      );
+    miauth: MisskeyMiAuthClient(),
+    oauth: MisskeyOAuthClient(),
+    store: const SecureTokenStore(),
+  );
 
   /// MiAuth で認証を実行し、トークンを保存
   ///
@@ -100,7 +103,9 @@ class MisskeyAuthManager {
 
   /// `/api/i` を呼び出し、現在のユーザー情報を取得
   Future<Map<String, dynamic>> _fetchCurrentUser(
-      String host, String accessToken) async {
+    String host,
+    String accessToken,
+  ) async {
     try {
       final url = 'https://$host/api/i';
       final response = await retry(
