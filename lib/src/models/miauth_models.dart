@@ -36,11 +36,7 @@ class MiAuthCheckResponse {
   final String? token;
   final Map<String, dynamic>? user;
 
-  const MiAuthCheckResponse({
-    required this.ok,
-    this.token,
-    this.user,
-  });
+  const MiAuthCheckResponse({required this.ok, this.token, this.user});
 
   factory MiAuthCheckResponse.fromJson(Map<String, dynamic> json) {
     return MiAuthCheckResponse(
@@ -59,8 +55,5 @@ class MiAuthTokenResponse {
   /// 付随するユーザー情報（任意）
   final Map<String, dynamic>? user;
 
-  const MiAuthTokenResponse({
-    required this.token,
-    this.user,
-  });
+  const MiAuthTokenResponse({required this.token, this.user});
 }

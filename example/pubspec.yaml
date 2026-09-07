@@ -5,22 +5,22 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
-  flutter: ">=3.24.0"
+  sdk: ">=3.13.1 <4.0.0"
+  flutter: ">=3.47.1"
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
   misskey_auth:
     path: ../
-  http: ^1.1.0
-  loader_overlay: ^3.0.0
+  http: ^1.6.0
+  loader_overlay: ^5.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
