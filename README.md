@@ -44,7 +44,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.4-beta
+  misskey_auth: ^0.2.0-beta.1
 ```
 
 ### Quick Start
@@ -454,7 +454,7 @@ MisskeyのOAuth認証・MiAuth認証に加え、マルチアカウントのト�
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.4-beta
+  misskey_auth: ^0.2.0-beta.1
 ```
 
 ### クイックスタート

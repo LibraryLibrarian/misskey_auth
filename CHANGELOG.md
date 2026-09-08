@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-beta.1] - 2026-09-08
+
 ### Breaking changes
 - Raised the minimum supported versions to Flutter 3.47.1, Dart 3.13.1, and iOS 15; Android requires API 24 or later and compileSdk 37 or later.
 - Android credentials saved with the default `SecureTokenStore` on `flutter_secure_storage` 9.x are not carried over when upgrading directly to 11.x. Users must authenticate again for each account. No 10.x migration step is provided; automatic recovery can also reset other values in the shared default storage namespace. This is a storage compatibility break, not an API removal, and does not revoke server-side tokens.
