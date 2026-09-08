@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.2.0-beta.1] - 2026-09-08
+
+### Breaking changes
+- Raised the minimum supported versions to Flutter 3.47.1, Dart 3.13.1, and iOS 15; Android requires API 24 or later and compileSdk 37 or later.
+- Android credentials saved with the default `SecureTokenStore` on `flutter_secure_storage` 9.x are not carried over when upgrading directly to 11.x. Users must authenticate again for each account. No 10.x migration step is provided; automatic recovery can also reset other values in the shared default storage namespace. This is a storage compatibility break, not an API removal, and does not revoke server-side tokens.
+
+### Changed
+- Updated stable dependencies, including `flutter_secure_storage` 11.0.0, `dio` 5.11.1, `flutter_lints` 6.0.0, and the example's `loader_overlay` 5.0.0.
+- Updated Android builds to AGP 9.1.1, Gradle 9.3.1, and Kotlin 2.3.20 while retaining legacy Kotlin plugin support.
+- Migrated the iOS example to UIScene and integrated Swift Package Manager.
+- Upgraded `flutter_web_auth_2` to 5.1.0 and aligned the Android callback Activity configuration with its updated authentication flow
+
+### Fixed
+- Android authentication now closes the browser and returns the example app to the foreground after MiAuth or OAuth authorization
+- Android release builds of the example app now declare the `INTERNET` permission required for authentication requests
+- Corrected the Android callback Activity class name and consolidated the English and Japanese setup guidance around the canonical example Manifest
+
+### Removed
+- Unused private `MisskeyServerInfo` model (`lib/src/models/misskey_server_info.dart`)
+
 ## [0.1.4-beta] - 2025-08-18
 
 ### Added

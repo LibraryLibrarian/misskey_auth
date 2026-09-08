@@ -56,7 +56,8 @@ class RetryPolicy {
     final cappedMs = min(baseMs.round(), maxDelay.inMilliseconds);
     final jitterMs = Random().nextInt(100); // 0-99ms の軽いジッター
     return Duration(
-        milliseconds: min(cappedMs + jitterMs, maxDelay.inMilliseconds));
+      milliseconds: min(cappedMs + jitterMs, maxDelay.inMilliseconds),
+    );
   }
 }
 

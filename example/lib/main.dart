@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:misskey_auth/misskey_auth.dart';
@@ -20,9 +21,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: LoaderOverlay(
-        child: const AuthExamplePage(),
-      ),
+      home: LoaderOverlay(child: const AuthExamplePage()),
     );
   }
 }
@@ -208,7 +207,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
           ..hideCurrentSnackBar()
           ..showSnackBar(
             const SnackBar(
-                content: Text('OAuth認証はサポートされていません（MiAuth認証を使用してください）')),
+              content: Text('OAuth認証はサポートされていません（MiAuth認証を使用してください）'),
+            ),
           );
       }
     } on MisskeyAuthException catch (e) {
@@ -248,8 +248,9 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       final key = await _auth.loginWithOAuth(config, setActive: true);
       if (kDebugMode) {
         final t = await _auth.tokenOf(key);
-        developer
-            .log('[OAuth] account=${key.accountId} token=${t?.accessToken}');
+        developer.log(
+          '[OAuth] account=${key.accountId} token=${t?.accessToken}',
+        );
       }
 
       if (mounted) {
@@ -314,8 +315,9 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       final key = await _auth.loginWithMiAuth(config, setActive: true);
       if (kDebugMode) {
         final t = await _auth.tokenOf(key);
-        developer
-            .log('[MiAuth] account=${key.accountId} token=${t?.accessToken}');
+        developer.log(
+          '[MiAuth] account=${key.accountId} token=${t?.accessToken}',
+        );
       }
 
       if (mounted) {
@@ -374,7 +376,9 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
           NavigationDestination(icon: Icon(Icons.lock), label: 'OAuth'),
           NavigationDestination(icon: Icon(Icons.vpn_key), label: 'MiAuth'),
           NavigationDestination(
-              icon: Icon(Icons.info_outline), label: 'サーバー情報'),
+            icon: Icon(Icons.info_outline),
+            label: 'サーバー情報',
+          ),
           NavigationDestination(icon: Icon(Icons.people), label: 'アカウント一覧'),
         ],
         onDestinationSelected: (index) {
@@ -516,9 +520,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
             const SizedBox(height: 8),
             TextField(
               controller: _miIconUrlController,
-              decoration: const InputDecoration(
-                labelText: 'アイコンURL（任意）',
-              ),
+              decoration: const InputDecoration(labelText: 'アイコンURL（任意）'),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -567,7 +569,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                 child: Scrollbar(
                   child: ListView.separated(
                     itemCount: _serverInfo!.scopesSupported!.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final scope = _serverInfo!.scopesSupported![index];
                       return InkWell(
@@ -670,7 +672,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                       final key = entry.key;
                       final t = await _auth.tokenOf(key);
                       developer.log(
-                          '[Dump] ${key.host}/${key.accountId} token=${t?.accessToken}');
+                        '[Dump] ${key.host}/${key.accountId} token=${t?.accessToken}',
+                      );
                     }
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context)
@@ -679,7 +682,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                         const SnackBar(content: Text('デバッグログにトークンを出力しました')),
                       );
                   },
-                )
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -691,10 +694,11 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
-                  ));
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
                 }
                 if (!snapshot.hasData) {
                   return const Text('アカウント情報を取得できませんでした');
@@ -708,7 +712,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: accounts.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final entry = accounts[index];
                     final key = entry.key;
@@ -719,11 +723,13 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                         : null;
                     return ListTile(
                       leading: Icon(
-                          isActive ? Icons.star : Icons.person_outline,
-                          color: isActive ? Colors.amber : null),
+                        isActive ? Icons.star : Icons.person_outline,
+                        color: isActive ? Colors.amber : null,
+                      ),
                       title: Text(title),
                       subtitle: Text(
-                          '${key.host} / ${key.accountId}${saved != null ? '\n$saved' : ''}'),
+                        '${key.host} / ${key.accountId}${saved != null ? '\n$saved' : ''}',
+                      ),
                       isThreeLine: saved != null,
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
@@ -741,7 +747,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                           ..hideCurrentSnackBar()
                           ..showSnackBar(
                             SnackBar(
-                                content: Text('デフォルトを変更: ${key.accountId}')),
+                              content: Text('デフォルトを変更: ${key.accountId}'),
+                            ),
                           );
                       },
                     );

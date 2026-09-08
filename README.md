@@ -26,13 +26,25 @@ A Flutter library for Misskey OAuth authentication with MiAuth support and multi
 - Multi-account token storage and account switching
 - High-level `MisskeyAuthManager` to run flows and persist tokens
 
+### Requirements and upgrading
+
+- Flutter 3.47.1 or later; Dart 3.13.1 or later, before Dart 4.
+- Android API 24 or later and compileSdk 37 or later. The example uses AGP 9.1.1, Gradle 9.3.1, and Kotlin Gradle Plugin 2.3.20. AGP requires JDK 17 or later.
+- iOS 15 or later. Align the Xcode and Podfile deployment targets. The example includes Flutter's UIScene migration and Swift Package Manager integration.
+
+Keep `android.builtInKotlin=false` and `android.newDsl=false` while the stable `flutter_web_auth_2` release still applies the Kotlin Android plugin. Retain that plugin, but replace `android.kotlinOptions` with `kotlin.compilerOptions` to configure its JVM target. Future Flutter versions may require built-in Kotlin support from dependencies.
+
+This beta upgrades `flutter_secure_storage` from 9.x to 11.x without a 10.x migration step. On Android, credentials encrypted with the old defaults cannot be carried over directly; users must authenticate again for each affected account. This is a breaking change in Android storage compatibility; it does not imply the same data loss on iOS. Host apps must handle missing credentials and storage errors. Deleting local credentials does not revoke server-side tokens.
+
+The default `SecureTokenStore` uses the shared default storage namespace. Version 11 enables `resetOnError` by default, so recovery can also delete other values in that namespace. Review shared-storage configurations before upgrading. See the [secure-storage changelog](https://pub.dev/packages/flutter_secure_storage/changelog) and [Flutter UIScene migration guide](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate).
+
 ### Installation
 
 Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.4-beta
+  misskey_auth: ^0.2.0-beta.1
 ```
 
 ### Quick Start
@@ -150,7 +162,10 @@ Add to `ios/Runner/Info.plist`:
 Add to `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity" android:exported="true">
+<activity
+    android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+    android:exported="true"
+    android:taskAffinity="">
     <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
@@ -163,9 +178,16 @@ Add to `android/app/src/main/AndroidManifest.xml`:
 </activity>
 ```
 
+A complete, copyable configuration is available in
+[`example/android/app/src/main/AndroidManifest.xml`](example/android/app/src/main/AndroidManifest.xml).
+Treat that sample Manifest as the canonical working example for Android.
+
 Notes:
+
 - The `android:label` attribute on the `<intent-filter>` is optional. You can omit it or set any string.
 - On Android 12+ (API level 31+), any Activity with an `intent-filter` must declare `android:exported="true"`.
+- Set `android:taskAffinity=""` on both the exported `MainActivity` and `CallbackActivity` so the browser closes and the app returns to the foreground after authentication.
+- Apps that perform network requests must declare `<uses-permission android:name="android.permission.INTERNET" />` directly under the `<manifest>` element in `android/app/src/main/AndroidManifest.xml`. A declaration in `debug` or `profile` does not apply to release builds.
 - Use the same callback scheme string on both platforms: iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
 
 Important (OAuth redirect on Android):
@@ -260,22 +282,11 @@ final current = await auth.currentToken();
 ```
 
 ##### How to Support Both Methods in the Same App
+
 - By registering the same `scheme` (e.g., `yourscheme`) in iOS's `Info.plist` and Android's `AndroidManifest.xml`, it can be shared between OAuth and MiAuth.
 - This library uses a scheme-only callback for MiAuth (e.g., `yourscheme://`). You do not need to reuse a path like `yourscheme://oauth/callback` for MiAuth.
-- For Android, matching only on the `scheme` is sufficient as shown below (the `host` and `path` are optional).
-
-```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth_2">
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="yourscheme" />
-    </intent-filter>
-    <!-- Add this only if you want to restrict by host/path -->
-    <!-- <intent-filter> ... <data android:scheme="yourscheme" android:host="oauth" android:path="/callback"/> ... </intent-filter> -->
-  </activity>
-```
+- For Android, use the scheme-only configuration in [Android Configuration](#android-configuration).
+  The `host` and `path` restrictions remain optional; the complete sample Manifest is linked from that section.
 
 ### API Reference
 
@@ -425,13 +436,25 @@ MisskeyのOAuth認証・MiAuth認証に加え、マルチアカウントのト�
 - マルチアカウントのトークン保存とアカウント切替
 - 認証と保存を仲介する高レベルAPI `MisskeyAuthManager`
 
+### 動作要件と更新時の注意
+
+- Flutter 3.47.1以上、Dart 3.13.1以上4.0未満。
+- Android API 24以上、compileSdk 37以上。exampleはAGP 9.1.1、Gradle 9.3.1、Kotlin Gradle Plugin 2.3.20を使用します。AGPの実行にはJDK 17以上が必要です。
+- iOS 15以上。XcodeとPodfileの最低対応バージョンを揃えてください。exampleにはFlutterのUIScene移行とSwift Package Manager統合を含めています。
+
+安定版の`flutter_web_auth_2`がKotlin Androidプラグインを適用する間は、`android.builtInKotlin=false`と`android.newDsl=false`を維持してください。プラグインの適用は残し、JVMターゲット設定を`android.kotlinOptions`から`kotlin.compilerOptions`へ変更します。将来のFlutterでは依存プラグイン側の内蔵Kotlin対応が必要になる可能性があります。
+
+このbetaでは`flutter_secure_storage`を9系から11系へ更新し、10系を経由する移行処理は提供しません。Androidで旧既定暗号方式により保存された認証情報は直接引き継げず、対象アカウントごとの再認証が必要です。これはAndroidの保存データ互換性に関する破壊的変更であり、iOSでも同様にデータが失われるという意味ではありません。利用側アプリで認証情報の欠落とストレージエラーを処理してください。端末上の認証情報の削除は、サーバー側のトークン失効を意味しません。
+
+既定の`SecureTokenStore`は共通の既定保存領域を使用します。11系では`resetOnError`が既定で有効となり、復旧時に同じ領域の別用途の値も削除される可能性があります。同じ保存領域を共有する場合は更新前に設定を確認してください。[secure-storageの変更履歴](https://pub.dev/packages/flutter_secure_storage/changelog)と[FlutterのUIScene移行ガイド](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate)も参照してください。
+
 ### インストール
 
 `pubspec.yaml`ファイルに以下を追加してください：
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.1.4-beta
+  misskey_auth: ^0.2.0-beta.1
 ```
 
 ### クイックスタート
@@ -548,19 +571,32 @@ await auth.signOutAll();
 `android/app/src/main/AndroidManifest.xml`に追加：
 
 ```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth_2">
+<activity
+    android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+    android:exported="true"
+    android:taskAffinity="">
+    <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
+        <!-- 最小構成: schemeのみ -->
         <data android:scheme="yourscheme" />
+        <!-- 任意（redirect.htmlを管理できる場合に推奨）: host/pathも制限 -->
+        <!-- <data android:scheme="yourscheme" android:host="oauth" android:path="/callback" /> -->
     </intent-filter>
 </activity>
 ```
 
+動作する完全な設定例は
+[`example/android/app/src/main/AndroidManifest.xml`](example/android/app/src/main/AndroidManifest.xml)です。
+このサンプルManifestを、利用者がコピーできるAndroid設定の正しい実例として扱います。
+
 補足:
+
 - `<intent-filter>` の `android:label` は省略可能です（省略しても動作します）。
 - Android 12+（API 31 以降）では、`intent-filter` を持つ Activity に `android:exported="true"` の指定が必須です。
+- 認証後にブラウザを閉じてアプリを前面へ戻すため、exportedな`MainActivity`と`CallbackActivity`の両方に`android:taskAffinity=""`を設定してください。
+- ネットワーク通信を行うアプリでは、`android/app/src/main/AndroidManifest.xml`の`<manifest>`直下に`<uses-permission android:name="android.permission.INTERNET" />`を宣言してください。`debug`または`profile`側だけの宣言はreleaseビルドへ適用されません。
 - iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）で登録するカスタムスキーム名は同一にしてください（完全一致が必要）。
 
 #### MiAuth と OAuth の設定の違い（アプリ組み込み時のポイント）
@@ -647,20 +683,8 @@ final current = await auth.currentToken();
 
 - iOSの`Info.plist`・Androidの`AndroidManifest.xml`で同じ`scheme`（例: `yourscheme`）を1つ登録すれば、OAuth/MiAuthで共用可能です。
 - 本ライブラリの MiAuth は scheme のみ（`yourscheme://`）を callback に使います。`yourscheme://oauth/callback` のようなパス付きに揃える必要はありません。
-- Androidは以下のように`scheme`のみのマッチで十分です（`host`や`path`は任意）。
-
-```xml
-<activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-    <intent-filter android:label="flutter_web_auth_2">
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="yourscheme" />
-    </intent-filter>
-    <!-- 必要に応じて、host/pathで限定したい場合のみ追記 -->
-    <!-- <intent-filter> ... <data android:scheme="yourscheme" android:host="oauth" android:path="/callback"/> ... </intent-filter> -->
-  </activity>
-```
+- Androidは[Android設定](#android設定)にある`scheme`のみの構成を使用してください。
+  `host`や`path`による制限は任意で、完全なサンプルManifestは同セクションから参照できます。
 
 ### API リファレンス
 

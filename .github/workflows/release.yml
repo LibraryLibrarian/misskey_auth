@@ -1,0 +1,70 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'リリースするバージョン（例: 1.2.0 / 1.2.0-beta.1）'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.1'
+          cache: true
+
+      - name: Bump version
+        env:
+          TZ: Asia/Tokyo
+          VERSION: ${{ inputs.version }}
+        run: |
+          dart tool/bump_version.dart "$VERSION"
+          dart tool/verify_release.dart "$VERSION"
+
+      - name: Create release branch
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "release/$VERSION"
+          git commit -am "chore(release): $VERSION"
+          git push -u origin "release/$VERSION"
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ inputs.version }}
+          RELEASE_ACTOR: ${{ github.actor }}
+        run: |
+          gh pr create \
+            --assignee "$RELEASE_ACTOR" \
+            --base main \
+            --head "release/$VERSION" \
+            --title "release: $VERSION" \
+            --body "\`tool/bump_version.dart\` による自動生成。マージすると \`v$VERSION\` タグが作成され、pub.devへの公開とGitHub Release作成まで自動実行される。"
