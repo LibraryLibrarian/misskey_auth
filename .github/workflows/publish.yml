@@ -1,35 +1,154 @@
-# .github/workflows/publish-on-tag.yml
-name: Publish to pub.dev (on tag)
+name: Publish to pub.dev
 
 on:
   push:
-    tags:
-      - 'v*'   # pub.dev 側の tag-pattern 'v{{version}}' と揃える
+    # プレリリースを含むバージョンタグをpub.dev側のtag patternで検証する
+    tags: ['v*']
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
-    permissions:
-      id-token: write
-
+  verify:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Sets up Flutter (and Dart) SDK
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.1'
           cache: true
 
-      # OIDC 認証トークンをセット（これがないと「Allow access」で止まる）
+      - name: Verify tag commit is on main
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Verify release version
+        run: dart tool/verify_release.dart "${GITHUB_REF_NAME#v}"
+
+      - run: flutter pub get
+      - run: flutter pub publish --dry-run
+
+  publish:
+    needs: verify
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: pub.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.1'
+          cache: true
+
       - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.13.1'
+      - run: flutter pub get
+      - run: flutter pub publish --dry-run
+      - run: flutter pub publish --force
 
-      - run: flutter --version
+  release:
+    timeout-minutes: 10
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Dry run
-      # Dryrun
-        run: flutter pub publish --dry-run
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.1'
+          cache: true
 
-      - name: Publish
-      # 対話なしで公開
-        run: flutter pub publish --force
+      - name: Extract release notes
+        run: >-
+          dart tool/release_notes.dart "${GITHUB_REF_NAME#v}"
+          > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_options=()
+          if [[ "${GITHUB_REF_NAME#v}" == *-* ]]; then
+            release_options+=(--prerelease --latest=false)
+          fi
+
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            exit 0
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            "${release_options[@]}"
+
+  merge-back:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Merge main back into develop
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_ACTOR: ${{ github.repository_owner }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "develop already contains main. Nothing to do."
+            exit 0
+          fi
+
+          if git merge --no-ff -m "chore: merge back $GITHUB_REF_NAME into develop" origin/main \
+            && git push origin develop; then
+            echo "Merged main into develop."
+            exit 0
+          fi
+
+          # 競合、またはブランチ保護により直接pushできない場合のフォールバック
+          git merge --abort || true
+          branch="chore/merge-back-$GITHUB_REF_NAME"
+          git switch -c "$branch" origin/main
+          git push -u --force-with-lease origin "$branch"
+          existing_pr="$(gh pr list --base develop --head "$branch" --state open --json number --jq 'length')"
+          if [[ "$existing_pr" == "0" ]]; then
+            gh pr create \
+            --assignee "$RELEASE_ACTOR" \
+            --base develop \
+            --head "$branch" \
+            --title "chore: merge back $GITHUB_REF_NAME into develop" \
+            --body "自動マージバックに失敗したため、競合またはブランチ保護の確認が必要。"
+          fi
+          exit 1

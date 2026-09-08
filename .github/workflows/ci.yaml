@@ -36,24 +36,27 @@ jobs:
               - 'analysis_options.yaml'
               - 'lib/**'
               - 'test/**'
+              - 'tool/**'
               - 'example/lib/**'
               - 'example/test/**'
               - 'example/pubspec.yaml'
-              - '.github/workflows/ci.yaml'
+              - '.github/workflows/**'
             # ネイティブビルド固有のリスク（ツールチェーン / プラグイン結合）がある変更のみを対象にする。
             # Dart レベルの破壊は package ジョブの dart analyze が example/lib まで検出するため含めない
             android:
               - 'example/android/**'
               - 'example/pubspec.yaml'
               - 'pubspec.yaml'
-              - '.github/workflows/ci.yaml'
+              - '.github/workflows/**'
             ios:
               - 'example/ios/**'
               - 'example/pubspec.yaml'
               - 'pubspec.yaml'
-              - '.github/workflows/ci.yaml'
+              - '.github/workflows/**'
             # pub.dev への公開可否に影響しうるファイル
             publish:
+              - 'tool/**'
+              - 'doc/**'
               - 'pubspec.yaml'
               - 'lib/**'
               - 'README.md'
@@ -61,7 +64,7 @@ jobs:
               - 'LICENSE'
               - '.pubignore'
               - '.gitignore'
-              - '.github/workflows/ci.yaml'
+              - '.github/workflows/**'
 
   package:
     name: package (${{ matrix.flutter }} / ${{ matrix.resolution }})
@@ -171,7 +174,7 @@ jobs:
           dart pub publish --dry-run 2>&1 | tee /tmp/pub.txt
 
           # "Package has 1 warning." / "Package has 2 warnings." の双方に一致させる
-          WARN=$(grep -Eo 'Package has [0-9]+ warning' /tmp/pub.txt | grep -Eo '[0-9]+' | head -n1)
+          WARN=$(grep -Eo 'Package has [0-9]+ warning' /tmp/pub.txt | grep -Eo '[0-9]+' | head -n1 || true)
           : "${WARN:=0}"  # 未取得なら0扱い
 
           echo "pub dry-run warnings: ${WARN}"
