@@ -37,11 +37,49 @@ jobs:
         run: flutter pub get
 
       - name: Create tag if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           version="$(dart tool/print_version.dart)"
-          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-            echo "Tag v$version already exists. Nothing to do."
-            exit 0
+          tag="v$version"
+
+          # 1. 同名タグが既にある場合。
+          #    main から到達できるなら公開済みなので何もしない。バージョンを
+          #    変更しない通常の main 更新はここで終わる。
+          #    main 上にないタグは、誤ったブランチからの公開など整合しない状態を
+          #    意味するため失敗させる。タグは自動では移動しない。
+          existing="$(git rev-parse -q --verify "refs/tags/$tag^{commit}" || true)"
+          if [ -n "$existing" ]; then
+            if git merge-base --is-ancestor "$existing" "$GITHUB_SHA"; then
+              echo "Tag $tag ($existing) is already released on main. Nothing to do."
+              exit 0
+            fi
+            echo "::error::Tag $tag points at $existing, which is not contained in main."
+            echo "::error::Resolve the mismatch manually. Tags are never moved automatically."
+            exit 1
           fi
-          git tag "v$version"
-          git push origin "v$version"
+
+          # 2. 公開意図の確認: pubspec.yaml を最後に変更したコミットが
+          #    Prepare Release の生成したリリースコミットであること。
+          release_subject="$(git log -1 --format=%s -- pubspec.yaml)"
+          if [ "$release_subject" != "chore(release): $version" ]; then
+            echo "::error::Version $version is not published by a release commit."
+            echo "::error::Last commit touching pubspec.yaml: $release_subject"
+            echo "::error::Run the Prepare Release workflow instead of editing the version by hand."
+            exit 1
+          fi
+
+          # 3. 経路の確認: このコミットが main を対象とするマージ済み PR に
+          #    含まれていること。必須チェック all checks passed は PR に対して
+          #    強制されるため、PR を一度も経ていない直接 push を弾ける。
+          #    PR のマージコミットそのものであることまでは保証しない。
+          pr_count="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq '[.[] | select(.base.ref == "main" and .merged_at != null)] | length')"
+          if [ "$pr_count" = "0" ]; then
+            echo "::error::$GITHUB_SHA belongs to no merged pull request targeting main."
+            echo "::error::Release through the Prepare Release workflow and a pull request."
+            exit 1
+          fi
+
+          git tag "$tag"
+          git push origin "$tag"

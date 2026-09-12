@@ -20,6 +20,11 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    # dorny/paths-filter は PR 時に変更ファイル一覧を REST API から取得するため、
+    # ワークフロー既定の contents: read に加えて pull-requests: read が必要になる
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       package: ${{ steps.filter.outputs.package }}
       android: ${{ steps.filter.outputs.android }}
