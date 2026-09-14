@@ -35,7 +35,23 @@ jobs:
         run: dart tool/verify_release.dart "${GITHUB_REF_NAME#v}"
 
       - run: flutter pub get
-      - run: flutter pub publish --dry-run
+
+      # 公開物に警告が残っていないことを、公開対象のタグ SHA に対して確認する。
+      # --force は確認を省略するだけで警告を消さないため、ここで止める。
+      - name: Dry run publish (fail on warnings)
+        run: |
+          set -o pipefail
+          flutter pub publish --dry-run 2>&1 | tee /tmp/pub.txt
+
+          WARN=$(grep -Eo 'Package has [0-9]+ warning' /tmp/pub.txt \
+            | grep -Eo '[0-9]+' | head -n1 || true)
+          : "${WARN:=0}"
+
+          echo "pub dry-run warnings: ${WARN}"
+          if [ "$WARN" -gt 0 ]; then
+            echo "::error::pub dry run reported ${WARN} warning(s)"
+            exit 1
+          fi
 
   publish:
     needs: verify
@@ -57,7 +73,22 @@ jobs:
         with:
           sdk: '3.13.1'
       - run: flutter pub get
-      - run: flutter pub publish --dry-run
+
+      - name: Dry run publish (fail on warnings)
+        run: |
+          set -o pipefail
+          flutter pub publish --dry-run 2>&1 | tee /tmp/pub.txt
+
+          WARN=$(grep -Eo 'Package has [0-9]+ warning' /tmp/pub.txt \
+            | grep -Eo '[0-9]+' | head -n1 || true)
+          : "${WARN:=0}"
+
+          echo "pub dry-run warnings: ${WARN}"
+          if [ "$WARN" -gt 0 ]; then
+            echo "::error::pub dry run reported ${WARN} warning(s)"
+            exit 1
+          fi
+
       - run: flutter pub publish --force
 
   release:
@@ -124,23 +155,29 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
 
-          if git merge-base --is-ancestor origin/main HEAD; then
-            echo "develop already contains main. Nothing to do."
+          # 公開したタグのコミットだけを取り込む。origin/main の先端を使うと、
+          # 後続のリリースが進んでいた場合に別バージョンを巻き込む
+          git fetch --no-tags origin \
+            "+refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          release_sha="$(git rev-parse "refs/tags/$GITHUB_REF_NAME^{commit}")"
+          echo "Merging published commit $release_sha"
+
+          if git merge-base --is-ancestor "$release_sha" HEAD; then
+            echo "develop already contains $GITHUB_REF_NAME. Nothing to do."
             exit 0
           fi
 
-          if git merge --no-ff -m "chore: merge back $GITHUB_REF_NAME into develop" origin/main \
+          if git merge --no-ff -m "chore: merge back $GITHUB_REF_NAME into develop" "$release_sha" \
             && git push origin develop; then
-            echo "Merged main into develop."
+            echo "Merged $GITHUB_REF_NAME into develop."
             exit 0
           fi
 
           # 競合、またはブランチ保護により直接pushできない場合のフォールバック
           git merge --abort || true
           branch="chore/merge-back-$GITHUB_REF_NAME"
-          git switch -c "$branch" origin/main
+          git switch -c "$branch" "$release_sha"
           git push -u --force-with-lease origin "$branch"
           existing_pr="$(gh pr list --base develop --head "$branch" --state open --json number --jq 'length')"
           if [[ "$existing_pr" == "0" ]]; then

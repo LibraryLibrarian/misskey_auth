@@ -6,6 +6,17 @@ const versionReferencePaths = <String>['README.md'];
 // English and Japanese installation examples share one README.
 const _expectedReferenceCount = 2;
 
+const _promotionPointerTemplate = 'Included in [{version}].';
+const _categoryOrder = <String>[
+  'Breaking changes',
+  'Added',
+  'Changed',
+  'Deprecated',
+  'Removed',
+  'Fixed',
+  'Security',
+];
+
 final RegExp _semanticVersionPattern = RegExp(
   r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)'
   r'(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)'
@@ -43,6 +54,12 @@ List<String> bumpVersion(
   if (project.version == nextVersion) {
     throw ReleaseToolException(
       'Version $nextVersion is already set in pubspec.yaml.',
+    );
+  }
+
+  if (compareReleaseVersions(nextVersion, project.version) <= 0) {
+    throw ReleaseToolException(
+      'Version $nextVersion must be greater than ${project.version}.',
     );
   }
 
@@ -165,6 +182,59 @@ void validateReleaseVersion(String version) {
       '1.0.0 or 1.0.0-beta.1.',
     );
   }
+}
+
+/// Compares valid Semantic Versions by precedence, ignoring build metadata.
+int compareReleaseVersions(String a, String b) {
+  validateReleaseVersion(a);
+  validateReleaseVersion(b);
+  final left = _ReleaseVersion(a);
+  final right = _ReleaseVersion(b);
+  for (var i = 0; i < left.core.length; i++) {
+    final order = BigInt.parse(left.core[i])
+        .compareTo(BigInt.parse(right.core[i]));
+    if (order != 0) return order;
+  }
+  final leftPre = left.prerelease;
+  final rightPre = right.prerelease;
+  if (leftPre.isEmpty) return rightPre.isEmpty ? 0 : 1;
+  if (rightPre.isEmpty) return -1;
+  for (var i = 0; i < leftPre.length && i < rightPre.length; i++) {
+    final numeric = RegExp(r'^\d+$');
+    final leftNumber = numeric.hasMatch(leftPre[i])
+        ? BigInt.parse(leftPre[i])
+        : null;
+    final rightNumber = numeric.hasMatch(rightPre[i])
+        ? BigInt.parse(rightPre[i])
+        : null;
+    final int order;
+    if (leftNumber != null && rightNumber != null) {
+      order = leftNumber.compareTo(rightNumber);
+    } else if (leftNumber != null) {
+      order = -1;
+    } else if (rightNumber != null) {
+      order = 1;
+    } else {
+      order = leftPre[i].compareTo(rightPre[i]);
+    }
+    if (order != 0) return order;
+  }
+  return leftPre.length.compareTo(rightPre.length);
+}
+
+final class _ReleaseVersion {
+  _ReleaseVersion(String version) {
+    final precedence = version.split('+').first;
+    final separator = precedence.indexOf('-');
+    core = (separator < 0 ? precedence : precedence.substring(0, separator))
+        .split('.');
+    prerelease = separator < 0
+        ? <String>[]
+        : precedence.substring(separator + 1).split('.');
+  }
+
+  late final List<String> core;
+  late final List<String> prerelease;
 }
 
 _Project _readProject(Directory root) {
@@ -311,6 +381,21 @@ String _addChangelogRelease(
     );
   }
 
+  final headings = RegExp(
+    r'^## \[([^\]]+)\][^\r\n]*',
+    multiLine: true,
+  ).allMatches(changelog).toList();
+  for (final heading in headings) {
+    final version = heading.group(1)!;
+    if (_semanticVersionPattern.hasMatch(version) &&
+        compareReleaseVersions(nextVersion, version) <= 0) {
+      throw ReleaseToolException(
+        'Version $nextVersion must be greater than CHANGELOG.md version '
+        '$version.',
+      );
+    }
+  }
+
   final unreleasedPattern = RegExp(
     r'^## \[Unreleased\][ \t]*(?:\r?\n)+',
     multiLine: true,
@@ -328,7 +413,115 @@ String _addChangelogRelease(
       '## [Unreleased]$newline$newline'
       '## [$nextVersion] - $date$newline$newline';
   final match = unreleasedMatches.single;
-  return changelog.replaceRange(match.start, match.end, replacement);
+  final next = _ReleaseVersion(nextVersion);
+  final prereleases = <RegExpMatch>[];
+  if (next.prerelease.isEmpty) {
+    for (final heading in headings) {
+      final version = heading.group(1)!;
+      if (!_semanticVersionPattern.hasMatch(version)) continue;
+      final parsed = _ReleaseVersion(version);
+      if (parsed.prerelease.isNotEmpty &&
+          parsed.core.join('.') == next.core.join('.') &&
+          RegExp(r' - \d{4}-\d{2}-\d{2}[ \t]*$').hasMatch(heading.group(0)!)) {
+        prereleases.add(heading);
+      }
+    }
+  }
+  if (prereleases.isEmpty) {
+    return changelog.replaceRange(match.start, match.end, replacement);
+  }
+
+  int bodyEnd(RegExpMatch heading) {
+    final index = headings.indexOf(heading);
+    return index + 1 < headings.length
+        ? headings[index + 1].start
+        : changelog.length;
+  }
+
+  // Break precedence ties by file order, with older entries first.
+  prereleases.sort((a, b) {
+    final order = compareReleaseVersions(a.group(1)!, b.group(1)!);
+    return order == 0 ? b.start.compareTo(a.start) : order;
+  });
+  final unreleased = headings.singleWhere(
+    (heading) => heading.start == match.start,
+  );
+  final sources = <String>[
+    for (final heading in prereleases)
+      changelog.substring(heading.end, bodyEnd(heading)),
+    changelog.substring(unreleased.end, bodyEnd(unreleased)),
+  ];
+  final merged = _mergeReleaseBodies(sources, newline);
+  final pointer = _promotionPointerTemplate.replaceAll(
+    '{version}',
+    nextVersion,
+  );
+  var updated = changelog;
+  // Apply replacements backwards so the original offsets remain valid.
+  final replaced = <RegExpMatch>[...prereleases, unreleased]
+    ..sort((a, b) => b.start.compareTo(a.start));
+  for (final heading in replaced) {
+    if (heading == unreleased) {
+      updated = updated.replaceRange(
+        heading.start,
+        bodyEnd(heading),
+        '$replacement$merged$newline$newline',
+      );
+    } else {
+      updated = updated.replaceRange(
+        heading.end,
+        bodyEnd(heading),
+        '$newline$newline$pointer$newline$newline',
+      );
+    }
+  }
+  return updated;
+}
+
+String _mergeReleaseBodies(List<String> sources, String newline) {
+  final seen = <String>{};
+  final preamble = _ReleaseLines(seen);
+  final categories = <String, _ReleaseLines>{};
+  final categoryPattern = RegExp(r'^###[ \t]+(.+?)\s*$');
+  for (final source in sources) {
+    var lines = preamble;
+    for (final line in source.trim().split(RegExp(r'\r?\n'))) {
+      final category = categoryPattern.firstMatch(line);
+      if (category != null) {
+        lines = categories.putIfAbsent(
+          category.group(1)!,
+          () => _ReleaseLines(seen),
+        );
+      } else {
+        lines.add(line);
+      }
+    }
+  }
+  final sections = <String>[];
+  final introduction = preamble.render(newline);
+  if (introduction.isNotEmpty) sections.add(introduction);
+  final names = <String>{..._categoryOrder, ...categories.keys};
+  for (final name in names) {
+    final lines = categories[name];
+    if (lines == null) continue;
+    sections.add(
+      '### $name$newline$newline${lines.render(newline)}'.trimRight(),
+    );
+  }
+  return sections.join('$newline$newline');
+}
+
+final class _ReleaseLines {
+  _ReleaseLines(this._seen);
+
+  final _lines = <String>[];
+  final Set<String> _seen;
+
+  void add(String line) {
+    if (line.trim().isEmpty || _seen.add(line.trim())) _lines.add(line);
+  }
+
+  String render(String newline) => _lines.join(newline).trim();
 }
 
 String _formatDate(DateTime date) {
