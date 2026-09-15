@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Excluded development-only files from the published package, reducing the archive from 3 MB to 31 KB. The `android/` and `ios/` directories at the repository root are `flutter create` scaffolding rather than platform implementations of this package, and the demo GIF in `assets/` is referenced from the README by absolute URL.
+
 ## [0.2.0-beta.1] - 2026-09-08
 
 ### Breaking changes
