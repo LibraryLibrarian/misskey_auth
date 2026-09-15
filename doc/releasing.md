@@ -7,7 +7,7 @@ misskey_clientと同じく、準備PR → mainへのマージ → タグ → pub
 - GitHub App: 対象リポジトリへのContents／Pull requestsの読み書き権限。
 - Actions変数: `RELEASE_APP_CLIENT_ID`。
 - Actions Secret: `RELEASE_APP_PRIVATE_KEY`。
-- Environment: `pub.dev`。公開前の承認者を設定します。
+- Environment: `pub.dev`。承認者は設定しません。Environment名はOIDCトークンに署名されるため、push権限を持つ者がワークフローを書き換えて公開経路を迂回することを防ぎます。削除すると公開自体が失敗します。
 - pub.dev: リポジトリ`LibraryLibrarian/misskey_auth`、タグ`v{{version}}`、pushイベント、Environment `pub.dev`を指定します。
 - mainの必須CIチェック: `all checks passed`。
 
@@ -16,9 +16,10 @@ misskey_clientと同じく、準備PR → mainへのマージ → タグ → pub
 1. developのCI成功を確認し、CHANGELOGの`Unreleased`に利用者向けの変更内容を記載します。
 2. Actionsの`Prepare Release`をdevelopから起動し、未公開のバージョンを入力します。例: `0.1.5-beta.1`。
 3. 生成されたmain向けPRを確認します。pubspec、READMEの英語・日本語の2箇所、CHANGELOGの日付付き見出しが更新され、実行者がAssigneeになります。
-4. PRのCI成功後にマージします。`Tag Release`がバージョンタグを作成します。同名タグが存在する場合は何もしません。
-5. `Publish to pub.dev`の検証成功後、`pub.dev` Environmentの公開を承認します。
-6. pub.devへの公開、CHANGELOGからのGitHub Release作成、developへのマージバックを確認します。プレリリースはGitHubでもPre-releaseとして作成されます。
+4. PRのCI成功後にマージします。**このマージが公開の起点です。**以降は人の操作を挟まず、タグ作成からpub.dev公開まで自動で進みます。
+5. pub.devへの公開、CHANGELOGからのGitHub Release作成、developへのマージバックを確認します。プレリリースはGitHubでもPre-releaseとして作成されます。
+
+リリースPRが開いている間は、develop側で`CHANGELOG.md`の`[Unreleased]`を編集しないでください。リリースPRは`[Unreleased]`の直下に新しい見出しを挿入するため、同じ位置への追記は公開後のマージバックで必ず競合します。
 
 初回は自動化コードを先にdevelopへ取り込んでください。
 
@@ -61,7 +62,6 @@ fvm flutter pub publish --dry-run
 - 準備失敗: バージョン形式、バージョンが後退していないか、READMEの2箇所、CHANGELOGの見出しと内容、同名ブランチの有無を確認します。既存ブランチは自動で上書きしません。
 - タグ作成失敗: 上記「通常のリリース」末尾の3条件のどれを満たしていないかがログに出ます。既存タグとmainの不一致は自動復旧しません。
 - 公開前検証失敗: タグがmainに含まれること、各ファイルのバージョンとCHANGELOGの日付・本文を確認します。`pub publish --dry-run`の警告が1件でもあれば公開前に停止します。`--force`は確認を省略するだけで警告を消しません。
-- 承認待ち: `pub.dev` Environmentの承認待ちはエラーではありません。
 - 公開失敗: pub.devで対象バージョンが公開済みか確認します。既に公開済みならpublishジョブを再実行しないでください。公開済みバージョンは再公開できません。
 - Release作成／マージバック失敗: GitHub Actionsの「失敗したジョブを再実行」を使い、成功済みの公開ジョブを再実行しません。既存のGitHub Releaseは作成をスキップします。
 - マージバックで競合またはブランチ保護に抵触した場合: `chore/merge-back-v<version>`のPRを確認し、必要な解決・CI確認後にdevelopへマージします。自動復旧できなかったことが分かるようジョブは失敗扱いになります。
