@@ -188,6 +188,104 @@ jobs:
             exit 1
           fi
 
+  # 公開済みバージョンとの公開API差分を報告する。CHANGELOG で宣言した影響度と
+  # 実際のAPI差分の食い違いは、これまでリリース後にしか分からなかった。
+  #
+  # 報告のみで、gate の needs には入れない。破壊的変更の有無からバージョンを
+  # 機械的に決めるのは誤検知の余地があり、判断は人間に残す。
+  api-diff:
+    name: API diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dart_apitool
+        run: dart pub global activate dart_apitool 0.23.2
+
+      - name: Diff the public API against the published version
+        run: |
+          set -euo pipefail
+
+          name="$(sed -n 's/^name:[[:space:]]*\([^[:space:]#]*\).*$/\1/p' pubspec.yaml)"
+          if [ "$(printf '%s\n' "$name" | grep -c .)" != "1" ]; then
+            echo "::error::pubspec.yaml must declare exactly one top-level name."
+            exit 1
+          fi
+
+          # 比較できなかった理由をサマリに残して正常終了する
+          skip() {
+            {
+              echo "## API diff"
+              echo
+              echo "$1"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+
+          # pub.dev は未知のパッケージに 404 と XML 本文を返す。本文を読む前に
+          # HTTP ステータスで分岐し、未公開と通信障害を区別する。
+          payload="$RUNNER_TEMP/pub-api.json"
+          http="$(curl -sS -o "$payload" -w '%{http_code}' \
+            "https://pub.dev/api/packages/$name" || true)"
+          case "${http:-000}" in
+            200) ;;
+            404) skip "\`$name\` is not published yet. Nothing to diff against." ;;
+            *)   skip "Could not reach pub.dev (HTTP ${http:-000}). Skipped the comparison." ;;
+          esac
+
+          published="$(python3 -c \
+            'import json,sys; print(json.load(sys.stdin).get("latest",{}).get("version",""))' \
+            < "$payload" 2>/dev/null || true)"
+          if [ -z "$published" ]; then
+            skip "pub.dev returned an unexpected payload for \`$name\`. Skipped the comparison."
+          fi
+
+          report="$RUNNER_TEMP/api-diff.md"
+          log="$RUNNER_TEMP/api-diff.log"
+
+          # 破壊的変更があっても CI は落とさない
+          set +e
+          dart pub global run dart_apitool:main diff \
+            --old "pub://$name/$published" \
+            --new . \
+            --no-set-exit-on-version-check-failure \
+            --report-format markdown \
+            --report-file-path "$report" 2>&1 | tee "$log"
+          status="${PIPESTATUS[0]}"
+          set -e
+
+          {
+            echo "## API diff"
+            echo
+            echo "Compared against \`pub://$name/$published\`."
+            echo "This job is advisory: it is not a required check, so it never blocks the merge."
+            echo
+            if [ "$status" != "0" ]; then
+              echo "> dart_apitool exited with $status. See the job log."
+              echo
+            fi
+            if [ -f "$report" ]; then
+              sed -e '/^# API Changes Report$/d' \
+                  -e '/^## ℹ️ API-Tool Info$/,/^$/d' \
+                  -e '/^## Report$/d' "$report"
+              echo
+            fi
+            # バージョン判定は標準出力側にしか出ない。ツールが途中で失敗すると節ごと
+            # 存在しないため、抽出できなくても失敗させない。
+            if [ -f "$log" ]; then
+              { sed -n '/^### Version Check$/,$p' "$log" \
+                  | sed '/^Markdown report generated at /d' \
+                  | grep -vE '^(IO|MSG|SLVR|FINE|WARN|ERR) +:'; } || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   gate:
     name: all checks passed
     needs: [changes, package, example-android, example-ios, publish-dry-run]
