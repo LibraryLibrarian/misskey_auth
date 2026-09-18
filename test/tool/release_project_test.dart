@@ -4,11 +4,24 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/src/release_project.dart';
 
+/// Reference files used by the fixture project.
+///
+/// The suite exercises the shared release tool, not this repository, so it
+/// builds its own project and configuration instead of reading the real ones.
+/// `release_config_test.dart` covers the configuration this repository ships.
+const _referencePaths = <String>['README.md', 'docs/getting-started.md'];
+
+const _config = ReleaseConfig(versionReferencePaths: _referencePaths);
+
+const _packageName = 'sample_package';
+
+const _lockPath = 'example/pubspec.lock';
+
 void main() {
   late Directory root;
 
   setUp(() {
-    root = Directory.systemTemp.createTempSync('misskey_release_tools_');
+    root = Directory.systemTemp.createTempSync('release_tools_');
     _createProject(root);
   });
 
@@ -24,20 +37,15 @@ void main() {
     final updatedPaths = bumpVersion(
       root,
       '1.0.0-beta.4',
+      config: _config,
       releaseDate: DateTime.utc(2026, 8, 13),
     );
 
     expect(_read(root, 'pubspec.yaml'), contains('version: 1.0.0-beta.4'));
-    expect(
-      RegExp(r'misskey_auth: \^1\.0\.0-beta\.4')
-          .allMatches(_read(root, 'README.md'))
-          .length,
-      2,
-    );
-    for (final path in versionReferencePaths) {
+    for (final path in _referencePaths) {
       expect(
         _read(root, path),
-        contains('misskey_auth: ^1.0.0-beta.4'),
+        contains('$_packageName: ^1.0.0-beta.4'),
         reason: path,
       );
     }
@@ -51,31 +59,30 @@ void main() {
     );
     expect(
       updatedPaths,
-      containsAll(<String>[
-        'pubspec.yaml',
-        ...versionReferencePaths,
-        'CHANGELOG.md',
-      ]),
+      containsAll(<String>['pubspec.yaml', ..._referencePaths, 'CHANGELOG.md']),
     );
-    expect(() => verifyRelease(root, '1.0.0-beta.4'), returnsNormally);
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.4', config: _config),
+      returnsNormally,
+    );
   });
 
   test('bumpVersion does not write files when a reference is inconsistent', () {
     _write(
       root,
-      versionReferencePaths.first,
-      'dependencies:\n  misskey_auth: ^1.0.0-beta.2\n',
+      _referencePaths.first,
+      'dependencies:\n  $_packageName: ^1.0.0-beta.2\n',
     );
     final originalPubspec = _read(root, 'pubspec.yaml');
     final originalChangelog = _read(root, 'CHANGELOG.md');
 
     expect(
-      () => bumpVersion(root, '1.0.0-beta.4'),
+      () => bumpVersion(root, '1.0.0-beta.4', config: _config),
       throwsA(
         isA<ReleaseToolException>().having(
           (error) => error.message,
           'message',
-          contains(versionReferencePaths.first),
+          contains(_referencePaths.first),
         ),
       ),
     );
@@ -86,39 +93,304 @@ void main() {
   test('verifyRelease rejects a mismatched documentation version', () {
     _write(
       root,
-      versionReferencePaths.last,
-      'dependencies:\n  misskey_auth: ^1.0.0-beta.2\n',
+      _referencePaths.last,
+      'dependencies:\n  $_packageName: ^1.0.0-beta.2\n',
     );
 
     expect(
-      () => verifyRelease(root, '1.0.0-beta.3'),
+      () => verifyRelease(root, '1.0.0-beta.3', config: _config),
       throwsA(
         isA<ReleaseToolException>().having(
           (error) => error.message,
           'message',
-          contains(versionReferencePaths.last),
+          contains(_referencePaths.last),
         ),
       ),
     );
   });
 
-  test('rejects a stale Japanese reference without writing any files', () {
-    final readme = _read(root, 'README.md').replaceFirst(
-      '# Japanese\n  misskey_auth: ^1.0.0-beta.3',
-      '# Japanese\n  misskey_auth: ^1.0.0-beta.2',
-    );
-    _write(root, 'README.md', readme);
-    final before = _read(root, 'pubspec.yaml');
+  test('an empty configuration skips reference files entirely', () {
+    const config = ReleaseConfig();
+    _write(root, _referencePaths.first, 'no dependency reference here\n');
+
+    final updatedPaths = bumpVersion(root, '1.0.0-beta.4', config: config);
+
+    expect(updatedPaths, <String>['pubspec.yaml', 'CHANGELOG.md']);
     expect(
-      () => bumpVersion(root, '1.0.0-beta.4'),
+      () => verifyRelease(root, '1.0.0-beta.4', config: config),
+      returnsNormally,
+    );
+  });
+
+  test('exactly(2) requires both references and updates both', () {
+    const config = ReleaseConfig(
+      versionReferencePaths: <String>['README.md'],
+      referenceCount: VersionReferenceCount.exactly(2),
+    );
+    _write(
+      root,
+      'README.md',
+      '# English\n\n  $_packageName: ^1.0.0-beta.3\n\n'
+          '# Japanese\n\n  $_packageName: ^1.0.0-beta.3\n',
+    );
+
+    bumpVersion(root, '1.0.0-beta.4', config: config);
+
+    expect(
+      '$_packageName: ^1.0.0-beta.4'.allMatches(_read(root, 'README.md')),
+      hasLength(2),
+    );
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.4', config: config),
+      returnsNormally,
+    );
+
+    _write(root, 'README.md', '  $_packageName: ^1.0.0-beta.4\n');
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.4', config: config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('exactly 2 dependency references'),
+        ),
+      ),
+    );
+  });
+
+  test('a stale reference beside a current one writes nothing', () {
+    const config = ReleaseConfig(
+      versionReferencePaths: <String>['README.md'],
+      referenceCount: VersionReferenceCount.exactly(2),
+    );
+    _write(
+      root,
+      'README.md',
+      '  $_packageName: ^1.0.0-beta.3\n  $_packageName: ^1.0.0-beta.2\n',
+    );
+    final before = <String, String>{
+      for (final path in <String>['pubspec.yaml', 'README.md', 'CHANGELOG.md'])
+        path: _read(root, path),
+    };
+
+    expect(
+      () => bumpVersion(root, '1.0.0-beta.4', config: config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('README.md references $_packageName ^1.0.0-beta.2'),
+        ),
+      ),
+    );
+    for (final entry in before.entries) {
+      expect(_read(root, entry.key), entry.value, reason: entry.key);
+    }
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.3', config: config),
       throwsA(isA<ReleaseToolException>()),
     );
-    expect(
-      () => verifyRelease(root, '1.0.0-beta.3'),
-      throwsA(isA<ReleaseToolException>()),
+  });
+
+  test('every reference is updated when the version length changes', () {
+    const config = ReleaseConfig(
+      versionReferencePaths: <String>['README.md'],
+      referenceCount: VersionReferenceCount.atLeastOne(),
     );
-    expect(_read(root, 'pubspec.yaml'), before);
-    expect(_read(root, 'README.md'), readme);
+    _write(
+      root,
+      'README.md',
+      '  $_packageName: ^1.0.0-beta.3 # first\n'
+          'unrelated line\n'
+          '  $_packageName: ^1.0.0-beta.3\n',
+    );
+
+    bumpVersion(root, '1.0.0', config: config);
+
+    expect(
+      _read(root, 'README.md'),
+      '  $_packageName: ^1.0.0 # first\n'
+      'unrelated line\n'
+      '  $_packageName: ^1.0.0\n',
+    );
+    expect(() => verifyRelease(root, '1.0.0', config: config), returnsNormally);
+  });
+
+  test('an invalid lock entry stops the bump before any file is written', () {
+    const config = ReleaseConfig(exampleLockPath: _lockPath);
+    _write(
+      root,
+      _lockPath,
+      'packages:\n  other_package:\n    source: hosted\n',
+    );
+    final before = <String, String>{
+      for (final path in <String>['pubspec.yaml', 'CHANGELOG.md', _lockPath])
+        path: _read(root, path),
+    };
+
+    expect(
+      () => bumpVersion(root, '1.0.0-beta.4', config: config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('exactly one $_packageName package entry'),
+        ),
+      ),
+    );
+    for (final entry in before.entries) {
+      expect(_read(root, entry.key), entry.value, reason: entry.key);
+    }
+  });
+
+  test('a missing Unreleased heading stops the bump before any write', () {
+    _write(
+      root,
+      'CHANGELOG.md',
+      '# Changelog\n\n'
+          '## [1.0.0-beta.3] - 2026-08-05\n\n'
+          '### Added\n\n- Released change\n',
+    );
+    final before = <String, String>{
+      for (final path in <String>[
+        'pubspec.yaml',
+        ..._referencePaths,
+        'CHANGELOG.md',
+      ])
+        path: _read(root, path),
+    };
+
+    expect(
+      () => bumpVersion(root, '1.0.0-beta.4', config: _config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('exactly one Unreleased heading'),
+        ),
+      ),
+    );
+    for (final entry in before.entries) {
+      expect(_read(root, entry.key), entry.value, reason: entry.key);
+    }
+  });
+
+  test('readPubspecVersion rejects a duplicated version field', () {
+    _write(
+      root,
+      'pubspec.yaml',
+      'name: $_packageName\nversion: 1.0.0\nversion: 2.0.0\n',
+    );
+
+    expect(
+      () => readPubspecVersion(root),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('exactly one top-level version field'),
+        ),
+      ),
+    );
+  });
+
+  test('exactly(1) rejects a second reference in the same file', () {
+    _write(
+      root,
+      _referencePaths.first,
+      '  $_packageName: ^1.0.0-beta.3\n  $_packageName: ^1.0.0-beta.3\n',
+    );
+
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.3', config: _config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('exactly one dependency reference'),
+        ),
+      ),
+    );
+  });
+
+  test('atLeastOne updates every reference and rejects a file without any', () {
+    const config = ReleaseConfig(
+      versionReferencePaths: <String>['README.md'],
+      referenceCount: VersionReferenceCount.atLeastOne(),
+    );
+    _write(
+      root,
+      'README.md',
+      '  $_packageName: ^1.0.0-beta.3\n'
+          '  $_packageName: ^1.0.0-beta.3\n'
+          '  $_packageName: ^1.0.0-beta.3\n',
+    );
+
+    bumpVersion(root, '1.0.0-beta.4', config: config);
+
+    expect(
+      '$_packageName: ^1.0.0-beta.4'.allMatches(_read(root, 'README.md')),
+      hasLength(3),
+    );
+
+    _write(root, 'README.md', 'no dependency reference here\n');
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.4', config: config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('at least one dependency reference'),
+        ),
+      ),
+    );
+  });
+
+  test('exampleLockPath keeps a path dependency in sync', () {
+    const config = ReleaseConfig(exampleLockPath: _lockPath);
+    _writeLock(root, '1.0.0-beta.3');
+
+    final updatedPaths = bumpVersion(root, '1.0.0-beta.4', config: config);
+
+    expect(updatedPaths, contains(_lockPath));
+    expect(_read(root, _lockPath), contains('version: "1.0.0-beta.4"'));
+    expect(_read(root, _lockPath), contains('  other_package:'));
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.4', config: config),
+      returnsNormally,
+    );
+  });
+
+  test('exampleLockPath rejects a stale or missing lock entry', () {
+    const config = ReleaseConfig(exampleLockPath: _lockPath);
+    _writeLock(root, '1.0.0-beta.2');
+
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.3', config: config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('$_lockPath has $_packageName version 1.0.0-beta.2'),
+        ),
+      ),
+    );
+
+    _write(
+      root,
+      _lockPath,
+      'packages:\n  other_package:\n    source: hosted\n',
+    );
+    expect(
+      () => verifyRelease(root, '1.0.0-beta.3', config: config),
+      throwsA(
+        isA<ReleaseToolException>().having(
+          (error) => error.message,
+          'message',
+          contains('exactly one $_packageName package entry'),
+        ),
+      ),
+    );
   });
 
   test('verifyRelease rejects an invalid CHANGELOG date', () {
@@ -129,7 +401,7 @@ void main() {
     _write(root, 'CHANGELOG.md', changelog);
 
     expect(
-      () => verifyRelease(root, '1.0.0-beta.3'),
+      () => verifyRelease(root, '1.0.0-beta.3', config: _config),
       throwsA(
         isA<ReleaseToolException>().having(
           (error) => error.message,
@@ -180,7 +452,7 @@ void main() {
     );
 
     expect(
-      () => verifyRelease(root, '1.0.0-beta.3'),
+      () => verifyRelease(root, '1.0.0-beta.3', config: _config),
       throwsA(
         isA<ReleaseToolException>().having(
           (error) => error.message,
@@ -193,18 +465,18 @@ void main() {
 
   test('bumpVersion rejects unchanged versions and duplicate headings', () {
     expect(
-      () => bumpVersion(root, '1.0.0-beta.3'),
+      () => bumpVersion(root, '1.0.0-beta.3', config: _config),
       throwsA(isA<ReleaseToolException>()),
     );
     expect(
-      () => bumpVersion(root, '1.0.0-beta.2'),
+      () => bumpVersion(root, '1.0.0-beta.2', config: _config),
       throwsA(isA<ReleaseToolException>()),
     );
   });
 
   test('verifyRelease rejects a mismatched tag version', () {
     expect(
-      () => verifyRelease(root, '1.0.0-beta.4'),
+      () => verifyRelease(root, '1.0.0-beta.4', config: _config),
       throwsA(isA<ReleaseToolException>()),
     );
   });
@@ -215,7 +487,12 @@ void main() {
       'CHANGELOG.md',
       _read(root, 'CHANGELOG.md').replaceAll('\n', '\r\n'),
     );
-    bumpVersion(root, '1.0.0', releaseDate: DateTime.utc(2026, 9, 8));
+    bumpVersion(
+      root,
+      '1.0.0',
+      config: _config,
+      releaseDate: DateTime.utc(2026, 9, 8),
+    );
     expect(
       _read(root, 'CHANGELOG.md'),
       contains('## [1.0.0] - 2026-09-08\r\n'),
@@ -233,7 +510,10 @@ void main() {
         'Included in [1.0.0].\r\n',
       ),
     );
-    expect(() => verifyRelease(root, '1.0.0'), returnsNormally);
+    expect(
+      () => verifyRelease(root, '1.0.0', config: _config),
+      returnsNormally,
+    );
   });
 
   test('promotion merges categories from oldest beta through Unreleased', () {
@@ -257,7 +537,12 @@ void main() {
           '## [0.9.0] - 2026-07-01\n\n- Old stable notes\n',
     );
 
-    bumpVersion(root, '1.0.0', releaseDate: DateTime.utc(2026, 9, 8));
+    bumpVersion(
+      root,
+      '1.0.0',
+      config: _config,
+      releaseDate: DateTime.utc(2026, 9, 8),
+    );
 
     final notes = extractReleaseNotes(root, '1.0.0');
     _expectInOrder(notes, <String>[
@@ -290,7 +575,10 @@ void main() {
       );
     }
     expect(extractReleaseNotes(root, '0.9.0'), '- Old stable notes\n');
-    expect(() => verifyRelease(root, '1.0.0'), returnsNormally);
+    expect(
+      () => verifyRelease(root, '1.0.0', config: _config),
+      returnsNormally,
+    );
   });
 
   test('promotion succeeds with empty Unreleased and returns beta notes', () {
@@ -303,13 +591,16 @@ void main() {
       ).replaceFirst('### Added\n\n- Pending change\n\n', ''),
     );
 
-    bumpVersion(root, '1.0.0');
+    bumpVersion(root, '1.0.0', config: _config);
 
     expect(
       extractReleaseNotes(root, '1.0.0'),
       '### Added\n\n- Released change\n\n### Fixed\n\n- Older change\n',
     );
-    expect(() => verifyRelease(root, '1.0.0'), returnsNormally);
+    expect(
+      () => verifyRelease(root, '1.0.0', config: _config),
+      returnsNormally,
+    );
   });
 
   test(
@@ -326,7 +617,7 @@ void main() {
             '### Added\n\n- Shared change\n- First change\n',
       );
 
-      bumpVersion(root, '1.0.0');
+      bumpVersion(root, '1.0.0', config: _config);
 
       final notes = extractReleaseNotes(root, '1.0.0');
       expect('Shared change'.allMatches(notes), hasLength(1));
@@ -353,7 +644,7 @@ void main() {
           '### Maintenance\n\n- Old maintenance\n',
     );
 
-    bumpVersion(root, '1.0.0');
+    bumpVersion(root, '1.0.0', config: _config);
 
     _expectInOrder(extractReleaseNotes(root, '1.0.0'), <String>[
       'The upcoming release migrates persistence from Isar to Drift.',
@@ -377,7 +668,7 @@ void main() {
           '## [1.0.0-beta.10] - 2026-08-10\n\n### Added\n\n- Tenth\n',
     );
 
-    bumpVersion(root, '1.0.0');
+    bumpVersion(root, '1.0.0', config: _config);
 
     _expectInOrder(extractReleaseNotes(root, '1.0.0'), <String>[
       '- Ninth',
@@ -389,7 +680,12 @@ void main() {
     'stable bump without matching prereleases leaves older notes intact',
     () {
       final original = _read(root, 'CHANGELOG.md');
-      bumpVersion(root, '1.1.0', releaseDate: DateTime.utc(2026, 9, 8));
+      bumpVersion(
+        root,
+        '1.1.0',
+        config: _config,
+        releaseDate: DateTime.utc(2026, 9, 8),
+      );
 
       expect(
         _read(root, 'CHANGELOG.md'),
@@ -409,14 +705,14 @@ void main() {
     final before = <String, String>{
       for (final path in <String>[
         'pubspec.yaml',
-        ...versionReferencePaths,
+        ..._referencePaths,
         'CHANGELOG.md',
       ])
         path: _read(root, path),
     };
     for (final next in <String>['0.9.0', '1.0.0-beta.3+build.1']) {
       expect(
-        () => bumpVersion(root, next),
+        () => bumpVersion(root, next, config: _config),
         throwsA(isA<ReleaseToolException>()),
       );
       for (final entry in before.entries) {
@@ -436,13 +732,13 @@ void main() {
       final before = <String, String>{
         for (final path in <String>[
           'pubspec.yaml',
-          ...versionReferencePaths,
+          ..._referencePaths,
           'CHANGELOG.md',
         ])
           path: _read(root, path),
       };
       expect(
-        () => bumpVersion(root, '1.0.0-beta.4'),
+        () => bumpVersion(root, '1.0.0-beta.4', config: _config),
         throwsA(isA<ReleaseToolException>()),
       );
       for (final entry in before.entries) {
@@ -487,11 +783,11 @@ void main() {
 
   test('release tools reject invalid Semantic Versions', () {
     expect(
-      () => bumpVersion(root, '1.0'),
+      () => bumpVersion(root, '1.0', config: _config),
       throwsA(isA<ReleaseToolException>()),
     );
     expect(
-      () => verifyRelease(root, '1.0.0-01'),
+      () => verifyRelease(root, '1.0.0-01', config: _config),
       throwsA(isA<ReleaseToolException>()),
     );
   });
@@ -510,18 +806,16 @@ void _createProject(Directory root) {
   _write(
     root,
     'pubspec.yaml',
-    'name: misskey_auth\n'
+    'name: $_packageName\n'
         'version: 1.0.0-beta.3\n',
   );
-  for (final path in versionReferencePaths) {
+  for (final path in _referencePaths) {
     _write(
       root,
       path,
       '# Usage\n\n'
       'dependencies:\n'
-      '  misskey_auth: ^1.0.0-beta.3\n'
-      '# Japanese\n'
-      '  misskey_auth: ^1.0.0-beta.3\n',
+      '  $_packageName: ^1.0.0-beta.3\n',
     );
   }
   _write(
@@ -537,6 +831,25 @@ void _createProject(Directory root) {
         '## [1.0.0-beta.2] - 2026-07-01\n\n'
         '### Fixed\n\n'
         '- Older change\n',
+  );
+}
+
+void _writeLock(Directory root, String version) {
+  _write(
+    root,
+    _lockPath,
+    'packages:\n'
+    '  $_packageName:\n'
+    '    dependency: "direct main"\n'
+    '    description:\n'
+    '      path: ".."\n'
+    '      relative: true\n'
+    '    source: path\n'
+    '    version: "$version"\n'
+    '  other_package:\n'
+    '    dependency: transitive\n'
+    '    source: hosted\n'
+    '    version: "2.0.0"\n',
   );
 }
 

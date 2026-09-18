@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'src/release_config.dart';
 import 'src/release_project.dart';
 
 void main(List<String> arguments) {
@@ -13,7 +14,11 @@ void main(List<String> arguments) {
   }
 
   try {
-    final paths = bumpVersion(Directory.current, arguments.single);
+    final paths = bumpVersion(
+      Directory.current,
+      arguments.single,
+      config: releaseConfig,
+    );
     stdout.writeln('Updated version to ${arguments.single}:');
     for (final path in paths) {
       stdout.writeln('- $path');
