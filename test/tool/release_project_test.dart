@@ -676,30 +676,42 @@ void main() {
     ]);
   });
 
-  test(
-    'stable bump without matching prereleases leaves older notes intact',
-    () {
-      final original = _read(root, 'CHANGELOG.md');
-      bumpVersion(
-        root,
-        '1.1.0',
-        config: _config,
-        releaseDate: DateTime.utc(2026, 9, 8),
-      );
+  test('a stable bump absorbs only what came after the last stable', () {
+    _write(
+      root,
+      'pubspec.yaml',
+      'name: $_packageName\nversion: 1.1.0-beta.1\n',
+    );
+    _write(
+      root,
+      'CHANGELOG.md',
+      '# Changelog\n\n'
+          '## [Unreleased]\n\n### Fixed\n\n- Pending fix\n\n'
+          '## [1.1.0-beta.1] - 2026-08-20\n\n### Added\n\n- New feature\n\n'
+          '## [1.0.0] - 2026-08-01\n\n### Added\n\n- First stable\n\n'
+          '## [1.0.0-beta.1] - 2026-07-01\n\n### Fixed\n\n- Old beta note\n',
+    );
 
-      expect(
-        _read(root, 'CHANGELOG.md'),
-        original.replaceFirst(
-          '## [Unreleased]\n\n',
-          '## [Unreleased]\n\n## [1.1.0] - 2026-09-08\n\n',
-        ),
-      );
-      expect(
-        extractReleaseNotes(root, '1.1.0'),
-        '### Added\n\n- Pending change\n',
-      );
-    },
-  );
+    bumpVersion(
+      root,
+      '1.1.0',
+      config: const ReleaseConfig(),
+      releaseDate: DateTime.utc(2026, 9, 8),
+    );
+
+    final notes = extractReleaseNotes(root, '1.1.0');
+    expect(notes, contains('- New feature'));
+    expect(notes, contains('- Pending fix'));
+    expect(notes, isNot(contains('- First stable')));
+    expect(notes, isNot(contains('- Old beta note')));
+    // 直近の安定版より前のプレリリースには手を触れない
+    expect(
+      extractReleaseNotes(root, '1.0.0-beta.1'),
+      '### Fixed\n\n- Old beta note\n',
+    );
+    expect(extractReleaseNotes(root, '1.0.0'), '### Added\n\n- First stable\n');
+    expect(extractReleaseNotes(root, '1.1.0-beta.1'), 'Included in [1.1.0].\n');
+  });
 
   test('bump rejects downgrades and equal precedence without any writes', () {
     final before = <String, String>{
@@ -745,6 +757,307 @@ void main() {
         expect(_read(root, entry.key), entry.value, reason: entry.key);
       }
     }
+  });
+
+  group('nextReleaseVersion', () {
+    test('keeps the open train when no stable release exists', () {
+      // フィクスチャは 1.0.0-beta.3 で、安定版を一度も公開していない
+      expect(nextReleaseVersion(root), '1.0.0-beta.4');
+      expect(nextReleaseVersion(root, channel: ReleaseChannel.stable), '1.0.0');
+    });
+
+    test('opens a new train from the last stable release', () {
+      _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 2.0.1\n');
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Added\n\n- A feature\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- A fix\n',
+      );
+
+      expect(nextReleaseVersion(root), '2.1.0-beta.1');
+      expect(nextReleaseVersion(root, channel: ReleaseChannel.stable), '2.1.0');
+    });
+
+    test('a fix-only Unreleased raises the patch version', () {
+      _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 2.0.1\n');
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Fixed\n\n- A fix\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      expect(nextReleaseVersion(root), '2.0.2-beta.1');
+    });
+
+    test('every breaking notation used in this project raises the major', () {
+      const notations = <String>[
+        '### Breaking changes\n\n- Removed an API',
+        '### Changed\n\n- **Breaking:** Removed an API',
+        '### Changed\n\n- **BREAKING**: Removed an API',
+        '### Changed\n\n- **Breaking**: Removed an API',
+      ];
+      for (final notation in notations) {
+        _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 2.0.1\n');
+        _write(
+          root,
+          'CHANGELOG.md',
+          '## [Unreleased]\n\n$notation\n\n'
+              '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+        );
+
+        expect(nextReleaseVersion(root), '3.0.0-beta.1', reason: notation);
+      }
+    });
+
+    test('a breaking change raises the minor while the major is zero', () {
+      _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 0.5.0\n');
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Changed\n\n- **Breaking:** Removed an API\n\n'
+            '## [0.5.0] - 2026-08-05\n\n### Added\n\n- Older\n',
+      );
+
+      expect(nextReleaseVersion(root), '0.6.0-beta.1');
+    });
+
+    test('an empty Breaking changes heading does not raise the major', () {
+      _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 2.0.1\n');
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Breaking changes\n\n### Fixed\n\n- A fix\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      expect(nextReleaseVersion(root), '2.0.2-beta.1');
+    });
+
+    test('impact accumulates across the prereleases of the open train', () {
+      // beta.1 が破壊的変更で列を開いた。今回の Unreleased は修正だけでも
+      // 列のコアは 3.0.0 のまま維持される
+      _write(
+        root,
+        'pubspec.yaml',
+        'name: $_packageName\nversion: 3.0.0-beta.1\n',
+      );
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Fixed\n\n- A fix\n\n'
+            '## [3.0.0-beta.1] - 2026-08-10\n\n'
+            '### Changed\n\n- **Breaking:** Removed an API\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      expect(nextReleaseVersion(root), '3.0.0-beta.2');
+      expect(nextReleaseVersion(root, channel: ReleaseChannel.stable), '3.0.0');
+    });
+
+    test('a breaking change moves an open train onto a higher core', () {
+      // beta.1 は minor で列を開いたが、今回 破壊的変更が入った
+      _write(
+        root,
+        'pubspec.yaml',
+        'name: $_packageName\nversion: 2.1.0-beta.1\n',
+      );
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Changed\n\n- **Breaking:** Removed an API\n\n'
+            '## [2.1.0-beta.1] - 2026-08-10\n\n### Added\n\n- A feature\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      expect(nextReleaseVersion(root), '3.0.0-beta.1');
+    });
+
+    test('an empty Unreleased blocks a beta but allows a promotion', () {
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n'
+            '## [1.0.0-beta.3] - 2026-08-05\n\n### Added\n\n- Released\n',
+      );
+
+      expect(
+        () => nextReleaseVersion(root),
+        throwsA(
+          isA<ReleaseToolException>().having(
+            (error) => error.message,
+            'message',
+            contains('Nothing to release'),
+          ),
+        ),
+      );
+      expect(nextReleaseVersion(root, channel: ReleaseChannel.stable), '1.0.0');
+    });
+
+    test('a promotion from an already stable version is rejected', () {
+      // 昇格が意味を持つのはプレリリースからだけ。安定版で Unreleased が空なら
+      // リリースする対象がない
+      _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 2.0.1\n');
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      for (final channel in ReleaseChannel.values) {
+        expect(
+          () => nextReleaseVersion(root, channel: channel),
+          throwsA(
+            isA<ReleaseToolException>().having(
+              (error) => error.message,
+              'message',
+              contains('Nothing to release'),
+            ),
+          ),
+          reason: channel.name,
+        );
+      }
+    });
+
+    test('prose and code examples are not read as breaking declarations', () {
+      const decoys = <String>[
+        '- **Breaking changes are documented below** for each entry',
+        'Some prose about **breaking** compatibility.',
+        '```dart\n- **Breaking:** an example line\n```',
+        '```\n- **BREAKING**: another example\n```',
+      ];
+      for (final decoy in decoys) {
+        _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 2.0.1\n');
+        _write(
+          root,
+          'CHANGELOG.md',
+          '## [Unreleased]\n\n### Fixed\n\n- A fix\n\n$decoy\n\n'
+              '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+        );
+
+        expect(nextReleaseVersion(root), '2.0.2-beta.1', reason: decoy);
+      }
+    });
+
+    test('a malformed release heading is rejected', () {
+      _write(
+        root,
+        'pubspec.yaml',
+        'name: $_packageName\nversion: 2.1.0-beta.1\n',
+      );
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Changed\n\n- **Breaking:** Removed an API\n\n'
+            '## [2.1.0-beta.1] - 2026-08-10\n\n### Added\n\n- A feature\n\n'
+            '## [2.0.1 - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      expect(
+        () => nextReleaseVersion(root),
+        throwsA(
+          isA<ReleaseToolException>().having(
+            (error) => error.message,
+            'message',
+            contains('malformed release heading'),
+          ),
+        ),
+      );
+    });
+
+    test('category headings without entries are not releasable', () {
+      _write(root, 'pubspec.yaml', 'name: $_packageName\nversion: 2.0.1\n');
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Added\n\n### Fixed\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      for (final channel in ReleaseChannel.values) {
+        expect(
+          () => nextReleaseVersion(root, channel: channel),
+          throwsA(
+            isA<ReleaseToolException>().having(
+              (error) => error.message,
+              'message',
+              contains('Nothing to release'),
+            ),
+          ),
+          reason: channel.name,
+        );
+      }
+    });
+
+    test('an unnumberable prerelease identifier is refused', () {
+      for (final version in <String>['2.1.0-beta.foo', '2.1.0-beta.2.foo']) {
+        _write(
+          root,
+          'pubspec.yaml',
+          'name: $_packageName\nversion: $version\n',
+        );
+        _write(
+          root,
+          'CHANGELOG.md',
+          '## [Unreleased]\n\n### Fixed\n\n- A fix\n\n'
+              '## [$version] - 2026-08-10\n\n### Added\n\n- A feature\n\n'
+              '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+        );
+
+        expect(
+          () => nextReleaseVersion(root),
+          throwsA(
+            isA<ReleaseToolException>().having(
+              (error) => error.message,
+              'message',
+              contains('Supported forms are'),
+            ),
+          ),
+          reason: version,
+        );
+      }
+    });
+
+    test('a promotion across a core change keeps the earlier beta notes', () {
+      // 2.1.0-beta.1 が機能追加で列を開いたあと、破壊的変更で 3.0.0 になる。
+      // 3.0.0 のノートから beta.1 の内容が落ちてはいけない。
+      _write(
+        root,
+        'pubspec.yaml',
+        'name: $_packageName\nversion: 2.1.0-beta.1\n',
+      );
+      _write(
+        root,
+        'CHANGELOG.md',
+        '## [Unreleased]\n\n### Changed\n\n- **Breaking:** Removed an API\n\n'
+            '## [2.1.0-beta.1] - 2026-08-10\n\n### Added\n\n- A feature\n\n'
+            '## [2.0.1] - 2026-08-05\n\n### Fixed\n\n- Older\n',
+      );
+
+      final next = nextReleaseVersion(root, channel: ReleaseChannel.stable);
+      expect(next, '3.0.0');
+
+      bumpVersion(root, next, config: const ReleaseConfig());
+
+      final notes = extractReleaseNotes(root, next);
+      expect(notes, contains('- A feature'));
+      expect(notes, contains('- **Breaking:** Removed an API'));
+      expect(notes, isNot(contains('- Older')));
+      expect(
+        extractReleaseNotes(root, '2.1.0-beta.1'),
+        'Included in [3.0.0].\n',
+      );
+    });
+
+    test('the derived version is accepted by bumpVersion', () {
+      final next = nextReleaseVersion(root);
+      bumpVersion(root, next, config: _config);
+
+      expect(readPubspecVersion(root), next);
+      expect(() => verifyRelease(root, next, config: _config), returnsNormally);
+    });
   });
 
   test('compareReleaseVersions follows SemVer precedence', () {
