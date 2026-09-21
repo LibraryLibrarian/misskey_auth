@@ -112,6 +112,249 @@ final class ReleaseToolException implements Exception {
 /// Returns the package version declared in `pubspec.yaml` under [root].
 String readPubspecVersion(Directory root) => _readProject(root).version;
 
+/// The release channel used when deriving the next version.
+enum ReleaseChannel {
+  /// Publishes `x.y.z-beta.n` from the release train that is currently open.
+  beta,
+
+  /// Publishes `x.y.z`, collapsing the prereleases that led up to it.
+  stable,
+}
+
+/// Derives the next version from `CHANGELOG.md` under [root].
+///
+/// The impact is declared in the changelog rather than inferred from commit
+/// messages, because commit subjects have recorded breaking changes as `docs:`
+/// in this project's own history. A non-empty `### Breaking changes` section
+/// or a `**Breaking:**` bullet means a breaking release, a non-empty
+/// `### Added` section means a feature release, and anything else is a fix
+/// release. Fenced code blocks are ignored so that examples are not read as
+/// declarations.
+///
+/// The impact is accumulated from every entry published since the last stable
+/// release, so reopening the same train keeps its version. While the major
+/// version is `0`, a breaking release raises the minor version instead, which
+/// is what Semantic Versioning permits and what this project has always done.
+///
+/// Before the first stable release the core version never moves: the train
+/// being assembled is itself the target, so a breaking change only advances
+/// the prerelease counter.
+String nextReleaseVersion(
+  Directory root, {
+  ReleaseChannel channel = ReleaseChannel.beta,
+}) {
+  final project = _readProject(root);
+  final entries = _changelogEntries(_readFile(root, 'CHANGELOG.md'));
+
+  final unreleased = entries.where((entry) => entry.isUnreleased).toList();
+  if (unreleased.length != 1) {
+    throw const ReleaseToolException(
+      'CHANGELOG.md must contain exactly one Unreleased heading.',
+    );
+  }
+  final pending = unreleased.single.body;
+  // 折り返し位置が SDK 間で割れないよう、メソッドチェーンを分ける
+  final current = _ReleaseVersion(project.version);
+  final currentIsPrerelease = current.prerelease.isNotEmpty;
+  // 空の Unreleased が許されるのは、プレリリースを正式版へ昇格する場合だけ。
+  // 昇格ではベータ各版の内容が畳み込まれるため、リリースノートは空にならない。
+  final promoting = channel == ReleaseChannel.stable && currentIsPrerelease;
+  if (!_hasReleaseContent(pending) && !promoting) {
+    throw const ReleaseToolException(
+      'CHANGELOG.md has no entries under Unreleased. Nothing to release.',
+    );
+  }
+
+  final released = entries.where((entry) => entry.isRelease).toList();
+  String? lastStable;
+  for (final entry in released) {
+    if (_ReleaseVersion(entry.version).prerelease.isNotEmpty) continue;
+    if (lastStable == null) {
+      lastStable = entry.version;
+      continue;
+    }
+    if (compareReleaseVersions(entry.version, lastStable) > 0) {
+      lastStable = entry.version;
+    }
+  }
+
+  var impact = _releaseImpact(pending);
+  for (final entry in released) {
+    if (lastStable != null &&
+        compareReleaseVersions(entry.version, lastStable) <= 0) {
+      continue;
+    }
+    final entryImpact = _releaseImpact(entry.body);
+    if (entryImpact > impact) impact = entryImpact;
+  }
+
+  final currentCore = current.core.join('.');
+  final String targetCore;
+  if (lastStable == null) {
+    // 安定版を一度も公開していない。いま組んでいる列が目標そのものなので、
+    // 破壊的変更が入ってもコアは動かさない。
+    targetCore = currentCore;
+  } else {
+    final bumped = _bumpCore(_ReleaseVersion(lastStable).core, impact);
+    final ahead = compareReleaseVersions(bumped, currentCore) > 0;
+    targetCore = ahead ? bumped : currentCore;
+  }
+
+  if (channel == ReleaseChannel.stable) {
+    if (compareReleaseVersions(targetCore, project.version) <= 0) {
+      throw ReleaseToolException(
+        'Version $targetCore would not be greater than ${project.version}.',
+      );
+    }
+    return targetCore;
+  }
+
+  final sameTrain = currentCore == targetCore && current.prerelease.isNotEmpty;
+  if (!sameTrain) return '$targetCore-beta.1';
+
+  // 既に開いている列は識別子を引き継ぐ。採番できる形は `<label>` と
+  // `<label>.<number>` だけで、それ以外を推測すると現在より小さい版を
+  // 返しかねないため明示的に断る。
+  final prerelease = current.prerelease;
+  final label = prerelease.first;
+  final labelOnly = prerelease.length == 1;
+  final numbered =
+      prerelease.length == 2 && _numericIdentifier.hasMatch(prerelease[1]);
+  if (_numericIdentifier.hasMatch(label) || (!labelOnly && !numbered)) {
+    throw ReleaseToolException(
+      'Cannot number the next prerelease after ${project.version}. '
+      'Supported forms are <label> and <label>.<number>. '
+      'Pass an explicit version instead.',
+    );
+  }
+  final counter = numbered ? int.parse(prerelease[1]) : 0;
+  return '$targetCore-$label.${counter + 1}';
+}
+
+/// Whether [body] holds anything beyond blank category headings.
+bool _hasReleaseContent(String body) {
+  if (body.trim().isEmpty) return false;
+  final withoutHeadings = body.replaceAll(_categoryHeading, '');
+  return withoutHeadings.trim().isNotEmpty;
+}
+
+const _impactPatch = 0;
+const _impactMinor = 1;
+const _impactMajor = 2;
+
+// 過去の記載には **Breaking:** / **BREAKING**: / **Breaking**: が混在する。
+// 箇条書きの先頭に限定しないと `**Breaking changes are documented below**`
+// のような散文まで拾ってしまう。
+final RegExp _breakingBullet = RegExp(
+  r'^[ \t]*[-*][ \t]+\*\*[ \t]*breaking[ \t]*:?[ \t]*\*\*[ \t]*:?',
+  caseSensitive: false,
+  multiLine: true,
+);
+
+final RegExp _fencedCode = RegExp(r'^[ \t]*```[^\n]*$', multiLine: true);
+
+final RegExp _categoryHeading = RegExp(
+  r'^###[ \t]+(.+?)[ \t]*$',
+  multiLine: true,
+);
+
+/// Drops fenced code blocks so that examples cannot be read as declarations.
+String _withoutCodeBlocks(String body) {
+  final fences = _fencedCode.allMatches(body).toList();
+  if (fences.isEmpty) return body;
+  final buffer = StringBuffer();
+  var cursor = 0;
+  for (var i = 0; i + 1 < fences.length; i += 2) {
+    buffer.write(body.substring(cursor, fences[i].start));
+    cursor = fences[i + 1].end;
+  }
+  // 閉じていないフェンスは、そこから末尾までをコードとして扱う
+  if (fences.length.isOdd) return buffer.toString();
+  buffer.write(body.substring(cursor));
+  return buffer.toString();
+}
+
+int _releaseImpact(String rawBody) {
+  final body = _withoutCodeBlocks(rawBody);
+  if (_breakingBullet.hasMatch(body)) return _impactMajor;
+  final categories = _bodyCategories(body);
+  for (final entry in categories.entries) {
+    final name = entry.key.toLowerCase();
+    final breaking = name == 'breaking changes' || name == 'breaking';
+    if (breaking && entry.value.trim().isNotEmpty) return _impactMajor;
+  }
+  final added = categories['Added'];
+  if (added != null && added.trim().isNotEmpty) return _impactMinor;
+  return _impactPatch;
+}
+
+Map<String, String> _bodyCategories(String body) {
+  final categories = <String, String>{};
+  final headings = _categoryHeading.allMatches(body).toList();
+  for (var i = 0; i < headings.length; i++) {
+    final heading = headings[i];
+    final end = i + 1 < headings.length ? headings[i + 1].start : body.length;
+    final name = heading.group(1)!;
+    final text = body.substring(heading.end, end);
+    categories[name] = '${categories[name] ?? ''}$text';
+  }
+  return categories;
+}
+
+String _bumpCore(List<String> core, int impact) {
+  final major = int.parse(core[0]);
+  final minor = int.parse(core[1]);
+  final patch = int.parse(core[2]);
+  if (impact == _impactMajor) {
+    // major が 0 の間、破壊的変更は minor で表す
+    if (major == 0) return '0.${minor + 1}.0';
+    return '${major + 1}.0.0';
+  }
+  if (impact == _impactMinor) return '$major.${minor + 1}.0';
+  return '$major.$minor.${patch + 1}';
+}
+
+final RegExp _entryHeading = RegExp(
+  r'^## \[([^\]\r\n]+)\][^\r\n]*',
+  multiLine: true,
+);
+
+final RegExp _entryHeadingCandidate = RegExp(r'^##[ \t]*\[', multiLine: true);
+
+List<_ChangelogEntry> _changelogEntries(String changelog) {
+  final headings = _entryHeading.allMatches(changelog).toList();
+  // 壊れた見出しは黙って無視すると影響度を過小評価する。たとえば閉じ括弧を
+  // 欠いた安定版の見出しは「安定版を一度も公開していない」と誤認される。
+  final candidates = _entryHeadingCandidate.allMatches(changelog).length;
+  if (candidates != headings.length) {
+    throw const ReleaseToolException(
+      'CHANGELOG.md has a malformed release heading. '
+      'Every heading must read "## [version] - YYYY-MM-DD".',
+    );
+  }
+  final entries = <_ChangelogEntry>[];
+  for (var i = 0; i < headings.length; i++) {
+    final heading = headings[i];
+    final end = i + 1 < headings.length
+        ? headings[i + 1].start
+        : changelog.length;
+    final body = changelog.substring(heading.end, end);
+    entries.add(_ChangelogEntry(heading.group(1)!, body));
+  }
+  return entries;
+}
+
+final class _ChangelogEntry {
+  _ChangelogEntry(this.version, this.body);
+
+  final String version;
+  final String body;
+
+  bool get isUnreleased => version == 'Unreleased';
+
+  bool get isRelease => _semanticVersionPattern.hasMatch(version);
+}
+
 /// Updates every release version reference under [root].
 ///
 /// All inputs are validated before any file is written. The returned paths are
@@ -553,10 +796,7 @@ String _addChangelogRelease(
     );
   }
 
-  final headings = RegExp(
-    r'^## \[([^\]]+)\][^\r\n]*',
-    multiLine: true,
-  ).allMatches(changelog).toList();
+  final headings = _entryHeading.allMatches(changelog).toList();
   for (final heading in headings) {
     final version = heading.group(1)!;
     if (_semanticVersionPattern.hasMatch(version) &&
@@ -588,15 +828,28 @@ String _addChangelogRelease(
   final next = _ReleaseVersion(nextVersion);
   final prereleases = <RegExpMatch>[];
   if (next.prerelease.isEmpty) {
+    // 直近の安定版より後のプレリリースはすべてこの版に入る。列の途中で影響度が
+    // 上がってコアが変わった場合（2.1.0-beta.1 のあとに破壊的変更が入り 3.0.0
+    // になるなど）でも、先行ベータの内容を取りこぼさない。
+    String? lastStable;
     for (final heading in headings) {
       final version = heading.group(1)!;
       if (!_semanticVersionPattern.hasMatch(version)) continue;
-      final parsed = _ReleaseVersion(version);
-      if (parsed.prerelease.isNotEmpty &&
-          parsed.core.join('.') == next.core.join('.') &&
-          _datedHeadingSuffix.hasMatch(heading.group(0)!)) {
-        prereleases.add(heading);
+      if (_ReleaseVersion(version).prerelease.isNotEmpty) continue;
+      final newer =
+          lastStable == null || compareReleaseVersions(version, lastStable) > 0;
+      if (newer) lastStable = version;
+    }
+    for (final heading in headings) {
+      final version = heading.group(1)!;
+      if (!_semanticVersionPattern.hasMatch(version)) continue;
+      if (_ReleaseVersion(version).prerelease.isEmpty) continue;
+      if (!_datedHeadingSuffix.hasMatch(heading.group(0)!)) continue;
+      if (lastStable != null &&
+          compareReleaseVersions(version, lastStable) <= 0) {
+        continue;
       }
+      prereleases.add(heading);
     }
   }
   if (prereleases.isEmpty) {
