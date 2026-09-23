@@ -1,6 +1,3 @@
-import 'dart:developer' as developer;
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:misskey_auth/misskey_auth.dart';
 import 'package:loader_overlay/loader_overlay.dart';
@@ -245,13 +242,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
         callbackScheme: _callbackSchemeController.text.trim(),
       );
 
-      final key = await _auth.loginWithOAuth(config, setActive: true);
-      if (kDebugMode) {
-        final t = await _auth.tokenOf(key);
-        developer.log(
-          '[OAuth] account=${key.accountId} token=${t?.accessToken}',
-        );
-      }
+      await _auth.loginWithOAuth(config, setActive: true);
 
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -312,13 +303,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
             : _miIconUrlController.text.trim(),
       );
 
-      final key = await _auth.loginWithMiAuth(config, setActive: true);
-      if (kDebugMode) {
-        final t = await _auth.tokenOf(key);
-        developer.log(
-          '[MiAuth] account=${key.accountId} token=${t?.accessToken}',
-        );
-      }
+      await _auth.loginWithMiAuth(config, setActive: true);
 
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -660,27 +645,6 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   tooltip: '再読込',
                   onPressed: () {
                     setState(() {}); // FutureBuilder を再評価
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.bug_report),
-                  tooltip: 'デバッグログにトークンを出力',
-                  onPressed: () async {
-                    if (!kDebugMode) return;
-                    final accounts = await _auth.listAccounts();
-                    for (final entry in accounts) {
-                      final key = entry.key;
-                      final t = await _auth.tokenOf(key);
-                      developer.log(
-                        '[Dump] ${key.host}/${key.accountId} token=${t?.accessToken}',
-                      );
-                    }
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        const SnackBar(content: Text('デバッグログにトークンを出力しました')),
-                      );
                   },
                 ),
               ],
