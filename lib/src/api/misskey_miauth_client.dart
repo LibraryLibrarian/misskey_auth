@@ -78,8 +78,9 @@ class MisskeyMiAuthClient {
       );
 
       // 3. ブラウザで認証ページを開く
+      late final String result;
       try {
-        await FlutterWebAuth2.authenticate(
+        result = await FlutterWebAuth2.authenticate(
           url: authUri.toString(),
           callbackUrlScheme: config.callbackScheme,
         );
@@ -104,7 +105,18 @@ class MisskeyMiAuthClient {
         throw AuthorizationLaunchException(details: e.toString());
       }
 
-      // 4. 許可後にチェック API を叩いてトークンを取得
+      // 4. callback が今回のセッションに対するものかを確認
+      // Misskey は callback に必ず session を付ける
+      final sessions = Uri.tryParse(result)?.queryParametersAll['session'];
+      if (sessions == null ||
+          sessions.length != 1 ||
+          sessions.single != sessionId) {
+        throw const MiAuthSessionInvalidException(
+          details: 'The callback session does not match.',
+        );
+      }
+
+      // 5. 許可後にチェック API を叩いてトークンを取得
       final checkUrl = Uri(
         scheme: 'https',
         host: config.host,
@@ -135,7 +147,7 @@ class MisskeyMiAuthClient {
         );
       }
 
-      // 5. 成功応答（保存は呼び出し側で TokenStore が担当）
+      // 6. 成功応答（保存は呼び出し側で TokenStore が担当）
       return MiAuthTokenResponse(token: token, user: check.user);
     } on MisskeyAuthException {
       rethrow;

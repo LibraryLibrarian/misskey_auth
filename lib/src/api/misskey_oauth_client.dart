@@ -215,26 +215,33 @@ class MisskeyOAuthClient {
         throw AuthorizationLaunchException(details: e.toString());
       }
 
-      // 5. コールバックURLからパラメータを取得
-      final uri = Uri.parse(result);
-      // 認可サーバーからのエラー（RFC6749）
-      final authError = uri.queryParameters['error'];
+      // 5. stateを検証
+      // エラー応答にも state は付くため、error の解釈より先に照合する
+      final params = Uri.tryParse(result)?.queryParametersAll ?? const {};
+      final returnedStates = params['state'];
+      if (returnedStates == null ||
+          returnedStates.length != 1 ||
+          returnedStates.single != state) {
+        throw const StateMismatchException();
+      }
+
+      // 6. 認可サーバーからのエラー（RFC6749）
+      final authError = params['error']?.first;
       if (authError != null && authError.isNotEmpty) {
-        final desc = uri.queryParameters['error_description'];
+        final desc = params['error_description']?.first;
         final errMsg = desc == null || desc.isEmpty
             ? 'error=$authError'
             : 'error=$authError, description=$desc';
         throw AuthorizationServerErrorException(details: errMsg);
       }
 
-      final code = uri.queryParameters['code'];
-      final returnedState = uri.queryParameters['state'];
-
-      // 6. stateを検証
-      if (returnedState != state) {
-        throw const StateMismatchException();
+      final codes = params['code'];
+      if (codes != null && codes.length > 1) {
+        throw const AuthorizationCodeMissingException(
+          details: 'The callback contains multiple codes.',
+        );
       }
-
+      final code = codes?.single;
       if (code == null || code.isEmpty) {
         throw const AuthorizationCodeMissingException();
       }

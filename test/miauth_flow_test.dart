@@ -140,4 +140,31 @@ void main() {
       expect(attempts, 1);
     });
   });
+
+  group('callback session validation', () {
+    late int checks;
+    setUp(() {
+      checks = 0;
+      dio.httpClientAdapter = StubAdapter((_) {
+        checks++;
+        return jsonBody({'ok': true, 'token': 'synthetic'});
+      });
+    });
+
+    for (final entry in <String, String Function(String session)>{
+      'missing': (_) => 'exampleapp://',
+      'different': (_) => 'exampleapp://?session=other',
+      'duplicated': (session) =>
+          'exampleapp://?session=$session&session=$session',
+    }.entries) {
+      test('rejects a ${entry.key} session without calling check', () async {
+        mockWebAuth((launch) => entry.value(launch.pathSegments.last));
+        await expectLater(
+          client.authenticate(_config),
+          throwsA(isA<MiAuthSessionInvalidException>()),
+        );
+        expect(checks, 0);
+      });
+    }
+  });
 }

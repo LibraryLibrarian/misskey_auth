@@ -82,17 +82,25 @@ Misskey's OAuth 2.0 follows the IndieAuth specification. You need:
 ```html
 <!DOCTYPE html>
 <html>
+<head>
+    <meta name="referrer" content="no-referrer">
+</head>
 <body>
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const appUrl = `yourscheme://oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
-        window.location.href = appUrl;
+        // Forward only the parameters that are present. Errors carry `state` too.
+        const source = new URLSearchParams(window.location.search);
+        const forwarded = new URLSearchParams();
+        for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
+            const value = source.get(name);
+            if (value !== null) forwarded.set(name, value);
+        }
+        window.location.replace(`yourscheme://oauth/callback?${forwarded}`);
     </script>
 </body>
 </html>
 ```
+
+- The library verifies `state` before reading `error`, so the redirect page must forward `state` on both success and error. Do not load third-party scripts on this page, because the URL contains the authorization code.
 
 #### 2. Basic Authentication (Recommended: via MisskeyAuthManager)
 
@@ -492,17 +500,25 @@ MisskeyのOAuth 2.0はIndieAuth仕様に準拠しています。以下が必要�
 ```html
 <!DOCTYPE html>
 <html>
+<head>
+    <meta name="referrer" content="no-referrer">
+</head>
 <body>
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const appUrl = `yourscheme://oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
-        window.location.href = appUrl;
+        // 存在するパラメータだけを転送する。エラー時にも `state` が付く
+        const source = new URLSearchParams(window.location.search);
+        const forwarded = new URLSearchParams();
+        for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
+            const value = source.get(name);
+            if (value !== null) forwarded.set(name, value);
+        }
+        window.location.replace(`yourscheme://oauth/callback?${forwarded}`);
     </script>
 </body>
 </html>
 ```
+
+- ライブラリは `error` より先に `state` を照合するため、成功時・エラー時とも `state` を転送すること。URL に認可コードが含まれるため、このページで第三者のスクリプトを読み込まないこと
 
 #### 2. 基本的な認証（推奨: MisskeyAuthManager 経由）
 
