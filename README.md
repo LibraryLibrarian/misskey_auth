@@ -91,8 +91,8 @@ Misskey's OAuth 2.0 follows the IndieAuth specification. You need:
         const source = new URLSearchParams(window.location.search);
         const forwarded = new URLSearchParams();
         for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
-            const value = source.get(name);
-            if (value !== null) forwarded.set(name, value);
+            // Keep duplicated values so that the library can reject them
+            for (const value of source.getAll(name)) forwarded.append(name, value);
         }
         window.location.replace(`yourscheme://oauth/callback?${forwarded}`);
     </script>
@@ -509,8 +509,8 @@ MisskeyのOAuth 2.0はIndieAuth仕様に準拠しています。以下が必要�
         const source = new URLSearchParams(window.location.search);
         const forwarded = new URLSearchParams();
         for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
-            const value = source.get(name);
-            if (value !== null) forwarded.set(name, value);
+            // 重複した値も落とさず渡し、ライブラリ側の重複拒否を効かせる
+            for (const value of source.getAll(name)) forwarded.append(name, value);
         }
         window.location.replace(`yourscheme://oauth/callback?${forwarded}`);
     </script>

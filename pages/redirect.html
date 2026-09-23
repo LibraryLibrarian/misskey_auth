@@ -64,8 +64,8 @@
         const source = new URLSearchParams(window.location.search);
         const forwarded = new URLSearchParams();
         for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
-            const value = source.get(name);
-            if (value !== null) forwarded.set(name, value);
+            // 重複した値も落とさず渡し、ライブラリ側の重複拒否を効かせる
+            for (const value of source.getAll(name)) forwarded.append(name, value);
         }
 
         if (forwarded.has('code') || forwarded.has('error')) {
