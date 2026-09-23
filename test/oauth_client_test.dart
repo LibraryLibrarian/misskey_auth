@@ -39,7 +39,7 @@ void main() {
       attempts++;
       if (attempts == 1) return ResponseBody.fromString('', 503);
       return ResponseBody.fromString(
-        '{"authorization_endpoint":"https://example.test/auth","token_endpoint":"https://example.test/token"}',
+        '{"issuer":"https://example.test","authorization_endpoint":"https://example.test/auth","token_endpoint":"https://example.test/token"}',
         200,
         headers: {
           Headers.contentTypeHeader: ['application/json'],
@@ -136,6 +136,7 @@ void main() {
   test('discovery metadata with wrong field types is a parse error', () async {
     dio.httpClientAdapter = StubAdapter(
       (_) => jsonBody({
+        'issuer': 'https://example.test',
         'authorization_endpoint': 'https://example.test/auth',
         'token_endpoint': 42,
       }),
@@ -170,5 +171,69 @@ void main() {
       await expectLater(exchange(), throwsA(isA<NetworkException>()));
       expect(attempts, 1);
     });
+  });
+
+  group('discovery metadata validation', () {
+    Map<String, Object?> metadata([Map<String, Object?> overrides = const {}]) {
+      return {
+        'issuer': 'https://example.test',
+        'authorization_endpoint': 'https://example.test/oauth/authorize',
+        'token_endpoint': 'https://example.test/oauth/token',
+        ...overrides,
+      }..removeWhere((_, v) => v == null);
+    }
+
+    Future<OAuthServerInfo?> discover(
+      Map<String, Object?> body, {
+      String host = 'example.test',
+    }) {
+      dio.httpClientAdapter = StubAdapter((_) => jsonBody(body));
+      return client.getOAuthServerInfo(host);
+    }
+
+    test('accepts an issuer matching the normalized host', () async {
+      final info = await discover(metadata(), host: ' Example.TEST ');
+      expect(info!.tokenEndpoint, 'https://example.test/oauth/token');
+    });
+
+    test('keeps a non-default port in the expected issuer', () async {
+      final info = await discover(
+        metadata({'issuer': 'https://example.test:3000'}),
+        host: 'example.test:3000',
+      );
+      expect(info, isNotNull);
+    });
+
+    test('allows endpoints on another HTTPS origin', () async {
+      final info = await discover(
+        metadata({'token_endpoint': 'https://auth.example.test/token'}),
+      );
+      expect(info!.tokenEndpoint, 'https://auth.example.test/token');
+    });
+
+    for (final entry in {
+      'missing issuer': metadata({'issuer': null}),
+      'issuer with a trailing slash': metadata({
+        'issuer': 'https://example.test/',
+      }),
+      'issuer of another server': metadata({'issuer': 'https://evil.test'}),
+      'HTTP authorization endpoint': metadata({
+        'authorization_endpoint': 'http://example.test/oauth/authorize',
+      }),
+      'relative token endpoint': metadata({'token_endpoint': '/oauth/token'}),
+      'token endpoint with user info': metadata({
+        'token_endpoint': 'https://user@example.test/oauth/token',
+      }),
+      'token endpoint with a fragment': metadata({
+        'token_endpoint': 'https://example.test/oauth/token#x',
+      }),
+    }.entries) {
+      test('rejects ${entry.key}', () async {
+        await expectLater(
+          discover(entry.value),
+          throwsA(isA<ServerInfoException>()),
+        );
+      });
+    }
   });
 }

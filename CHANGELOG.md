@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OAuth discovery responses with an error status other than 404 or 501 now throw `ServerInfoException` instead of `NetworkException`.
 
 ### Security
+- OAuth discovery now validates the server metadata as required by RFC 8414. The `issuer` must exactly match `https://{host}` (host lowercased, default port omitted), and `authorization_endpoint` and `token_endpoint` must be absolute HTTPS URLs without user info or a fragment. Metadata that fails validation, including metadata without `issuer`, throws `ServerInfoException` and is not treated as unsupported OAuth, so callers that fall back to MiAuth on `OAuthNotSupportedException` will not fall back. Misskey has returned a matching `issuer` since OAuth support was added in 2023.9.0.
 - The OAuth and MiAuth clients no longer print debug output. Debug builds previously logged callback URLs containing the authorization code, the OAuth `state`, the PKCE challenge, and error response bodies.
 - An empty `code` in the OAuth callback is now rejected with `AuthorizationCodeMissingException` instead of being sent to the token endpoint. Short codes are accepted; debug builds previously crashed with a `RangeError` on codes shorter than 10 characters.
 

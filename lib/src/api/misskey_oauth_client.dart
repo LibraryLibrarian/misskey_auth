@@ -45,15 +45,23 @@ class MisskeyOAuthClient {
   }
 
   /// OAuth認証サーバー情報を取得
+  ///
+  /// サーバーが OAuth に対応していない（404/501）場合は `null`。
+  /// RFC 8414 に従い、`issuer` が `https://{host}` と完全一致しない場合や、
+  /// エンドポイントが HTTPS の絶対 URL でない場合は [ServerInfoException]
   Future<OAuthServerInfo?> getOAuthServerInfo(String host) async {
     try {
+      final origin = Uri.parse('https://${host.trim()}').origin;
       final response = await retry(
-        () => _dio.get('https://$host/.well-known/oauth-authorization-server'),
+        () => _dio.get('$origin/.well-known/oauth-authorization-server'),
         const RetryPolicy(maxAttempts: 3),
       );
 
       if (response.statusCode == 200) {
-        return OAuthServerInfo.fromJson(jsonObjectOf(response.data));
+        final json = jsonObjectOf(response.data);
+        final info = OAuthServerInfo.fromJson(json);
+        _verifyServerInfo(json['issuer'], info, expectedIssuer: origin);
+        return info;
       }
       if (response.statusCode == 404 || response.statusCode == 501) {
         // 非対応と判断
@@ -76,6 +84,41 @@ class MisskeyOAuthClient {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
       throw ServerInfoException('OAuth情報の取得に失敗しました: $e');
+    }
+  }
+
+  /// discovery の内容が接続先サーバーのものとして妥当かを確認
+  void _verifyServerInfo(
+    Object? issuer,
+    OAuthServerInfo info, {
+    required String expectedIssuer,
+  }) {
+    // 受信値は正規化せず完全一致で比較する（RFC 8414 §3.3）
+    if (issuer != expectedIssuer) {
+      throw ServerInfoException(
+        'OAuth情報の issuer が接続先と一致しません: expected=$expectedIssuer, actual=$issuer',
+      );
+    }
+    _requireSecureEndpoint(
+      'authorization_endpoint',
+      info.authorizationEndpoint,
+    );
+    _requireSecureEndpoint('token_endpoint', info.tokenEndpoint);
+  }
+
+  /// エンドポイントが HTTPS の絶対 URL であることを確認
+  void _requireSecureEndpoint(String name, String value) {
+    final uri = Uri.tryParse(value);
+    final isSecure =
+        uri != null &&
+        uri.isScheme('https') &&
+        uri.host.isNotEmpty &&
+        uri.userInfo.isEmpty &&
+        !uri.hasFragment;
+    if (!isSecure) {
+      throw ServerInfoException(
+        'OAuth情報の $name が HTTPS の絶対 URL ではありません: $value',
+      );
     }
   }
 

@@ -25,6 +25,7 @@ void main() {
         requests.add(options);
         if (options.path.endsWith('/.well-known/oauth-authorization-server')) {
           return jsonBody({
+            'issuer': 'https://example.test',
             'authorization_endpoint': 'https://example.test/oauth/authorize',
             'token_endpoint': 'https://example.test/oauth/token',
           });
