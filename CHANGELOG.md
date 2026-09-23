@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Excluded development-only files from the published package, reducing the archive from 3 MB to 31 KB. The `android/` and `ios/` directories at the repository root are `flutter create` scaffolding rather than platform implementations of this package, and the demo GIF in `assets/` is referenced from the README by absolute URL.
 
+### Security
+- The OAuth and MiAuth clients no longer print debug output. Debug builds previously logged callback URLs containing the authorization code, the OAuth `state`, the PKCE challenge, and error response bodies.
+- An empty `code` in the OAuth callback is now rejected with `AuthorizationCodeMissingException` instead of being sent to the token endpoint. Short codes are accepted; debug builds previously crashed with a `RangeError` on codes shorter than 10 characters.
+
 ## [0.2.0-beta.1] - 2026-09-08
 
 ### Breaking changes

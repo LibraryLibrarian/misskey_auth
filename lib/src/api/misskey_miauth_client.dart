@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
@@ -56,9 +55,6 @@ class MisskeyMiAuthClient {
     try {
       // 1. セッション ID を生成
       final sessionId = generateSessionId();
-      if (kDebugMode) {
-        print('MiAuth セッション: $sessionId');
-      }
 
       // 2. 認証 URL を構築
       final permissions = config.permissions.join(',');
@@ -77,14 +73,9 @@ class MisskeyMiAuthClient {
         queryParameters: query,
       );
 
-      if (kDebugMode) {
-        print('MiAuth URL: $authUri');
-      }
-
       // 3. ブラウザで認証ページを開く
-      late final String result;
       try {
-        result = await FlutterWebAuth2.authenticate(
+        await FlutterWebAuth2.authenticate(
           url: authUri.toString(),
           callbackUrlScheme: config.callbackScheme,
         );
@@ -107,10 +98,6 @@ class MisskeyMiAuthClient {
       } catch (e) {
         if (e is MisskeyAuthException) rethrow;
         throw AuthorizationLaunchException(details: e.toString());
-      }
-
-      if (kDebugMode) {
-        print('MiAuth コールバック URL: $result');
       }
 
       // 4. 許可後にチェック API を叩いてトークンを取得
@@ -154,7 +141,6 @@ class MisskeyMiAuthClient {
       }
 
       // 5. 成功応答（保存は呼び出し側で TokenStore が担当）
-      if (kDebugMode) print('MiAuth 成功');
       return MiAuthTokenResponse(token: check.token!, user: check.user);
     } on MisskeyAuthException {
       rethrow;
@@ -172,9 +158,6 @@ class MisskeyMiAuthClient {
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
-      if (kDebugMode) {
-        print('MiAuth エラー: $e');
-      }
       throw MisskeyAuthException('MiAuthでエラーが発生しました', details: e.toString());
     }
   }

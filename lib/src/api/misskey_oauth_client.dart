@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
@@ -69,9 +68,6 @@ class MisskeyOAuthClient {
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
-      if (kDebugMode) {
-        print('OAuth情報取得エラー: $e');
-      }
       throw ServerInfoException('OAuth情報の取得に失敗しました: $e');
     }
   }
@@ -105,28 +101,15 @@ class MisskeyOAuthClient {
   Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config) async {
     try {
       // 1. OAuth情報を取得
-      if (kDebugMode) {
-        print('OAuth情報を取得中: ${config.host}');
-      }
       final serverInfo = await getOAuthServerInfo(config.host);
       if (serverInfo == null) {
         throw OAuthNotSupportedException(config.host);
-      }
-      if (kDebugMode) {
-        print('認証エンドポイント: ${serverInfo.authorizationEndpoint}');
-        print('トークンエンドポイント: ${serverInfo.tokenEndpoint}');
       }
 
       // 2. PKCE準備
       final codeVerifier = generateCodeVerifier();
       final codeChallenge = generateCodeChallenge(codeVerifier);
       final state = generateState();
-
-      if (kDebugMode) {
-        print('PKCE準備完了');
-        print('code_challenge: $codeChallenge');
-        print('state: $state');
-      }
 
       // 3. 認証URLを構築
       final authUrl = Uri.parse(serverInfo.authorizationEndpoint).replace(
@@ -141,10 +124,6 @@ class MisskeyOAuthClient {
         },
       );
 
-      if (kDebugMode) {
-        print('認証URL: $authUrl');
-      }
-
       // 4. flutter_web_auth_2で認証ページを開く
       // カスタムスキーム
       final redirectUriScheme = Uri.parse(config.redirectUri).scheme
@@ -153,9 +132,6 @@ class MisskeyOAuthClient {
           (redirectUriScheme != 'http' && redirectUriScheme != 'https')
           ? redirectUriScheme
           : config.callbackScheme;
-      if (kDebugMode) {
-        print('コールバックURLスキーム: $callbackUrlScheme');
-      }
 
       late final String result;
       try {
@@ -186,10 +162,6 @@ class MisskeyOAuthClient {
         throw AuthorizationLaunchException(details: e.toString());
       }
 
-      if (kDebugMode) {
-        print('認証結果URL: $result');
-      }
-
       // 5. コールバックURLからパラメータを取得
       final uri = Uri.parse(result);
       // 認可サーバーからのエラー（RFC6749）
@@ -205,24 +177,16 @@ class MisskeyOAuthClient {
       final code = uri.queryParameters['code'];
       final returnedState = uri.queryParameters['state'];
 
-      if (kDebugMode) {
-        print('認証コード: ${code?.substring(0, 10)}...');
-        print('返却されたstate: $returnedState');
-      }
-
       // 6. stateを検証
       if (returnedState != state) {
         throw const StateMismatchException();
       }
 
-      if (code == null) {
+      if (code == null || code.isEmpty) {
         throw const AuthorizationCodeMissingException();
       }
 
       // 7. 認証コードをトークンと交換
-      if (kDebugMode) {
-        print('トークン交換中...');
-      }
       final tokenResponse = await exchangeCodeForToken(
         tokenEndpoint: serverInfo.tokenEndpoint,
         clientId: config.clientId,
@@ -233,7 +197,6 @@ class MisskeyOAuthClient {
       );
 
       // 8. 成功（保存は呼び出し側で TokenStore が担当）
-      if (kDebugMode) print('認証成功！');
       return tokenResponse;
     } on MisskeyAuthException {
       rethrow;
@@ -250,9 +213,6 @@ class MisskeyOAuthClient {
         originalException: e,
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('認証エラー: $e');
-      }
       // 想定外はベース例外に包む
       throw MisskeyAuthException(e.toString());
     }
@@ -301,9 +261,6 @@ class MisskeyOAuthClient {
       }
       throw TokenExchangeException(message);
     } on DioException catch (e) {
-      if (kDebugMode) {
-        print('DioException: ${e.response?.data}');
-      }
       if (e.response != null) {
         final status = e.response?.statusCode;
         String message = 'トークン交換に失敗しました: $status';

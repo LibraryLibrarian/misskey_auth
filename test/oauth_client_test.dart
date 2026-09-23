@@ -1,23 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:misskey_auth/misskey_auth.dart';
 
-class StubAdapter implements HttpClientAdapter {
-  StubAdapter(this.respond);
-  final ResponseBody Function(RequestOptions) respond;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async => respond(options);
-
-  @override
-  void close({bool force = false}) {}
-}
+import 'support/fakes.dart';
 
 void main() {
   late Dio dio;
