@@ -93,10 +93,11 @@ class MisskeyOAuthClient {
     OAuthServerInfo info, {
     required String expectedIssuer,
   }) {
-    // 受信値は正規化せず完全一致で比較する（RFC 8414 §3.3）
+    // 受信値は正規化せず完全一致で比較する（RFC 8414 §3.3）。
+    // 受信値は資格情報を含み得るため、例外には載せない
     if (issuer != expectedIssuer) {
       throw ServerInfoException(
-        'OAuth情報の issuer が接続先と一致しません: expected=$expectedIssuer, actual=$issuer',
+        'OAuth情報の issuer が接続先と一致しません: expected=$expectedIssuer',
       );
     }
     _requireSecureEndpoint(
@@ -116,9 +117,7 @@ class MisskeyOAuthClient {
         uri.userInfo.isEmpty &&
         !uri.hasFragment;
     if (!isSecure) {
-      throw ServerInfoException(
-        'OAuth情報の $name が HTTPS の絶対 URL ではありません: $value',
-      );
+      throw ServerInfoException('OAuth情報の $name が HTTPS の絶対 URL ではありません');
     }
   }
 

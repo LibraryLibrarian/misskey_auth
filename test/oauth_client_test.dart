@@ -211,6 +211,24 @@ void main() {
       expect(info!.tokenEndpoint, 'https://auth.example.test/token');
     });
 
+    test('does not put received URLs into the exception', () async {
+      for (final body in [
+        metadata({'issuer': 'https://user:secret@example.test'}),
+        metadata({'token_endpoint': 'https://user:secret@example.test/token'}),
+      ]) {
+        await expectLater(
+          discover(body),
+          throwsA(
+            isA<ServerInfoException>().having(
+              (e) => e.toString(),
+              'toString()',
+              isNot(contains('secret')),
+            ),
+          ),
+        );
+      }
+    });
+
     for (final entry in {
       'missing issuer': metadata({'issuer': null}),
       'issuer with a trailing slash': metadata({
