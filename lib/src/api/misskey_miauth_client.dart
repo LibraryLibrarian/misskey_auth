@@ -7,7 +7,6 @@ import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import '../models/miauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
 import '../net/response.dart';
-import '../net/retry.dart';
 
 /// Misskey の MiAuth 認証を扱うクライアント
 class MisskeyMiAuthClient {
@@ -52,6 +51,10 @@ class MisskeyMiAuthClient {
   }
 
   /// MiAuth 認証を開始し、成功すればアクセストークンを返す
+  ///
+  /// トークンを受け取る check API は、失敗しても自動で再送しない。
+  /// Misskey は取得済みのセッションに `ok: false` を返すため、通信が途中で
+  /// 失敗した場合は新しいセッションで最初からやり直すこと
   Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config) async {
     try {
       // 1. セッション ID を生成
@@ -108,13 +111,11 @@ class MisskeyMiAuthClient {
         path: '/api/miauth/$sessionId/check',
       );
 
-      final response = await retry(
-        () => _dio.post(
-          checkUrl.toString(),
-          options: Options(contentType: 'application/json'),
-          data: <String, dynamic>{},
-        ),
-        const RetryPolicy(maxAttempts: 3),
+      // トークンは最初の check でしか返らない。サーバー側で取得済みの可能性があるため再送しない
+      final response = await _dio.post(
+        checkUrl.toString(),
+        options: Options(contentType: 'application/json'),
+        data: <String, dynamic>{},
       );
 
       if (response.statusCode != 200) {

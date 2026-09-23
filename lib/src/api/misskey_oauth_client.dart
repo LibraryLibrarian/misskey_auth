@@ -105,6 +105,9 @@ class MisskeyOAuthClient {
   }
 
   /// OAuth認証を開始
+  ///
+  /// 認可コードの交換に失敗した場合は、ブラウザでの認可からやり直す必要がある
+  /// （[exchangeCodeForToken] 参照）
   Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config) async {
     try {
       // 1. OAuth情報を取得
@@ -225,6 +228,10 @@ class MisskeyOAuthClient {
   }
 
   /// アクセストークンを取得
+  ///
+  /// 認可コードは一度しか使えないため、失敗しても自動で再送しない。
+  /// 通信が途中で失敗した場合、サーバー側では交換が済んでいる可能性があり、
+  /// 同じコードでは再試行できない。[authenticate] からやり直すこと
   Future<OAuthTokenResponse> exchangeCodeForToken({
     required String tokenEndpoint,
     required String clientId,
@@ -234,20 +241,18 @@ class MisskeyOAuthClient {
     required String codeVerifier,
   }) async {
     try {
-      final response = await retry(
-        () => _dio.post(
-          tokenEndpoint,
-          options: Options(contentType: 'application/x-www-form-urlencoded'),
-          data: {
-            'grant_type': 'authorization_code',
-            'client_id': clientId,
-            'redirect_uri': redirectUri,
-            'scope': scope,
-            'code': code,
-            'code_verifier': codeVerifier,
-          },
-        ),
-        const RetryPolicy(maxAttempts: 3),
+      // 認可コードは一度しか使えない。サーバー側で交換済みの可能性があるため再送しない
+      final response = await _dio.post(
+        tokenEndpoint,
+        options: Options(contentType: 'application/x-www-form-urlencoded'),
+        data: {
+          'grant_type': 'authorization_code',
+          'client_id': clientId,
+          'redirect_uri': redirectUri,
+          'scope': scope,
+          'code': code,
+          'code_verifier': codeVerifier,
+        },
       );
 
       if (response.statusCode == 200) {

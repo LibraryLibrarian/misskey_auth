@@ -145,4 +145,30 @@ void main() {
       throwsA(isA<ResponseParseException>()),
     );
   });
+
+  group('token exchange is sent only once', () {
+    late int attempts;
+    setUp(() => attempts = 0);
+
+    test('after a 503 response', () async {
+      dio.httpClientAdapter = StubAdapter((_) {
+        attempts++;
+        return jsonBody({}, 503);
+      });
+      await expectLater(exchange(), throwsA(isA<TokenExchangeException>()));
+      expect(attempts, 1);
+    });
+
+    test('after a receive timeout', () async {
+      dio.httpClientAdapter = StubAdapter((options) {
+        attempts++;
+        throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.receiveTimeout,
+        );
+      });
+      await expectLater(exchange(), throwsA(isA<NetworkException>()));
+      expect(attempts, 1);
+    });
+  });
 }

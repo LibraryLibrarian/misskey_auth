@@ -109,4 +109,35 @@ void main() {
       ),
     );
   });
+
+  group('check is sent only once', () {
+    test('after a 503 response', () async {
+      var attempts = 0;
+      dio.httpClientAdapter = StubAdapter((_) {
+        attempts++;
+        return jsonBody({}, 503);
+      });
+      await expectLater(
+        client.authenticate(_config),
+        throwsA(isA<MiAuthCheckFailedException>()),
+      );
+      expect(attempts, 1);
+    });
+
+    test('after a connection error', () async {
+      var attempts = 0;
+      dio.httpClientAdapter = StubAdapter((options) {
+        attempts++;
+        throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+        );
+      });
+      await expectLater(
+        client.authenticate(_config),
+        throwsA(isA<NetworkException>()),
+      );
+      expect(attempts, 1);
+    });
+  });
 }

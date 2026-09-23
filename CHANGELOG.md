@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Excluded development-only files from the published package, reducing the archive from 3 MB to 31 KB. The `android/` and `ios/` directories at the repository root are `flutter create` scaffolding rather than platform implementations of this package, and the demo GIF in `assets/` is referenced from the README by absolute URL.
 
 ### Fixed
+- The OAuth token exchange and the MiAuth check request are no longer retried automatically. Both hand out a credential only once, so a retry after a timeout or a 5xx response could fail even though the server had already issued the token. On failure, start the authentication again from the browser step. OAuth discovery and the `/api/i` lookup are still retried.
 - MiAuth check error responses are now classified by status as documented: 404 and 410 throw `MiAuthSessionInvalidException` and other statuses throw `MiAuthCheckFailedException`. With the default `Dio` they previously surfaced as `NetworkException`.
 - Exceptions raised by the clients themselves, such as `TokenExchangeException`, are no longer rewrapped into the base `MisskeyAuthException` when an injected `Dio` accepts non-2xx statuses.
 - Malformed or wrongly typed JSON responses now throw `ResponseParseException`, including bodies that `Dio` fails to decode. `OAuthServerInfo.fromJson`, `OAuthTokenResponse.fromJson`, and `MiAuthCheckResponse.fromJson` throw `FormatException` instead of `TypeError` for invalid input.
