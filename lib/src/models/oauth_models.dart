@@ -1,3 +1,5 @@
+import 'json_fields.dart';
+
 /// OAuth認証サーバーの情報を表すクラス
 class OAuthServerInfo {
   /// OAuth認証エンドポイント
@@ -31,23 +33,28 @@ class OAuthServerInfo {
     this.codeChallengeMethodsSupported,
   });
 
+  /// 欠落・型違いのフィールドがあれば [FormatException]
   factory OAuthServerInfo.fromJson(Map<String, dynamic> json) {
     return OAuthServerInfo(
-      authorizationEndpoint: json['authorization_endpoint'] as String,
-      tokenEndpoint: json['token_endpoint'] as String,
-      introspectionEndpoint: json['introspection_endpoint'] as String?,
-      revocationEndpoint: json['revocation_endpoint'] as String?,
-      scopesSupported: (json['scopes_supported'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      responseTypesSupported:
-          (json['response_types_supported'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList(),
-      codeChallengeMethodsSupported:
-          (json['code_challenge_methods_supported'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList(),
+      authorizationEndpoint: requireField<String>(
+        json,
+        'authorization_endpoint',
+      ),
+      tokenEndpoint: requireField<String>(json, 'token_endpoint'),
+      introspectionEndpoint: optionalField<String>(
+        json,
+        'introspection_endpoint',
+      ),
+      revocationEndpoint: optionalField<String>(json, 'revocation_endpoint'),
+      scopesSupported: optionalStringList(json, 'scopes_supported'),
+      responseTypesSupported: optionalStringList(
+        json,
+        'response_types_supported',
+      ),
+      codeChallengeMethodsSupported: optionalStringList(
+        json,
+        'code_challenge_methods_supported',
+      ),
     );
   }
 }
@@ -77,13 +84,14 @@ class OAuthTokenResponse {
     this.idToken,
   });
 
+  /// 欠落・型違いのフィールドがあれば [FormatException]
   factory OAuthTokenResponse.fromJson(Map<String, dynamic> json) {
     return OAuthTokenResponse(
-      accessToken: json['access_token'] as String,
-      tokenType: json['token_type'] as String,
-      expiresIn: json['expires_in'] as int?,
-      scope: json['scope'] as String?,
-      idToken: json['id_token'] as String?,
+      accessToken: requireField<String>(json, 'access_token'),
+      tokenType: requireField<String>(json, 'token_type'),
+      expiresIn: optionalField<int>(json, 'expires_in'),
+      scope: optionalField<String>(json, 'scope'),
+      idToken: optionalField<String>(json, 'id_token'),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../models/miauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
+import '../net/response.dart';
 import '../net/retry.dart';
 
 /// Misskey の MiAuth 認証を扱うクライアント
@@ -117,35 +118,32 @@ class MisskeyMiAuthClient {
       );
 
       if (response.statusCode != 200) {
-        final status = response.statusCode;
-        String details = 'status=$status';
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          final err = data['error'] ?? data['message'];
-          if (err != null) {
-            details = '$details, $err';
-          }
-        }
-        // セッション不正や期限切れなどをある程度推定
-        if (status == 404 || status == 410) {
-          throw MiAuthSessionInvalidException(details: details);
-        }
-        throw MiAuthCheckFailedException(details: details);
+        throw _checkError(response.statusCode, response.data);
       }
 
-      final body = response.data as Map<String, dynamic>;
-      final check = MiAuthCheckResponse.fromJson(body);
-
-      if (!check.ok || check.token == null || check.token!.isEmpty) {
+      final check = MiAuthCheckResponse.fromJson(jsonObjectOf(response.data));
+      // Misskey は未知・取得済みのセッションにも ok:false を返すため、
+      // 拒否以外の原因も含む
+      if (!check.ok) {
         throw const MiAuthDeniedException();
+      }
+      final token = check.token;
+      if (token == null || token.isEmpty) {
+        throw const ResponseParseException(
+          details: 'MiAuth check returned ok without a token',
+        );
       }
 
       // 5. 成功応答（保存は呼び出し側で TokenStore が担当）
-      return MiAuthTokenResponse(token: check.token!, user: check.user);
+      return MiAuthTokenResponse(token: token, user: check.user);
     } on MisskeyAuthException {
       rethrow;
     } on DioException catch (e) {
-      throw NetworkException(details: e.message, originalException: e);
+      final response = e.response;
+      if (e.type == DioExceptionType.badResponse && response != null) {
+        throw _checkError(response.statusCode, response.data);
+      }
+      throw transportExceptionOf(e);
     } on PlatformException catch (e) {
       final code = (e.code).toLowerCase();
       if (code.contains('cancel')) {
@@ -162,5 +160,16 @@ class MisskeyMiAuthClient {
     }
   }
 
-  // ストレージ操作は廃止
+  /// チェック API のエラー応答を例外に変換
+  MisskeyAuthException _checkError(int? status, Object? data) {
+    final summary = errorSummaryOf(data);
+    final details = summary == null
+        ? 'status=$status'
+        : 'status=$status, $summary';
+    // セッション不正や期限切れなどをある程度推定
+    if (status == 404 || status == 410) {
+      return MiAuthSessionInvalidException(details: details);
+    }
+    return MiAuthCheckFailedException(details: details);
+  }
 }

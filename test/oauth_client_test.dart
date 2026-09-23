@@ -76,4 +76,73 @@ void main() {
     );
     expect(token.accessToken, 'synthetic-token');
   });
+
+  Future<OAuthTokenResponse> exchange() => client.exchangeCodeForToken(
+    tokenEndpoint: 'https://example.test/token',
+    clientId: 'https://example.test/app',
+    redirectUri: 'https://example.test/callback',
+    scope: 'read',
+    code: 'synthetic-code',
+    codeVerifier: 'synthetic-verifier',
+  );
+
+  test('token endpoint error keeps TokenExchangeException', () async {
+    dio.httpClientAdapter = StubAdapter(
+      (_) => jsonBody({'error': 'invalid_grant'}, 400),
+    );
+    await expectLater(
+      exchange(),
+      throwsA(
+        isA<TokenExchangeException>().having(
+          (e) => e.message,
+          'message',
+          contains('error=invalid_grant'),
+        ),
+      ),
+    );
+  });
+
+  test(
+    'token endpoint error is not rewrapped when Dio accepts all statuses',
+    () async {
+      dio.options.validateStatus = (_) => true;
+      dio.httpClientAdapter = StubAdapter(
+        (_) => jsonBody({'error': 'invalid_grant'}, 400),
+      );
+      await expectLater(exchange(), throwsA(isA<TokenExchangeException>()));
+    },
+  );
+
+  test('token response without access_token is a parse error', () async {
+    dio.httpClientAdapter = StubAdapter(
+      (_) => jsonBody({'token_type': 'Bearer'}),
+    );
+    await expectLater(exchange(), throwsA(isA<ResponseParseException>()));
+  });
+
+  test('malformed JSON token response is a parse error', () async {
+    dio.httpClientAdapter = StubAdapter(
+      (_) => ResponseBody.fromString(
+        '{not json',
+        200,
+        headers: {
+          Headers.contentTypeHeader: ['application/json'],
+        },
+      ),
+    );
+    await expectLater(exchange(), throwsA(isA<ResponseParseException>()));
+  });
+
+  test('discovery metadata with wrong field types is a parse error', () async {
+    dio.httpClientAdapter = StubAdapter(
+      (_) => jsonBody({
+        'authorization_endpoint': 'https://example.test/auth',
+        'token_endpoint': 42,
+      }),
+    );
+    await expectLater(
+      client.getOAuthServerInfo('example.test'),
+      throwsA(isA<ResponseParseException>()),
+    );
+  });
 }

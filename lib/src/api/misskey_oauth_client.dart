@@ -8,6 +8,7 @@ import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../models/oauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
+import '../net/response.dart';
 import '../net/retry.dart';
 
 /// MisskeyのOAuth認証を管理するクライアント
@@ -52,7 +53,7 @@ class MisskeyOAuthClient {
       );
 
       if (response.statusCode == 200) {
-        return OAuthServerInfo.fromJson(response.data);
+        return OAuthServerInfo.fromJson(jsonObjectOf(response.data));
       }
       if (response.statusCode == 404 || response.statusCode == 501) {
         // 非対応と判断
@@ -60,11 +61,17 @@ class MisskeyOAuthClient {
       }
       // その他のステータスはサーバー側の問題として扱う
       throw ServerInfoException('OAuth情報の取得に失敗しました: ${response.statusCode}');
+    } on MisskeyAuthException {
+      rethrow;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 501) {
+      final status = e.response?.statusCode;
+      if (status == 404 || status == 501) {
         return null; // 非対応
       }
-      throw NetworkException(details: e.message, originalException: e);
+      if (e.type == DioExceptionType.badResponse) {
+        throw ServerInfoException('OAuth情報の取得に失敗しました: $status');
+      }
+      throw transportExceptionOf(e);
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
@@ -201,8 +208,7 @@ class MisskeyOAuthClient {
     } on MisskeyAuthException {
       rethrow;
     } on DioException catch (e) {
-      // ネットワーク層の例外
-      throw NetworkException(details: e.message, originalException: e);
+      throw transportExceptionOf(e);
     } on PlatformException catch (e) {
       final code = (e.code).toLowerCase();
       if (code.contains('cancel')) {
@@ -245,43 +251,31 @@ class MisskeyOAuthClient {
       );
 
       if (response.statusCode == 200) {
-        return OAuthTokenResponse.fromJson(response.data);
+        return OAuthTokenResponse.fromJson(jsonObjectOf(response.data));
       }
-      final status = response.statusCode;
-      String message = 'トークン交換に失敗しました: $status';
-      // RFC準拠のエラーフィールドがあれば詳細に含める
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final err = data['error'];
-        final desc = data['error_description'];
-        if (err != null) {
-          message =
-              '$message (error=$err${desc != null ? ', description=$desc' : ''})';
-        }
-      }
-      throw TokenExchangeException(message);
+      throw _tokenExchangeError(response.statusCode, response.data);
+    } on MisskeyAuthException {
+      rethrow;
     } on DioException catch (e) {
-      if (e.response != null) {
-        final status = e.response?.statusCode;
-        String message = 'トークン交換に失敗しました: $status';
-        final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          final err = data['error'];
-          final desc = data['error_description'];
-          if (err != null) {
-            message =
-                '$message (error=$err${desc != null ? ', description=$desc' : ''})';
-          }
-        }
-        throw TokenExchangeException(message);
+      final response = e.response;
+      if (e.type == DioExceptionType.badResponse && response != null) {
+        throw _tokenExchangeError(response.statusCode, response.data);
       }
-      // レスポンスが無い＝ネットワーク層の失敗
-      throw NetworkException(details: e.message, originalException: e);
+      throw transportExceptionOf(e);
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
       throw MisskeyAuthException('トークン交換中にエラーが発生しました', details: e.toString());
     }
+  }
+
+  /// トークンエンドポイントのエラー応答を例外に変換
+  TokenExchangeException _tokenExchangeError(int? status, Object? data) {
+    final summary = errorSummaryOf(data);
+    final message = 'トークン交換に失敗しました: $status';
+    return TokenExchangeException(
+      summary == null ? message : '$message ($summary)',
+    );
   }
 
   // 保存・読み出し・クリアの責務は廃止

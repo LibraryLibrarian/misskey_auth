@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Excluded development-only files from the published package, reducing the archive from 3 MB to 31 KB. The `android/` and `ios/` directories at the repository root are `flutter create` scaffolding rather than platform implementations of this package, and the demo GIF in `assets/` is referenced from the README by absolute URL.
 
+### Fixed
+- MiAuth check error responses are now classified by status as documented: 404 and 410 throw `MiAuthSessionInvalidException` and other statuses throw `MiAuthCheckFailedException`. With the default `Dio` they previously surfaced as `NetworkException`.
+- Exceptions raised by the clients themselves, such as `TokenExchangeException`, are no longer rewrapped into the base `MisskeyAuthException` when an injected `Dio` accepts non-2xx statuses.
+- Malformed or wrongly typed JSON responses now throw `ResponseParseException`, including bodies that `Dio` fails to decode. `OAuthServerInfo.fromJson`, `OAuthTokenResponse.fromJson`, and `MiAuthCheckResponse.fromJson` throw `FormatException` instead of `TypeError` for invalid input.
+- A MiAuth check response without a boolean `ok`, or with `ok: true` but no token, now throws `ResponseParseException` instead of `MiAuthDeniedException`. `MiAuthDeniedException` still covers `ok: false`, which Misskey also returns for unknown or already used sessions.
+- OAuth discovery responses with an error status other than 404 or 501 now throw `ServerInfoException` instead of `NetworkException`.
+
 ### Security
 - The OAuth and MiAuth clients no longer print debug output. Debug builds previously logged callback URLs containing the authorization code, the OAuth `state`, the PKCE challenge, and error response bodies.
 - An empty `code` in the OAuth callback is now rejected with `AuthorizationCodeMissingException` instead of being sent to the token endpoint. Short codes are accepted; debug builds previously crashed with a `RangeError` on codes shorter than 10 characters.
