@@ -104,7 +104,7 @@ final key = await auth.loginWithOAuth(
 final current = await auth.currentToken();
 ```
 
-OAuth の認証後、manager は新しいトークンで `/api/i` を呼び出してアカウント ID を取得します。
+OAuth の認証後、`MisskeyAuthManager` は新しいトークンで `/api/i` を呼び出してアカウント ID を取得します。
 
 ### MiAuth
 
@@ -120,18 +120,18 @@ final key = await auth.loginWithMiAuth(
     permissions: ['read:account', 'write:notes'],
     iconUrl: 'https://example.com/icon.png',
   ),
-  setActive: true, // このアカウントをアクティブにする
+  setActive: true, // 保存に加えて、このアカウントをアクティブにする
 );
 final current = await auth.currentToken();
 ```
 
-MiAuth はトークンと一緒にユーザー情報を返すため、manager はその `id` をアカウント ID に使います。
+MiAuth はトークンと一緒にユーザー情報を返すため、`MisskeyAuthManager` はその `id` をアカウント ID に使います。
 
 ## 1つのアプリで両方式に対応する
 
 - `Info.plist` と `AndroidManifest.xml` に `yourscheme` のようなスキームを1つ登録すれば、OAuth と MiAuth で共有できます。
 - MiAuth はスキームのみ（`yourscheme://`）に戻ります。MiAuth のために `yourscheme://oauth/callback` のようなパスを用意する必要はありません。
-- Android では、[プラットフォーム設定](./platform-setup.md#android)のスキームのみの intent-filter を使ってください。host や path で制限した filter では、MiAuth のコールバックがアプリに届きません。
+- Android では、[プラットフォーム設定](./platform-setup.md#android)のスキームのみの intent-filter を残してください。host や path で制限した filter では、MiAuth のコールバックがアプリに届きません。
 
 ## 関連リンク
 

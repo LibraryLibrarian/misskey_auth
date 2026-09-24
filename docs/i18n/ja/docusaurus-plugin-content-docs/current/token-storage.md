@@ -31,7 +31,7 @@ await auth.signOutAll();  // すべてのアカウントのトークンを削除
 
 ## タイムアウト
 
-`MisskeyAuthManager.defaultInstance()` は既定のタイムアウト（接続 10 秒、送信と受信は各 20 秒）を使います。変更する場合は manager を自分で組み立てます。manager のタイムアウトは manager 自身が行う `/api/i` のリクエストにだけ適用されるため、各クライアントにも渡してください。
+`MisskeyAuthManager.defaultInstance()` は既定のタイムアウト（接続 10 秒、送信と受信は各 20 秒）を使います。変更する場合は `MisskeyAuthManager` を自分で組み立てます。`MisskeyAuthManager` のタイムアウトは、それ自身が行う `/api/i` のリクエストにだけ適用されるため、各クライアントにも渡してください。
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` は `flutter_secure_storage` でトークンを保存します。保存先は iOS ではキーチェーン、Android では Keystore です。保存のオプションを変える場合は、`FlutterSecureStorage` を渡します。misskey_auth はこのクラスを再エクスポートしていないため、`flutter_secure_storage` を依存関係に追加して import してください。
+`SecureTokenStore` は `flutter_secure_storage` でトークンを保存します。保存先は iOS ではキーチェーン、Android では Keystore です。保存のオプションを変える場合は、独自に生成した `FlutterSecureStorage` を渡します。misskey_auth はこのクラスを再エクスポートしていないため、`flutter_secure_storage` を依存関係に追加して import してください。
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -100,9 +100,9 @@ const store = SecureTokenStore(
 
 ### 同時実行
 
-- 書き込み操作（`upsert`、`delete`、`clearAll`、`setActive`）は、インスタンスをまたいで isolate 内で1つずつ実行します。同時に書き込んでも、インデックスからアカウントが失われることはありません。
-- 読み取りはブロックしません。また、`upsert` の後に `setActive` を行うような一連の操作は不可分ではありません。
-- 別の isolate やプロセスからの書き込みとは調整しません。
+- 書き込み操作（`upsert`、`delete`、`clearAll`、`setActive`）は、同じ isolate 内では、インスタンスが異なっても1つずつ実行されます。同時に書き込んでも、インデックスからアカウントが失われることはありません。
+- 読み取りはブロックされません。また、`upsert` の後に `setActive` を行うような一連の操作は不可分ではありません。
+- 別の isolate やプロセスからの書き込みとの間では排他制御を行いません。
 
 ### `clearAll` が削除するもの
 

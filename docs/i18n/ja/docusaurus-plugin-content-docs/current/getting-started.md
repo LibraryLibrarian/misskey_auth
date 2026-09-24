@@ -17,7 +17,7 @@ misskey_auth は、[Misskey](https://misskey-hub.net/) サーバーでの認証�
 - カスタム URL スキームによるアプリへのコールバック
 - `flutter_secure_storage` を使用した安全なトークン保存
 - 複数アカウントのトークン保存と、アクティブなアカウントの切り替え
-- 認証の実行とトークンの保存を仲介する高レベル API `MisskeyAuthManager`
+- 認証を実行してトークンを保存する高レベル API `MisskeyAuthManager`
 - iOS と Android
 
 ## 動作要件

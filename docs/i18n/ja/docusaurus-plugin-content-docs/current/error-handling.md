@@ -60,7 +60,7 @@ try {
 
 | 例外 | 投げられる条件 |
 |---|---|
-| `MiAuthDeniedException` | チェック API が `ok: false` を返した。ユーザーが拒否した可能性があるが、Misskey は未知のセッションや取得済みのセッションにもこの値を返す |
+| `MiAuthDeniedException` | チェック API が `ok: false` を返した。ユーザーが拒否した可能性があるが、Misskey は未知のセッションや使用済みのセッションにもこの値を返す |
 | `MiAuthSessionInvalidException` | コールバックが別のセッションのものだった、またはチェック API が 404 か 410 を返した |
 | `MiAuthCheckFailedException` | チェック API がその他のエラーステータスを返した |
 
@@ -70,9 +70,9 @@ try {
 
 ## 保存領域のエラー
 
-`SecureTokenStore` は `flutter_secure_storage` のエラーを包みません。エラーはそのパッケージが投げたまま（通常は `PlatformException`）呼び出し側に届きます。保存データが壊れている場合は、読み出し時に `FormatException` や `TypeError` が投げられることもあります。トークンを読み書きする `MisskeyAuthManager` の呼び出しでは、これらのエラーも扱ってください。認証後にトークンを保存する `loginWithOAuth` と `loginWithMiAuth` も含みます。
+`SecureTokenStore` は `flutter_secure_storage` のエラーを包みません。エラーはそのパッケージが投げたまま（通常は `PlatformException`）呼び出し側に届きます。保存データが壊れている場合は、読み出し時に `FormatException` や `TypeError` が投げられることもあります。トークンを読み書きする `MisskeyAuthManager` の呼び出しでは、これらのエラーも扱ってください。これには、認証後にトークンを保存する `loginWithOAuth` と `loginWithMiAuth` も含まれます。
 
-`loginWithOAuth` と `loginWithMiAuth` は、トークンを保存してからアカウントをアクティブにします。後者だけが失敗した場合、トークンは保存されたままで、アカウントはアクティブになりません。
+`loginWithOAuth` と `loginWithMiAuth` は、トークンを保存してからアカウントをアクティブにします。アカウントをアクティブにする処理だけが失敗した場合、トークンは保存されたままで、アカウントはアクティブになりません。
 
 ## 再試行
 

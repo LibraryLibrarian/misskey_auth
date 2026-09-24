@@ -72,7 +72,7 @@ HTTPS のページを `redirect_uri` にし、そこからカスタムスキー�
         const source = new URLSearchParams(window.location.search);
         const forwarded = new URLSearchParams();
         for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
-            // 重複した値も落とさず渡し、ライブラリ側の重複拒否を効かせる
+            // ライブラリが重複を拒否できるよう、重複した値も残して転送する
             for (const value of source.getAll(name)) forwarded.append(name, value);
         }
         window.location.replace(`yourscheme://oauth/callback?${forwarded}`);

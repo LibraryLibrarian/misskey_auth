@@ -62,9 +62,9 @@ iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）に�
 
 サンプルの Manifest では、`flutter_web_auth_2` の推奨に従い、exported な `MainActivity` と `CallbackActivity` の両方に `android:taskAffinity=""` を設定しています。
 
-この設定では、既定のブラウザが Auth Tab に対応していない場合（例: Chrome 137 未満）、認証後にブラウザのタブが残ることがあります。認証自体は成功しますが、ユーザーがタブを閉じる必要があります。`flutter_web_auth_2` はブラウザが Auth Tab に対応していれば Auth Tab を使い、対応していなければ Custom Tab で開きます。Chrome 109 で確認した Custom Tab の経路では、Chrome が `CallbackActivity` を新しいタスクで起動するため、アプリのタスクに残ったタブを閉じられません。
+この設定では、既定のブラウザが Auth Tab に対応していない場合（例: Chrome 137 未満）、認証後にブラウザのタブが残ることがあります。認証自体は成功しますが、ユーザーがタブを閉じる必要があります。`flutter_web_auth_2` はブラウザが Auth Tab に対応していれば Auth Tab を使い、対応していなければ Custom Tab にフォールバックします。Chrome 109 で確認したフォールバック時の経路では、Chrome が `CallbackActivity` を新しいタスクで起動するため、アプリのタスクに残ったタブを閉じられません。
 
-- Custom Tab の場合もタブを閉じるには、`MainActivity` と `CallbackActivity` の両方から `android:taskAffinity=""` を外してください。片方だけ外しても改善しません。Auth Tab ではこの変更は不要です。Android 13・Chrome 154 では、どちらの設定でもタブが閉じました。
+- フォールバック時もタブを閉じるには、`MainActivity` と `CallbackActivity` の両方から `android:taskAffinity=""` を外してください。片方だけ外しても改善しません。Auth Tab ではこの変更は不要です。Android 13・Chrome 154 では、どちらの設定でもタブが閉じました。
 - `taskAffinity=""` は、Android 11（API 30）より前の端末でのタスク乗っ取り（StrandHogg）への部分的な対策として使われることがあります。この脆弱性に対する Android の推奨は `minSdkVersion` を 30 以上にすることです。経緯は [flutter_web_auth_2 の issue #158](https://github.com/ThexXTURBOXx/flutter_web_auth_2/issues/158) を参照してください。
 
 ### `PlatformException(CANCELED, User canceled login, ...)`
