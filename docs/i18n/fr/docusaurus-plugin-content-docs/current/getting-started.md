@@ -6,7 +6,7 @@ title: Premiers pas
 
 # Premiers pas
 
-misskey_auth est une bibliothèque Flutter pour vous authentifier auprès des serveurs [Misskey](https://misskey-hub.net/). Elle prend en charge OAuth 2.0 et MiAuth, et stocke les jetons de plusieurs comptes.
+misskey_auth est une bibliothèque Flutter pour vous authentifier auprès des serveurs [Misskey](https://misskey-hub.net/fr/). Elle prend en charge OAuth 2.0 et MiAuth, et stocke les jetons de plusieurs comptes.
 
 ## Fonctionnalités
 

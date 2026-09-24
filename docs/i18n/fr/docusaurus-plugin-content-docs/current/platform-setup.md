@@ -43,7 +43,7 @@ Ajoutez `CallbackActivity` de `flutter_web_auth_2` à `android/app/src/main/Andr
         <!-- Minimum : schéma uniquement -->
         <data android:scheme="yourscheme" />
         <!-- Facultatif (OAuth uniquement) : limitez l’hôte/le chemin à l’URL de schéma personnalisé finalement ouverte par le navigateur.
-             MiAuth revient à `yourscheme://` sans hôte ni chemin ; conservez donc le filtre limité au schéma si vous utilisez MiAuth. -->
+             MiAuth revient à `yourscheme://` sans hôte ni chemin ; conservez donc le filtre limité au schéma si vous utilisez aussi MiAuth. -->
         <!-- <data android:scheme="yourscheme" android:host="oauth" android:path="/callback" /> -->
     </intent-filter>
 </activity>
@@ -62,7 +62,7 @@ Remarques :
 
 Le Manifest d’exemple définit `android:taskAffinity=""` sur `MainActivity` et `CallbackActivity` exportées, conformément aux recommandations de `flutter_web_auth_2`.
 
-Avec ce paramètre, l’onglet du navigateur peut rester ouvert après l’authentification si le navigateur par défaut ne prend pas en charge Auth Tab (par exemple, Chrome antérieur à 137). L’authentification réussit tout de même, mais l’utilisateur doit fermer l’onglet. `flutter_web_auth_2` utilise Auth Tab si le navigateur le prend en charge et sinon bascule vers un Custom Tab. Dans le parcours de repli testé avec Chrome 109, Chrome démarre `CallbackActivity` dans une nouvelle tâche ; celle-ci ne peut donc pas fermer l’onglet resté dans la tâche de l’application.
+Avec ce paramètre, l’onglet du navigateur peut rester ouvert après l’authentification si le navigateur par défaut ne prend pas en charge Auth Tab (par exemple, Chrome antérieur à 137). L’authentification réussit tout de même, mais l’utilisateur doit fermer l’onglet. `flutter_web_auth_2` utilise Auth Tab si le navigateur le prend en charge et sinon bascule vers un Custom Tab. Dans le parcours de repli testé avec Chrome 109, Chrome démarre `CallbackActivity` dans une nouvelle tâche ; l’onglet resté dans la tâche de l’application ne peut donc pas être fermé.
 
 - Pour fermer aussi l’onglet en cas de repli, retirez `android:taskAffinity=""` de `MainActivity` et de `CallbackActivity`. Le retirer d’une seule activité ne suffit pas. Cette modification est inutile avec Auth Tab ; sous Android 13 avec Chrome 154, l’onglet se fermait avec les deux configurations.
 - `taskAffinity=""` est parfois utilisé comme mesure partielle contre le détournement de tâches (StrandHogg) sur les appareils antérieurs à Android 11 (API 30). La recommandation d’Android pour cette vulnérabilité est de définir `minSdkVersion` à 30 ou plus. Consultez [l’issue #158 de flutter_web_auth_2](https://github.com/ThexXTURBOXx/flutter_web_auth_2/issues/158) pour la discussion en amont.

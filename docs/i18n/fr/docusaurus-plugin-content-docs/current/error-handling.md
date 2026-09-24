@@ -13,7 +13,7 @@ import 'dart:developer';
 try {
   await auth.loginWithOAuth(config);
 } on UserCancelledException {
-  // L’utilisateur a fermé le navigateur. En général, aucune action n’est nécessaire.
+  // L’utilisateur a fermé le navigateur. En général, inutile de le signaler.
 } on OAuthNotSupportedException {
   // Le serveur ne prend pas en charge OAuth. Essayez plutôt MiAuth.
 } on NetworkException catch (e) {
