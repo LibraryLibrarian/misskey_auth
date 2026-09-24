@@ -19,7 +19,7 @@
 - 通过自定义 URL scheme 回调到应用
 - 使用 `flutter_secure_storage` 安全保存令牌
 - 保存多个账户的令牌并切换当前账户
-- `MisskeyAuthManager` 高级 API，可执行认证流程并保存令牌
+- `MisskeyAuthManager`：高层 API，负责执行身份验证流程并保存令牌
 - iOS 和 Android
 
 ## 运行要求

@@ -16,7 +16,7 @@ Eine Flutter-Bibliothek zur Authentifizierung bei [Misskey](https://misskey-hub.
 - MiAuth-Authentifizierung für ältere Server
 - Authentifizierung im externen Browser (keine eingebettete WebView)
 - PKCE (Proof Key for Code Exchange)
-- Rückleitung zur App über ein benutzerdefiniertes URL-Schema
+- Callback zur App über ein benutzerdefiniertes URL-Schema
 - Sichere Token-Speicherung mit `flutter_secure_storage`
 - Token-Speicherung für mehrere Konten und Wechsel des aktiven Kontos
 - `MisskeyAuthManager`, eine High-Level-API, die Authentifizierungsabläufe ausführt und Tokens speichert
@@ -24,7 +24,7 @@ Eine Flutter-Bibliothek zur Authentifizierung bei [Misskey](https://misskey-hub.
 
 ## Voraussetzungen
 
-- Flutter 3.47.1 oder höher und Dart 3.13.1 oder höher, aber unter 4.0
+- Flutter 3.47.1 oder höher sowie Dart 3.13.1 oder höher (unter 4.0)
 - Android API 24 oder höher, compileSdk 37 oder höher
 - iOS 15 oder höher
 
@@ -74,11 +74,11 @@ final current = await auth.currentToken();
 Damit dieser Code funktioniert, benötigen Sie zwei Dinge:
 
 1. **Eine client_id-Seite (nur OAuth).** Veröffentlichen Sie eine HTTPS-Seite, auf der Ihre `redirect_uri` in `<link rel="redirect_uri">` eingetragen ist. Siehe [client_id-Seite](https://librarylibrarian.github.io/misskey_auth/de/client-id-page).
-2. **Ein in der App registriertes benutzerdefiniertes URL-Schema.** Fügen Sie `yourscheme` unter iOS zu `Info.plist` und unter Android zur `CallbackActivity` von `flutter_web_auth_2` hinzu. Siehe [Plattformkonfiguration](https://librarylibrarian.github.io/misskey_auth/de/platform-setup).
+2. **Ein in der App registriertes benutzerdefiniertes URL-Schema.** Fügen Sie `yourscheme` unter iOS zur `Info.plist` und unter Android zur `CallbackActivity` von `flutter_web_auth_2` hinzu. Siehe [Plattformkonfiguration](https://librarylibrarian.github.io/misskey_auth/de/platform-setup).
 
 ## Dokumentation
 
-- Anleitung: https://librarylibrarian.github.io/misskey_auth/de/
+- Leitfaden: https://librarylibrarian.github.io/misskey_auth/de/
   - [client_id-Seite](https://librarylibrarian.github.io/misskey_auth/de/client-id-page)
   - [Plattformkonfiguration](https://librarylibrarian.github.io/misskey_auth/de/platform-setup)
   - [OAuth und MiAuth](https://librarylibrarian.github.io/misskey_auth/de/oauth-and-miauth)

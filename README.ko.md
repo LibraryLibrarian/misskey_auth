@@ -13,9 +13,9 @@
 ## 특징
 
 - Misskey 서버의 OAuth 2.0 인증(v2023.9.0 이상)
-- 이전 서버를 위한 MiAuth 인증
+- 구버전 서버를 위한 MiAuth 인증
 - 외부 브라우저에서 인증(임베디드 WebView를 사용하지 않음)
-- PKCE (Proof Key for Code Exchange)
+- PKCE(Proof Key for Code Exchange)
 - 사용자 지정 URL 스킴을 통한 앱 콜백
 - `flutter_secure_storage`를 사용한 안전한 토큰 저장
 - 여러 계정의 토큰 저장 및 활성 계정 전환
@@ -56,7 +56,7 @@ final oauthKey = await auth.loginWithOAuth(
   setActive: true,
 );
 
-// MiAuth (이전 서버에서도 동작)
+// MiAuth (구버전 서버에서도 동작)
 final miKey = await auth.loginWithMiAuth(
   MisskeyMiAuthConfig(
     host: 'misskey.io',
@@ -71,7 +71,7 @@ final miKey = await auth.loginWithMiAuth(
 final current = await auth.currentToken();
 ```
 
-이 코드를 사용하려면 다음 두 가지가 필요합니다.
+이 코드가 동작하려면 다음 두 가지가 필요합니다.
 
 1. **client_id 페이지(OAuth만 해당).** `redirect_uri`를 `<link rel="redirect_uri">`에 명시한 HTTPS 페이지를 공개합니다. [client_id 페이지](https://librarylibrarian.github.io/misskey_auth/ko/client-id-page)를 참조하세요.
 2. **앱에 사용자 지정 URL 스킴 등록.** iOS에서는 `Info.plist`에, Android에서는 `flutter_web_auth_2`의 `CallbackActivity`에 `yourscheme`을 추가합니다. [플랫폼 설정](https://librarylibrarian.github.io/misskey_auth/ko/platform-setup)을 참조하세요.
@@ -91,4 +91,4 @@ final current = await auth.currentToken();
 
 ## 라이선스
 
-이 프로젝트는 司書 (LibraryLibrarian)가 3-Clause BSD License에 따라 공개합니다. 자세한 내용은 [LICENSE](LICENSE)를 참조하세요.
+이 프로젝트는 司書(LibraryLibrarian)가 3-Clause BSD License에 따라 공개합니다. 자세한 내용은 [LICENSE](LICENSE)를 참조하세요.
