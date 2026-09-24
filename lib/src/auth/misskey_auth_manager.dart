@@ -9,6 +9,7 @@ import '../store/account_key.dart';
 import '../store/secure_token_store.dart';
 import '../store/stored_token.dart';
 import '../store/token_store.dart';
+import '../net/response.dart';
 import '../net/retry.dart';
 
 /// Misskey 認証の高レベル管理クラス
@@ -116,12 +117,14 @@ class MisskeyAuthManager {
         ),
         const RetryPolicy(maxAttempts: 3),
       );
-      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
-        return response.data as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        return jsonObjectOf(response.data);
       }
-      throw ResponseParseException(details: 'Unexpected /api/i response');
+      throw ResponseParseException(
+        details: 'Unexpected /api/i response: ${response.statusCode}',
+      );
     } on DioException catch (e) {
-      throw NetworkException(details: e.message, originalException: e);
+      throw transportExceptionOf(e);
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     }

@@ -103,7 +103,10 @@ class AuthorizationServerErrorException extends MisskeyAuthException {
   }) : super('The authorization server returned an error.');
 }
 
-/// MiAuth がユーザーによって拒否/キャンセルされた場合の例外
+/// MiAuth のチェック API が `ok: false` を返した場合の例外
+///
+/// ユーザーによる拒否のほか、Misskey は未知・取得済みのセッションにも
+/// `ok: false` を返すため、原因を拒否と断定できない
 class MiAuthDeniedException extends MisskeyAuthException {
   const MiAuthDeniedException({super.details, super.originalException})
     : super('MiAuth authentication was canceled/rejected.');

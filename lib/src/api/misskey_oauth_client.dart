@@ -3,12 +3,12 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../models/oauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
+import '../net/response.dart';
 import '../net/retry.dart';
 
 /// MisskeyのOAuth認証を管理するクライアント
@@ -45,15 +45,23 @@ class MisskeyOAuthClient {
   }
 
   /// OAuth認証サーバー情報を取得
+  ///
+  /// サーバーが OAuth に対応していない（404/501）場合は `null`。
+  /// RFC 8414 に従い、`issuer` が `https://{host}` と完全一致しない場合や、
+  /// エンドポイントが HTTPS の絶対 URL でない場合は [ServerInfoException]
   Future<OAuthServerInfo?> getOAuthServerInfo(String host) async {
     try {
+      final origin = Uri.parse('https://${host.trim()}').origin;
       final response = await retry(
-        () => _dio.get('https://$host/.well-known/oauth-authorization-server'),
+        () => _dio.get('$origin/.well-known/oauth-authorization-server'),
         const RetryPolicy(maxAttempts: 3),
       );
 
       if (response.statusCode == 200) {
-        return OAuthServerInfo.fromJson(response.data);
+        final json = jsonObjectOf(response.data);
+        final info = OAuthServerInfo.fromJson(json);
+        _verifyServerInfo(json['issuer'], info, expectedIssuer: origin);
+        return info;
       }
       if (response.statusCode == 404 || response.statusCode == 501) {
         // 非対応と判断
@@ -61,18 +69,55 @@ class MisskeyOAuthClient {
       }
       // その他のステータスはサーバー側の問題として扱う
       throw ServerInfoException('OAuth情報の取得に失敗しました: ${response.statusCode}');
+    } on MisskeyAuthException {
+      rethrow;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 501) {
+      final status = e.response?.statusCode;
+      if (status == 404 || status == 501) {
         return null; // 非対応
       }
-      throw NetworkException(details: e.message, originalException: e);
+      if (e.type == DioExceptionType.badResponse) {
+        throw ServerInfoException('OAuth情報の取得に失敗しました: $status');
+      }
+      throw transportExceptionOf(e);
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
-      if (kDebugMode) {
-        print('OAuth情報取得エラー: $e');
-      }
       throw ServerInfoException('OAuth情報の取得に失敗しました: $e');
+    }
+  }
+
+  /// discovery の内容が接続先サーバーのものとして妥当かを確認
+  void _verifyServerInfo(
+    Object? issuer,
+    OAuthServerInfo info, {
+    required String expectedIssuer,
+  }) {
+    // 受信値は正規化せず完全一致で比較する（RFC 8414 §3.3）。
+    // 受信値は資格情報を含み得るため、例外には載せない
+    if (issuer != expectedIssuer) {
+      throw ServerInfoException(
+        'OAuth情報の issuer が接続先と一致しません: expected=$expectedIssuer',
+      );
+    }
+    _requireSecureEndpoint(
+      'authorization_endpoint',
+      info.authorizationEndpoint,
+    );
+    _requireSecureEndpoint('token_endpoint', info.tokenEndpoint);
+  }
+
+  /// エンドポイントが HTTPS の絶対 URL であることを確認
+  void _requireSecureEndpoint(String name, String value) {
+    final uri = Uri.tryParse(value);
+    final isSecure =
+        uri != null &&
+        uri.isScheme('https') &&
+        uri.host.isNotEmpty &&
+        uri.userInfo.isEmpty &&
+        !uri.hasFragment;
+    if (!isSecure) {
+      throw ServerInfoException('OAuth情報の $name が HTTPS の絶対 URL ではありません');
     }
   }
 
@@ -102,31 +147,21 @@ class MisskeyOAuthClient {
   }
 
   /// OAuth認証を開始
+  ///
+  /// 認可コードの交換に失敗した場合は、ブラウザでの認可からやり直す必要がある
+  /// （[exchangeCodeForToken] 参照）
   Future<OAuthTokenResponse?> authenticate(MisskeyOAuthConfig config) async {
     try {
       // 1. OAuth情報を取得
-      if (kDebugMode) {
-        print('OAuth情報を取得中: ${config.host}');
-      }
       final serverInfo = await getOAuthServerInfo(config.host);
       if (serverInfo == null) {
         throw OAuthNotSupportedException(config.host);
-      }
-      if (kDebugMode) {
-        print('認証エンドポイント: ${serverInfo.authorizationEndpoint}');
-        print('トークンエンドポイント: ${serverInfo.tokenEndpoint}');
       }
 
       // 2. PKCE準備
       final codeVerifier = generateCodeVerifier();
       final codeChallenge = generateCodeChallenge(codeVerifier);
       final state = generateState();
-
-      if (kDebugMode) {
-        print('PKCE準備完了');
-        print('code_challenge: $codeChallenge');
-        print('state: $state');
-      }
 
       // 3. 認証URLを構築
       final authUrl = Uri.parse(serverInfo.authorizationEndpoint).replace(
@@ -141,10 +176,6 @@ class MisskeyOAuthClient {
         },
       );
 
-      if (kDebugMode) {
-        print('認証URL: $authUrl');
-      }
-
       // 4. flutter_web_auth_2で認証ページを開く
       // カスタムスキーム
       final redirectUriScheme = Uri.parse(config.redirectUri).scheme
@@ -153,9 +184,6 @@ class MisskeyOAuthClient {
           (redirectUriScheme != 'http' && redirectUriScheme != 'https')
           ? redirectUriScheme
           : config.callbackScheme;
-      if (kDebugMode) {
-        print('コールバックURLスキーム: $callbackUrlScheme');
-      }
 
       late final String result;
       try {
@@ -186,43 +214,38 @@ class MisskeyOAuthClient {
         throw AuthorizationLaunchException(details: e.toString());
       }
 
-      if (kDebugMode) {
-        print('認証結果URL: $result');
+      // 5. stateを検証
+      // エラー応答にも state は付くため、error の解釈より先に照合する
+      final params = Uri.tryParse(result)?.queryParametersAll ?? const {};
+      final returnedStates = params['state'];
+      if (returnedStates == null ||
+          returnedStates.length != 1 ||
+          returnedStates.single != state) {
+        throw const StateMismatchException();
       }
 
-      // 5. コールバックURLからパラメータを取得
-      final uri = Uri.parse(result);
-      // 認可サーバーからのエラー（RFC6749）
-      final authError = uri.queryParameters['error'];
+      // 6. 認可サーバーからのエラー（RFC6749）
+      final authError = params['error']?.first;
       if (authError != null && authError.isNotEmpty) {
-        final desc = uri.queryParameters['error_description'];
+        final desc = params['error_description']?.first;
         final errMsg = desc == null || desc.isEmpty
             ? 'error=$authError'
             : 'error=$authError, description=$desc';
         throw AuthorizationServerErrorException(details: errMsg);
       }
 
-      final code = uri.queryParameters['code'];
-      final returnedState = uri.queryParameters['state'];
-
-      if (kDebugMode) {
-        print('認証コード: ${code?.substring(0, 10)}...');
-        print('返却されたstate: $returnedState');
+      final codes = params['code'];
+      if (codes != null && codes.length > 1) {
+        throw const AuthorizationCodeMissingException(
+          details: 'The callback contains multiple codes.',
+        );
       }
-
-      // 6. stateを検証
-      if (returnedState != state) {
-        throw const StateMismatchException();
-      }
-
-      if (code == null) {
+      final code = codes?.single;
+      if (code == null || code.isEmpty) {
         throw const AuthorizationCodeMissingException();
       }
 
       // 7. 認証コードをトークンと交換
-      if (kDebugMode) {
-        print('トークン交換中...');
-      }
       final tokenResponse = await exchangeCodeForToken(
         tokenEndpoint: serverInfo.tokenEndpoint,
         clientId: config.clientId,
@@ -233,13 +256,11 @@ class MisskeyOAuthClient {
       );
 
       // 8. 成功（保存は呼び出し側で TokenStore が担当）
-      if (kDebugMode) print('認証成功！');
       return tokenResponse;
     } on MisskeyAuthException {
       rethrow;
     } on DioException catch (e) {
-      // ネットワーク層の例外
-      throw NetworkException(details: e.message, originalException: e);
+      throw transportExceptionOf(e);
     } on PlatformException catch (e) {
       final code = (e.code).toLowerCase();
       if (code.contains('cancel')) {
@@ -250,15 +271,16 @@ class MisskeyOAuthClient {
         originalException: e,
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('認証エラー: $e');
-      }
       // 想定外はベース例外に包む
       throw MisskeyAuthException(e.toString());
     }
   }
 
   /// アクセストークンを取得
+  ///
+  /// 認可コードは一度しか使えないため、失敗しても自動で再送しない。
+  /// 通信が途中で失敗した場合、サーバー側では交換が済んでいる可能性があり、
+  /// 同じコードでは再試行できない。[authenticate] からやり直すこと
   Future<OAuthTokenResponse> exchangeCodeForToken({
     required String tokenEndpoint,
     required String clientId,
@@ -268,63 +290,46 @@ class MisskeyOAuthClient {
     required String codeVerifier,
   }) async {
     try {
-      final response = await retry(
-        () => _dio.post(
-          tokenEndpoint,
-          options: Options(contentType: 'application/x-www-form-urlencoded'),
-          data: {
-            'grant_type': 'authorization_code',
-            'client_id': clientId,
-            'redirect_uri': redirectUri,
-            'scope': scope,
-            'code': code,
-            'code_verifier': codeVerifier,
-          },
-        ),
-        const RetryPolicy(maxAttempts: 3),
+      // 認可コードは一度しか使えない。サーバー側で交換済みの可能性があるため再送しない
+      final response = await _dio.post(
+        tokenEndpoint,
+        options: Options(contentType: 'application/x-www-form-urlencoded'),
+        data: {
+          'grant_type': 'authorization_code',
+          'client_id': clientId,
+          'redirect_uri': redirectUri,
+          'scope': scope,
+          'code': code,
+          'code_verifier': codeVerifier,
+        },
       );
 
       if (response.statusCode == 200) {
-        return OAuthTokenResponse.fromJson(response.data);
+        return OAuthTokenResponse.fromJson(jsonObjectOf(response.data));
       }
-      final status = response.statusCode;
-      String message = 'トークン交換に失敗しました: $status';
-      // RFC準拠のエラーフィールドがあれば詳細に含める
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final err = data['error'];
-        final desc = data['error_description'];
-        if (err != null) {
-          message =
-              '$message (error=$err${desc != null ? ', description=$desc' : ''})';
-        }
-      }
-      throw TokenExchangeException(message);
+      throw _tokenExchangeError(response.statusCode, response.data);
+    } on MisskeyAuthException {
+      rethrow;
     } on DioException catch (e) {
-      if (kDebugMode) {
-        print('DioException: ${e.response?.data}');
+      final response = e.response;
+      if (e.type == DioExceptionType.badResponse && response != null) {
+        throw _tokenExchangeError(response.statusCode, response.data);
       }
-      if (e.response != null) {
-        final status = e.response?.statusCode;
-        String message = 'トークン交換に失敗しました: $status';
-        final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          final err = data['error'];
-          final desc = data['error_description'];
-          if (err != null) {
-            message =
-                '$message (error=$err${desc != null ? ', description=$desc' : ''})';
-          }
-        }
-        throw TokenExchangeException(message);
-      }
-      // レスポンスが無い＝ネットワーク層の失敗
-      throw NetworkException(details: e.message, originalException: e);
+      throw transportExceptionOf(e);
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
       throw MisskeyAuthException('トークン交換中にエラーが発生しました', details: e.toString());
     }
+  }
+
+  /// トークンエンドポイントのエラー応答を例外に変換
+  TokenExchangeException _tokenExchangeError(int? status, Object? data) {
+    final summary = errorSummaryOf(data);
+    final message = 'トークン交換に失敗しました: $status';
+    return TokenExchangeException(
+      summary == null ? message : '$message ($summary)',
+    );
   }
 
   // 保存・読み出し・クリアの責務は廃止
