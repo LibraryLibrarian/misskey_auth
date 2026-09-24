@@ -60,7 +60,7 @@ try {
 
 | 예외 | 발생 조건 |
 |---|---|
-| `MiAuthDeniedException` | check API가 `ok: false`를 반환했습니다. 사용자가 액세스를 거부했을 수 있지만, Misskey는 알 수 없는 세션이나 이미 사용된 세션에도 이 값을 반환합니다. |
+| `MiAuthDeniedException` | check API가 `ok: false`를 반환했습니다. 사용자가 액세스를 거부했을 수 있지만, Misskey는 알 수 없는 세션이나 사용이 끝난 세션에도 이 값을 반환합니다. |
 | `MiAuthSessionInvalidException` | 콜백이 다른 세션에 대한 것이거나 check API가 404 또는 410을 반환했습니다. |
 | `MiAuthCheckFailedException` | check API가 그 밖의 오류 상태를 반환했습니다. |
 
@@ -70,9 +70,9 @@ try {
 
 ## 저장소 오류
 
-`SecureTokenStore`는 `flutter_secure_storage` 오류를 감싸지 않습니다. 오류는 해당 패키지가 발생시킨 형태(일반적으로 `PlatformException`) 그대로 호출 코드에 전달됩니다. 저장된 데이터가 손상된 경우 읽을 때 `FormatException` 또는 `TypeError`가 발생할 수도 있습니다. 인증 후 토큰을 저장하는 `loginWithOAuth`와 `loginWithMiAuth`를 포함해 토큰을 읽거나 쓰는 `MisskeyAuthManager` 호출 주변에서 이러한 오류를 처리하세요.
+`SecureTokenStore`는 `flutter_secure_storage` 오류를 감싸지 않습니다. 오류는 해당 패키지가 발생시킨 형태(일반적으로 `PlatformException`) 그대로 호출 코드에 전달됩니다. 저장된 데이터가 손상된 경우 읽을 때 `FormatException` 또는 `TypeError`가 발생할 수도 있습니다. 토큰을 읽거나 쓰는 `MisskeyAuthManager` 호출 주변에서 이러한 오류를 처리하세요. 여기에는 인증 후 토큰을 저장하는 `loginWithOAuth`와 `loginWithMiAuth`도 포함됩니다.
 
-`loginWithOAuth`와 `loginWithMiAuth`는 토큰을 저장한 다음 계정을 활성화합니다. 두 번째 단계만 실패하면 토큰은 저장된 채로 남고 계정은 활성화되지 않습니다.
+`loginWithOAuth`와 `loginWithMiAuth`는 토큰을 저장한 다음 계정을 활성화합니다. 계정을 활성화하는 단계만 실패하면 토큰은 저장된 채로 남고 계정은 활성화되지 않습니다.
 
 ## 재시도
 

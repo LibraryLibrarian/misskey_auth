@@ -72,7 +72,7 @@ MisskeyOAuthConfig(
         const source = new URLSearchParams(window.location.search);
         const forwarded = new URLSearchParams();
         for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
-            // 중복 값도 유지하여 라이브러리가 거부할 수 있도록 합니다.
+            // 라이브러리가 중복을 거부할 수 있도록 중복 값도 그대로 전달합니다.
             for (const value of source.getAll(name)) forwarded.append(name, value);
         }
         window.location.replace(`yourscheme://oauth/callback?${forwarded}`);

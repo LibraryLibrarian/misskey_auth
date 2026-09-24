@@ -104,7 +104,7 @@ final key = await auth.loginWithOAuth(
 final current = await auth.currentToken();
 ```
 
-OAuth 인증 후 manager는 새 토큰으로 `/api/i`를 호출해 계정 ID를 확인합니다.
+OAuth 인증 후 `MisskeyAuthManager`는 새 토큰으로 `/api/i`를 호출해 계정 ID를 확인합니다.
 
 ### MiAuth
 
@@ -120,18 +120,18 @@ final key = await auth.loginWithMiAuth(
     permissions: ['read:account', 'write:notes'],
     iconUrl: 'https://example.com/icon.png',
   ),
-  setActive: true, // 이 계정도 활성 계정으로 설정
+  setActive: true, // 저장과 함께 이 계정을 활성 계정으로 설정
 );
 final current = await auth.currentToken();
 ```
 
-MiAuth는 토큰과 함께 사용자 정보도 반환하며, manager는 그 정보의 `id`를 계정 ID로 사용합니다.
+MiAuth는 토큰과 함께 사용자 정보도 반환하며, `MisskeyAuthManager`는 그 정보의 `id`를 계정 ID로 사용합니다.
 
 ## 하나의 앱에서 두 방식 모두 지원하기
 
 - `Info.plist`와 `AndroidManifest.xml`에 `yourscheme`과 같은 스킴 하나를 등록하면 OAuth와 MiAuth에서 함께 사용할 수 있습니다.
 - MiAuth는 스킴만(`yourscheme://`)으로 콜백합니다. MiAuth용으로 `yourscheme://oauth/callback`과 같은 경로를 준비할 필요가 없습니다.
-- Android에서는 [플랫폼 설정](./platform-setup.md#android)의 스킴만 지정하는 intent-filter를 사용하세요. host나 path로 제한된 필터를 사용하면 MiAuth 콜백이 앱에 전달되지 않습니다.
+- Android에서는 [플랫폼 설정](./platform-setup.md#android)의 스킴만 지정하는 intent-filter를 유지하세요. host나 path로 제한된 필터를 사용하면 MiAuth 콜백이 앱에 전달되지 않습니다.
 
 ## 관련 문서
 

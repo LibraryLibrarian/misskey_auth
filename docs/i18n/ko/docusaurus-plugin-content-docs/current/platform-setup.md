@@ -62,9 +62,9 @@ iOS(`CFBundleURLSchemes`)와 Android(`<data android:scheme="...">`)에 같은 �
 
 예제 Manifest는 `flutter_web_auth_2` 권장 사항에 따라 내보내기된 `MainActivity`와 `CallbackActivity` 모두에 `android:taskAffinity=""`를 설정합니다.
 
-이 설정에서는 기본 브라우저가 Auth Tab을 지원하지 않는 경우(예: Chrome 137 미만) 인증 후에도 브라우저 탭이 열려 있을 수 있습니다. 인증은 성공하지만 사용자가 탭을 닫아야 합니다. `flutter_web_auth_2`는 브라우저가 지원하면 Auth Tab을 사용하고, 지원하지 않으면 Custom Tab을 사용합니다. Chrome 109로 확인한 Custom Tab 경로에서는 Chrome이 `CallbackActivity`를 새 작업에서 실행하므로 앱 작업에 남은 탭을 닫을 수 없습니다.
+이 설정에서는 기본 브라우저가 Auth Tab을 지원하지 않는 경우(예: Chrome 137 미만) 인증 후에도 브라우저 탭이 열려 있을 수 있습니다. 인증은 성공하지만 사용자가 탭을 닫아야 합니다. `flutter_web_auth_2`는 브라우저가 지원하면 Auth Tab을 사용하고, 지원하지 않으면 Custom Tab으로 대체합니다. Chrome 109에서 확인한 대체 경로에서는 Chrome이 `CallbackActivity`를 새 작업에서 실행하므로 앱 작업에 남은 탭을 닫을 수 없습니다.
 
-- Custom Tab에서도 탭을 닫으려면 `MainActivity`와 `CallbackActivity` 양쪽에서 `android:taskAffinity=""`를 제거하세요. 한쪽에서만 제거해도 해결되지 않습니다. Auth Tab에서는 이 변경이 필요 없습니다. Android 13 및 Chrome 154에서는 어느 설정에서나 탭이 닫혔습니다.
+- 대체 경로에서도 탭을 닫으려면 `MainActivity`와 `CallbackActivity` 양쪽에서 `android:taskAffinity=""`를 제거하세요. 한쪽에서만 제거해도 해결되지 않습니다. Auth Tab에서는 이 변경이 필요 없습니다. Android 13 및 Chrome 154에서는 어느 설정에서나 탭이 닫혔습니다.
 - `taskAffinity=""`는 Android 11(API 30) 이전 기기의 작업 탈취(StrandHogg)에 대한 부분적인 완화책으로 사용되기도 합니다. 이 취약점에 대한 Android 권장 사항은 `minSdkVersion`을 30 이상으로 설정하는 것입니다. 관련 내용은 [flutter_web_auth_2 issue #158](https://github.com/ThexXTURBOXx/flutter_web_auth_2/issues/158)을 참조하세요.
 
 ### `PlatformException(CANCELED, User canceled login, ...)`

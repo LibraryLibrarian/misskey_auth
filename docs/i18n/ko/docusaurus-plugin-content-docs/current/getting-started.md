@@ -17,7 +17,7 @@ misskey_auth는 [Misskey](https://misskey-hub.net/ko/) 서버 인증을 위한 F
 - 사용자 지정 URL 스킴을 통한 앱 콜백
 - `flutter_secure_storage`를 사용한 안전한 토큰 저장
 - 여러 계정의 토큰 저장 및 활성 계정 전환
-- 인증 흐름을 실행하고 토큰을 저장하는 고수준 API `MisskeyAuthManager`
+- 인증을 수행하고 토큰을 저장하는 고수준 API `MisskeyAuthManager`
 - iOS 및 Android
 
 ## 요구 사항
