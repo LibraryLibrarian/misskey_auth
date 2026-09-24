@@ -110,4 +110,4 @@ const store = SecureTokenStore(
 
 ### 共享存储空间 {#shared-storage}
 
-默认的 `SecureTokenStore` 使用默认存储命名空间，应用中的其他代码也可能使用该命名空间。`flutter_secure_storage` 11 默认启用 `resetOnError`，因此从存储错误中恢复时，也可能删除该命名空间中的其他值。如果应用在同一存储空间中保存了其他数据，请检查其配置。另请参阅 [flutter_secure_storage 更新日志](https://pub.dev/packages/flutter_secure_storage/changelog)。
+默认的 `SecureTokenStore` 使用默认存储空间，应用中的其他代码也可能使用该存储空间。`flutter_secure_storage` 11 默认启用 `resetOnError`，因此从存储错误中恢复时，也可能删除该存储空间中的其他值。如果应用在同一存储空间中保存了其他数据，请检查其配置。另请参阅 [flutter_secure_storage 更新日志](https://pub.dev/packages/flutter_secure_storage/changelog)。
