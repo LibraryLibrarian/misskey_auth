@@ -198,7 +198,10 @@ Notes:
 
 - The `android:label` attribute on the `<intent-filter>` is optional. You can omit it or set any string.
 - On Android 12+ (API level 31+), any Activity with an `intent-filter` must declare `android:exported="true"`.
-- Set `android:taskAffinity=""` on both the exported `MainActivity` and `CallbackActivity` so the browser closes and the app returns to the foreground after authentication.
+- The sample Manifest sets `android:taskAffinity=""` on both the exported `MainActivity` and `CallbackActivity`, as recommended by `flutter_web_auth_2`.
+- With that setting, the browser tab may stay open after authentication when the default browser does not support Auth Tab (for example, Chrome earlier than 137). Authentication still succeeds, but the user has to close the tab manually. `flutter_web_auth_2` uses Auth Tab when the browser supports it and falls back to a Custom Tab otherwise. On the fallback path, `CallbackActivity` starts in a separate task and cannot close the tab.
+  - To close the tab on the fallback path as well, remove `android:taskAffinity=""` from both `MainActivity` and `CallbackActivity`. Removing it from only one of them does not help. This does not affect browsers that support Auth Tab.
+  - `taskAffinity=""` is sometimes used as a partial mitigation against task hijacking (StrandHogg) on devices before Android 11 (API 30). Android's own recommendation for this vulnerability is `minSdkVersion` 30 or later. See [flutter_web_auth_2 issue #158](https://github.com/ThexXTURBOXx/flutter_web_auth_2/issues/158) for the upstream discussion.
 - Apps that perform network requests must declare `<uses-permission android:name="android.permission.INTERNET" />` directly under the `<manifest>` element in `android/app/src/main/AndroidManifest.xml`. A declaration in `debug` or `profile` does not apply to release builds.
 - Use the same callback scheme string on both platforms: iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
 
@@ -623,7 +626,10 @@ await auth.signOutAll();
 
 - `<intent-filter>` の `android:label` は省略可能です（省略しても動作します）。
 - Android 12+（API 31 以降）では、`intent-filter` を持つ Activity に `android:exported="true"` の指定が必須です。
-- 認証後にブラウザを閉じてアプリを前面へ戻すため、exportedな`MainActivity`と`CallbackActivity`の両方に`android:taskAffinity=""`を設定してください。
+- サンプルManifestでは、`flutter_web_auth_2`の推奨に従い、exportedな`MainActivity`と`CallbackActivity`の両方に`android:taskAffinity=""`を設定しています。
+- この設定では、既定のブラウザがAuth Tabに対応していない場合（例: Chrome 137未満）、認証後にブラウザのタブが残ることがあります。認証自体は成功しますが、ユーザーがタブを手動で閉じる必要があります。`flutter_web_auth_2`はブラウザがAuth Tabに対応していればAuth Tabを使い、対応していなければCustom Tabで開きます。Custom Tabの場合は`CallbackActivity`が別のタスクで起動するため、タブを閉じられません。
+  - Custom Tabの場合もタブを閉じるには、`MainActivity`と`CallbackActivity`の両方から`android:taskAffinity=""`を外してください。片方だけ外しても改善しません。Auth Tabに対応したブラウザの動作には影響しません。
+  - `taskAffinity=""`は、Android 11（API 30）より前の端末でのタスク乗っ取り（StrandHogg）への部分的な対策として使われることがあります。この脆弱性に対するAndroidの推奨は`minSdkVersion`を30以上にすることです。経緯は[flutter_web_auth_2 の issue #158](https://github.com/ThexXTURBOXx/flutter_web_auth_2/issues/158)を参照してください。
 - ネットワーク通信を行うアプリでは、`android/app/src/main/AndroidManifest.xml`の`<manifest>`直下に`<uses-permission android:name="android.permission.INTERNET" />`を宣言してください。`debug`または`profile`側だけの宣言はreleaseビルドへ適用されません。
 - iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）で登録するカスタムスキーム名は同一にしてください（完全一致が必要）。
 
