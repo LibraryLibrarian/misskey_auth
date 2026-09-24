@@ -53,12 +53,13 @@ dependencies:
 
 Misskey's OAuth 2.0 follows the IndieAuth specification. You need:
 
-- `client_id` must be a valid URL (e.g., `https://yoursite/yourapp/`)
-- The HTML hosted at `client_id` must include the following `<link>`:
+- `client_id` must be an HTTPS URL (e.g., `https://yoursite/yourapp/`). The Misskey server fetches this page.
+- The HTML hosted at `client_id` must list the `redirect_uri` with a `<link>`:
   ```html
-  <link rel="redirect_uri" href="https://yoursite/yourapp/redirect.html">
+  <link rel="redirect_uri" href="yourscheme://oauth/callback">
   ```
-- The `redirect_uri` in authorization requests must exactly match the URL in the `<link>` tag (protocol, case, trailing slash, etc.)
+- The `redirect_uri` in authorization requests must exactly match the URL in the `<link>` tag (scheme, case, trailing slash, etc.). Write it the same way in both places.
+- `redirect_uri` does not need to be HTTPS. Misskey requires HTTPS only for `client_id`, so `redirect_uri` can be your app's custom scheme URL, and Misskey redirects the browser straight back to your app.
 
 ##### Example HTML page
 
@@ -67,7 +68,7 @@ Misskey's OAuth 2.0 follows the IndieAuth specification. You need:
 <html>
 <head>
   <title>My App</title>
-  <link rel="redirect_uri" href="https://yoursite/yourapp/redirect.html">
+  <link rel="redirect_uri" href="yourscheme://oauth/callback">
 </head>
 <body>
   <div class="h-app">
@@ -77,7 +78,9 @@ Misskey's OAuth 2.0 follows the IndieAuth specification. You need:
 </html>
 ```
 
-##### Example redirect page
+##### Optional: HTTPS relay page
+
+You can also use an HTTPS page as `redirect_uri` and forward the result to your custom scheme from there. Misskey does not require this. If you use it, list the relay page in the `<link>` instead (e.g., `<link rel="redirect_uri" href="https://yoursite/yourapp/redirect.html">`) and set `callbackScheme` to the scheme the page forwards to.
 
 ```html
 <!DOCTYPE html>
@@ -115,7 +118,7 @@ final oauthKey = await auth.loginWithOAuth(
   MisskeyOAuthConfig(
     host: 'misskey.io',
     clientId: 'https://yourpage/yourapp/',
-    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    redirectUri: 'yourscheme://oauth/callback',
     scope: 'read:account write:notes',
     callbackScheme: 'yourscheme',
   ),
@@ -180,7 +183,8 @@ Add to `android/app/src/main/AndroidManifest.xml`:
         <category android:name="android.intent.category.BROWSABLE" />
         <!-- Minimum: scheme only -->
         <data android:scheme="yourscheme" />
-        <!-- Optional (recommended when you control redirect.html): also restrict host/path -->
+        <!-- Optional (OAuth only): restrict host/path to the custom scheme URL the browser finally opens.
+             MiAuth calls back to `yourscheme://` without host/path, so keep the scheme-only filter if you use MiAuth. -->
         <!-- <data android:scheme="yourscheme" android:host="oauth" android:path="/callback" /> -->
     </intent-filter>
 </activity>
@@ -198,23 +202,24 @@ Notes:
 - Apps that perform network requests must declare `<uses-permission android:name="android.permission.INTERNET" />` directly under the `<manifest>` element in `android/app/src/main/AndroidManifest.xml`. A declaration in `debug` or `profile` does not apply to release builds.
 - Use the same callback scheme string on both platforms: iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
 
-Important (OAuth redirect on Android):
-- Misskey OAuth requires `redirect_uri` to be HTTPS and exactly match the link in your client_id page.
-- Typical pattern is:
+Important (OAuth redirect_uri):
+- Misskey requires HTTPS for `client_id` but not for `redirect_uri`. It only checks that `redirect_uri` exactly matches a redirect URI registered on your client_id page, such as a `<link rel="redirect_uri">`.
+- Recommended pattern:
   - `client_id` = `https://yourpage/yourapp/`
-  - `redirect_uri` = `https://yourpage/yourapp/redirect.html`
-  - The `redirect.html` then navigates to your custom scheme: `yourscheme://oauth/callback?code=...&state=...`
-- If you restrict the Android intent-filter by host/path, make sure it matches the URL used in `redirect.html` (e.g., `yourscheme://oauth/callback`).
+  - `redirect_uri` = `yourscheme://oauth/callback`
+  - After authorization, Misskey redirects the browser to `yourscheme://oauth/callback?code=...&state=...`, which returns to your app.
+- With an HTTPS relay page, `redirect_uri` = `https://yourpage/yourapp/redirect.html`, and the page navigates to `yourscheme://oauth/callback?code=...&state=...`. Set `callbackScheme` to that scheme.
+- If you restrict the Android intent-filter by host/path, make sure it matches the custom scheme URL that the browser finally opens (`redirect_uri` itself, or the URL used in `redirect.html`). Do not restrict it if you also use MiAuth, which calls back to `yourscheme://`.
 - If you see `PlatformException(CANCELED, User canceled login, ...)` on Android, common causes are:
   1) The device did not deliver the callback to the app. Ensure `com.linusu.flutter_web_auth_2.CallbackActivity` has a matching `<intent-filter>`.
-  2) A PWA or another app intercepted the link. Using HTTPS → `redirect.html` → custom scheme flow usually mitigates this.
+  2) A PWA or another app intercepted the link.
   3) The `redirect_uri` did not exactly match the `<link rel="redirect_uri">` in the client_id page.
 
 #### Differences in MiAuth and OAuth Configuration (Key Points for App Integration)
 - This configuration (registration of the URL scheme) is done on the "app side." It is not included in the library's Manifest.
 - Both methods require a "custom URL scheme" to return from an external browser to the app.
 - The difference lies in how to specify "where to return from the browser."
-- OAuth: Since it needs to return to an HTTPS `redirect_uri` from the authorization server, `redirect.html` placed there ultimately redirects back to `yourscheme://...` for the app.
+- OAuth: The `redirect_uri` listed on your client_id page points to the app. It can be the custom scheme URL itself (e.g., `yourscheme://oauth/callback`), or an HTTPS relay page that redirects to `yourscheme://...`.
 - MiAuth: The `callback` query of the authentication start URL points to the app via the custom scheme only (e.g., `yourscheme://`). No `https` is needed.
 
 ##### Example of MiAuth (no persistence)
@@ -262,7 +267,7 @@ final oauthClient = MisskeyOAuthClient(); // does not save tokens
 final oauthConfig = MisskeyOAuthConfig(
   host: 'misskey.io',
   clientId: 'https://yourpage/yourapp/',
-  redirectUri: 'https://yourpage/yourapp/redirect.html',
+  redirectUri: 'yourscheme://oauth/callback',
   scope: 'read:account write:notes',
   callbackScheme: 'yourscheme',          // Scheme registered on the app side
 );
@@ -279,7 +284,7 @@ final key = await auth.loginWithOAuth(
   MisskeyOAuthConfig(
     host: 'misskey.io',
     clientId: 'https://yourpage/yourapp/',
-    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    redirectUri: 'yourscheme://oauth/callback',
     scope: 'read:account write:notes',
     callbackScheme: 'yourscheme',
   ),
@@ -294,7 +299,7 @@ final current = await auth.currentToken();
 - By registering the same `scheme` (e.g., `yourscheme`) in iOS's `Info.plist` and Android's `AndroidManifest.xml`, it can be shared between OAuth and MiAuth.
 - This library uses a scheme-only callback for MiAuth (e.g., `yourscheme://`). You do not need to reuse a path like `yourscheme://oauth/callback` for MiAuth.
 - For Android, use the scheme-only configuration in [Android Configuration](#android-configuration).
-  The `host` and `path` restrictions remain optional; the complete sample Manifest is linked from that section.
+  Restricting `host` or `path` stops MiAuth callbacks (`yourscheme://`) from reaching the app, so do not add those restrictions when you support both methods. The complete sample Manifest is linked from that section.
 
 ### API Reference
 
@@ -306,9 +311,10 @@ Configuration class for Misskey OAuth authentication.
 class MisskeyOAuthConfig {
   final String host;           // Misskey server host (e.g., 'misskey.io')
   final String clientId;       // Your client_id page URL
-  final String redirectUri;    // Your redirect page URL
+  final String redirectUri;    // Listed on the client_id page (e.g., 'yourscheme://oauth/callback')
   final String scope;          // Requested scopes (e.g., 'read:account write:notes')
-  final String callbackScheme; // Your app's custom URL scheme
+  final String callbackScheme; // Your app's custom URL scheme. Required, but used only when redirectUri is http(s) (relay page);
+                               // otherwise the scheme of redirectUri is used
 }
 ```
 
@@ -416,7 +422,7 @@ The library includes exception classes for:
 ### Common Errors
 
 - `Invalid redirect_uri`: The `redirect_uri` in the authorization request doesn't exactly match the one in the `client_id` page's `<link rel="redirect_uri">` tag
-  - Check domain case, trailing slashes, and HTTPS usage
+  - Check the scheme, domain case, and trailing slashes
 
 ### License
 
@@ -473,12 +479,13 @@ dependencies:
 
 MisskeyのOAuth 2.0はIndieAuth仕様に準拠しています。以下が必要です：
 
-- `client_id`は有効なURLであること（例: `https://yoursite/yourapp/`）
-- `client_id`でホストしているHTMLに、以下の`<link>`を含めること：
+- `client_id`はHTTPSのURLであること（例: `https://yoursite/yourapp/`）。このページはMisskeyサーバーが取得します
+- `client_id`でホストしているHTMLに、`redirect_uri`を`<link>`で記載すること：
   ```html
-  <link rel="redirect_uri" href="https://yoursite/yourapp/redirect.html">
+  <link rel="redirect_uri" href="yourscheme://oauth/callback">
   ```
-- 認可リクエストの`redirect_uri`が、上記`<link>`のURLと完全一致すること（プロトコル、大文字小文字、末尾スラッシュまで一致）
+- 認可リクエストの`redirect_uri`が、上記`<link>`のURLと完全一致すること（スキーム、大文字小文字、末尾スラッシュまで一致）。両方を同じ表記で書いてください
+- `redirect_uri`はHTTPSである必要はありません。MisskeyがHTTPSを求めるのは`client_id`だけのため、`redirect_uri`にアプリのカスタムスキームのURLを指定でき、Misskeyはブラウザを直接アプリへ戻します
 
 ##### HTMLページ例
 
@@ -487,7 +494,7 @@ MisskeyのOAuth 2.0はIndieAuth仕様に準拠しています。以下が必要�
 <html>
 <head>
   <title>My App</title>
-  <link rel="redirect_uri" href="https://yoursite/yourapp/redirect.html">
+  <link rel="redirect_uri" href="yourscheme://oauth/callback">
 </head>
 <body>
   <div class="h-app">
@@ -497,7 +504,9 @@ MisskeyのOAuth 2.0はIndieAuth仕様に準拠しています。以下が必要�
 </html>
 ```
 
-##### リダイレクトページ例
+##### 任意: HTTPSの中継ページ
+
+HTTPSのページを`redirect_uri`にし、そこからカスタムスキームへ転送する構成も使えます。Misskeyの要件ではありません。この構成にする場合は、`<link>`には中継ページを記載し（例: `<link rel="redirect_uri" href="https://yoursite/yourapp/redirect.html">`）、`callbackScheme`には中継ページの転送先のスキームを指定します。
 
 ```html
 <!DOCTYPE html>
@@ -534,7 +543,7 @@ final oauthKey = await auth.loginWithOAuth(
   MisskeyOAuthConfig(
     host: 'misskey.io',
     clientId: 'https://yourpage/yourapp/',
-    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    redirectUri: 'yourscheme://oauth/callback',
     scope: 'read:account write:notes',
     callbackScheme: 'yourscheme',
   ),
@@ -599,7 +608,8 @@ await auth.signOutAll();
         <category android:name="android.intent.category.BROWSABLE" />
         <!-- 最小構成: schemeのみ -->
         <data android:scheme="yourscheme" />
-        <!-- 任意（redirect.htmlを管理できる場合に推奨）: host/pathも制限 -->
+        <!-- 任意（OAuthのみの場合）: ブラウザが最終的に開くカスタムスキームのURLに合わせてhost/pathを制限。
+             MiAuthはhost/pathなしの`yourscheme://`に戻るため、MiAuthも使う場合はschemeのみの設定を維持 -->
         <!-- <data android:scheme="yourscheme" android:host="oauth" android:path="/callback" /> -->
     </intent-filter>
 </activity>
@@ -617,12 +627,25 @@ await auth.signOutAll();
 - ネットワーク通信を行うアプリでは、`android/app/src/main/AndroidManifest.xml`の`<manifest>`直下に`<uses-permission android:name="android.permission.INTERNET" />`を宣言してください。`debug`または`profile`側だけの宣言はreleaseビルドへ適用されません。
 - iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）で登録するカスタムスキーム名は同一にしてください（完全一致が必要）。
 
+重要（OAuthの`redirect_uri`）:
+- MisskeyがHTTPSを要求するのは`client_id`だけで、`redirect_uri`には要求しません。確認するのは、`redirect_uri`がclient_idページに登録したredirect URI（`<link rel="redirect_uri">`など）と完全一致するかどうかだけです。
+- 推奨構成:
+  - `client_id` = `https://yourpage/yourapp/`
+  - `redirect_uri` = `yourscheme://oauth/callback`
+  - 認可後、Misskeyはブラウザを`yourscheme://oauth/callback?code=...&state=...`へリダイレクトし、アプリに戻ります。
+- HTTPSの中継ページを使う場合は、`redirect_uri` = `https://yourpage/yourapp/redirect.html`とし、そのページから`yourscheme://oauth/callback?code=...&state=...`へ移動します。`callbackScheme`にはそのスキームを指定してください。
+- Androidのintent-filterをhost/pathで制限する場合は、ブラウザが最終的に開くカスタムスキームのURL（`redirect_uri`そのもの、または`redirect.html`で使うURL）に合わせてください。MiAuthも使う場合は、MiAuthが`yourscheme://`に戻るため制限しないでください。
+- Androidで`PlatformException(CANCELED, User canceled login, ...)`が出る場合の主な原因:
+  1) 端末がcallbackをアプリに届けていない。`com.linusu.flutter_web_auth_2.CallbackActivity`に一致する`<intent-filter>`があるか確認してください。
+  2) PWAや別のアプリがリンクを横取りした。
+  3) `redirect_uri`がclient_idページの`<link rel="redirect_uri">`と完全一致していない。
+
 #### MiAuth と OAuth の設定の違い（アプリ組み込み時のポイント）
 
 - この設定（URLスキームの登録）は「アプリ側」で行います。ライブラリ内のManifestには含めません。
 - 両方式とも、外部ブラウザからアプリへ戻すために「カスタムURLスキーム」が必要です。
 - 相違点は「ブラウザからどこに戻すか」の指定方法です。
-  - OAuth: 認可サーバーからはHTTPSの`redirect_uri`に戻る必要があるため、そこに配置した`redirect.html`が最終的に`yourscheme://...`へリダイレクトしてアプリに戻します。
+  - OAuth: client_idページに記載した`redirect_uri`でアプリに戻します。カスタムスキームのURL（例: `yourscheme://oauth/callback`）をそのまま指定するか、`yourscheme://...`へリダイレクトするHTTPSの中継ページを指定します。
   - MiAuth: 認証開始URLの`callback`クエリには、アプリのカスタムスキームのみ（例: `yourscheme://`）を指定します（`https`は不要）。
 
 ##### MiAuth の例（保存無し）
@@ -670,7 +693,7 @@ final oauthClient = MisskeyOAuthClient(); // 保存はしません
 final oauthConfig = MisskeyOAuthConfig(
   host: 'misskey.io',
   clientId: 'https://yourpage/yourapp/',
-  redirectUri: 'https://yourpage/yourapp/redirect.html',
+  redirectUri: 'yourscheme://oauth/callback',
   scope: 'read:account write:notes',
   callbackScheme: 'yourscheme',          // アプリ側で登録したスキーム
 );
@@ -687,7 +710,7 @@ final key = await auth.loginWithOAuth(
   MisskeyOAuthConfig(
     host: 'misskey.io',
     clientId: 'https://yourpage/yourapp/',
-    redirectUri: 'https://yourpage/yourapp/redirect.html',
+    redirectUri: 'yourscheme://oauth/callback',
     scope: 'read:account write:notes',
     callbackScheme: 'yourscheme',
   ),
@@ -702,7 +725,7 @@ final current = await auth.currentToken();
 - iOSの`Info.plist`・Androidの`AndroidManifest.xml`で同じ`scheme`（例: `yourscheme`）を1つ登録すれば、OAuth/MiAuthで共用可能です。
 - 本ライブラリの MiAuth は scheme のみ（`yourscheme://`）を callback に使います。`yourscheme://oauth/callback` のようなパス付きに揃える必要はありません。
 - Androidは[Android設定](#android設定)にある`scheme`のみの構成を使用してください。
-  `host`や`path`による制限は任意で、完全なサンプルManifestは同セクションから参照できます。
+  `host`や`path`で制限するとMiAuthのcallback（`yourscheme://`）がアプリに届かなくなるため、両方式をサポートする場合は制限しないでください。完全なサンプルManifestは同セクションから参照できます。
 
 ### API リファレンス
 
@@ -714,9 +737,10 @@ Misskey OAuth認証の設定クラス。
 class MisskeyOAuthConfig {
   final String host;           // Misskeyサーバーのホスト（例: 'misskey.io'）
   final String clientId;       // client_idページのURL
-  final String redirectUri;    // リダイレクトページのURL
+  final String redirectUri;    // client_idページに記載したURL（例: 'yourscheme://oauth/callback'）
   final String scope;          // 要求するスコープ（例: 'read:account write:notes'）
-  final String callbackScheme; // アプリのカスタムURLスキーム
+  final String callbackScheme; // アプリのカスタムURLスキーム。必須だが、使われるのはredirectUriがhttp(s)（中継ページ）の場合のみ。
+                               // それ以外はredirectUriのスキームを使用
 }
 ```
 
@@ -822,7 +846,7 @@ class AccountEntry {
 ### よくあるエラー
 
 - `Invalid redirect_uri`: 認可リクエストの`redirect_uri`と、`client_id`ページの`<link rel="redirect_uri">`が完全一致していない
-  - ドメインの大文字小文字、末尾スラッシュ、HTTPS使用を確認してください
+  - スキーム、ドメインの大文字小文字、末尾スラッシュを確認してください
 
 ### ライセンス
 
