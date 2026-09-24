@@ -19,13 +19,13 @@ Solange die stabile Version von `flutter_web_auth_2` das Kotlin-Android-Plugin a
 
 ### Unter Android ist eine erneute Anmeldung erforderlich
 
-In dieser Version wurde `flutter_secure_storage` von Version 9 auf Version 11 aktualisiert. Eine Migration über Version 10 wird nicht bereitgestellt. Unter Android können Anmeldedaten, die mit dem alten Standardverschlüsselungsverfahren gespeichert wurden, nicht direkt übernommen werden. Für jedes betroffene Konto ist eine erneute Authentifizierung erforderlich.
+In dieser Version wird `flutter_secure_storage` ohne Migration über Version 10 von Version 9 auf Version 11 aktualisiert. Unter Android können Anmeldedaten, die mit dem alten Standardverschlüsselungsverfahren gespeichert wurden, nicht direkt übernommen werden. Für jedes betroffene Konto ist eine erneute Authentifizierung erforderlich.
 
 - Dies ist eine inkompatible Änderung bei der Kompatibilität gespeicherter Daten unter Android. Das bedeutet nicht, dass auch unter iOS Daten verloren gehen.
-- Behandeln Sie in der App, die die Bibliothek verwendet, fehlende Anmeldedaten und Speicherfehler.
+- Behandeln Sie in der App, die die Bibliothek verwendet, fehlende Anmeldedaten und Fehler im Speicherbereich.
 - Das Löschen der Anmeldedaten auf dem Gerät widerruft das Token auf dem Server nicht.
 
-### Gemeinsamer Speicherbereich
+### Gemeinsamer Speicherbereich {#shared-storage}
 
 `SecureTokenStore` verwendet standardmäßig den gemeinsamen Standard-Speicherbereich. In `flutter_secure_storage` 11 ist `resetOnError` standardmäßig aktiviert. Bei der Wiederherstellung können daher auch andere Werte im selben Bereich gelöscht werden. Wenn Sie den Speicherbereich gemeinsam nutzen, prüfen Sie die Konfiguration vor dem Upgrade. Weitere Informationen finden Sie im [Änderungsprotokoll von flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage/changelog) und unter [Token-Speicherung](./token-storage.md#shared-storage).
 

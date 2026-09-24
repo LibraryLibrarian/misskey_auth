@@ -104,7 +104,7 @@ final key = await auth.loginWithOAuth(
 final current = await auth.currentToken();
 ```
 
-Nach der OAuth-Authentifizierung ruft der Manager mit dem neuen Token `/api/i` auf, um die Konto-ID abzurufen.
+Nach der OAuth-Authentifizierung ruft `MisskeyAuthManager` mit dem neuen Token `/api/i` auf, um die Konto-ID abzurufen.
 
 ### MiAuth
 
@@ -120,18 +120,18 @@ final key = await auth.loginWithMiAuth(
     permissions: ['read:account', 'write:notes'],
     iconUrl: 'https://example.com/icon.png',
   ),
-  setActive: true, // Dieses Konto aktivieren
+  setActive: true, // Zusätzlich zur Speicherung dieses Konto aktivieren
 );
 final current = await auth.currentToken();
 ```
 
-MiAuth gibt zusammen mit dem Token Benutzerinformationen zurück. Der Manager verwendet deren `id` als Konto-ID.
+MiAuth gibt zusammen mit dem Token Benutzerinformationen zurück. `MisskeyAuthManager` verwendet deren `id` als Konto-ID.
 
 ## Beide Verfahren in einer App unterstützen
 
 - Wenn Sie in `Info.plist` und `AndroidManifest.xml` ein einzelnes Schema wie `yourscheme` registrieren, können OAuth und MiAuth es gemeinsam verwenden.
 - MiAuth kehrt nur zum Schema (`yourscheme://`) zurück. Für MiAuth müssen Sie keinen Pfad wie `yourscheme://oauth/callback` einrichten.
-- Verwenden Sie unter Android den intent-filter nur für das Schema aus der [Plattformkonfiguration](./platform-setup.md#android). Bei einem durch host oder path eingeschränkten Filter erreicht der MiAuth-Callback die App nicht.
+- Behalten Sie unter Android den intent-filter nur für das Schema aus der [Plattformkonfiguration](./platform-setup.md#android) bei. Bei einem durch host oder path eingeschränkten Filter erreicht der MiAuth-Callback die App nicht.
 
 ## Weiterführende Links
 

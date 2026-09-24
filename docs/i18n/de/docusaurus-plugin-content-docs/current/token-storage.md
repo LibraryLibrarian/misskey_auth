@@ -31,7 +31,7 @@ Beim Abmelden wird nur das Token auf dem Gerät gelöscht. Das Token auf dem Ser
 
 ## Timeouts
 
-`MisskeyAuthManager.defaultInstance()` verwendet die Standard-Timeouts (Verbindung: 10 Sekunden, Senden und Empfangen jeweils 20 Sekunden). Wenn Sie diese ändern möchten, erstellen Sie den Manager selbst. Der Timeout des Managers gilt nur für die von ihm selbst ausgeführte Anfrage an `/api/i`. Übergeben Sie die Timeouts daher auch an die einzelnen Clients.
+`MisskeyAuthManager.defaultInstance()` verwendet die Standard-Timeouts (Verbindung: 10 Sekunden, Senden und Empfangen jeweils 20 Sekunden). Wenn Sie diese ändern möchten, erstellen Sie `MisskeyAuthManager` selbst. Die Timeouts von `MisskeyAuthManager` gelten nur für die von ihm selbst ausgeführte Anfrage an `/api/i`. Übergeben Sie die Timeouts daher auch an die einzelnen Clients.
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` speichert Token mit `flutter_secure_storage`. Unter iOS werden sie im Schlüsselbund und unter Android im Keystore gespeichert. Wenn Sie die Speicheroptionen ändern möchten, übergeben Sie `FlutterSecureStorage`. Da misskey_auth diese Klasse nicht erneut exportiert, fügen Sie `flutter_secure_storage` als Abhängigkeit hinzu und importieren Sie es.
+`SecureTokenStore` speichert Token mit `flutter_secure_storage`. Unter iOS werden sie im Schlüsselbund und unter Android im Keystore gespeichert. Wenn Sie die Speicheroptionen ändern möchten, übergeben Sie ein selbst erstelltes `FlutterSecureStorage`-Objekt. Da misskey_auth diese Klasse nicht erneut exportiert, fügen Sie `flutter_secure_storage` als Abhängigkeit hinzu und importieren Sie es.
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -100,9 +100,9 @@ const store = SecureTokenStore(
 
 ### Nebenläufigkeit
 
-- Schreibvorgänge (`upsert`, `delete`, `clearAll`, `setActive`) werden über Instanzen hinweg innerhalb eines Isolates nacheinander ausgeführt. Auch bei gleichzeitigen Schreibvorgängen gehen keine Konten im Index verloren.
+- Schreibvorgänge (`upsert`, `delete`, `clearAll`, `setActive`) werden innerhalb desselben Isolates auch bei unterschiedlichen Instanzen nacheinander ausgeführt. Auch bei gleichzeitigen Schreibvorgängen gehen keine Konten im Index verloren.
 - Lesevorgänge werden nicht blockiert. Außerdem sind mehrere Vorgänge, etwa `upsert` gefolgt von `setActive`, nicht atomar.
-- Schreibvorgänge aus anderen Isolates oder Prozessen werden nicht koordiniert.
+- Schreibvorgänge aus anderen Isolates oder Prozessen werden nicht exklusiv koordiniert.
 
 ### Was `clearAll` löscht
 

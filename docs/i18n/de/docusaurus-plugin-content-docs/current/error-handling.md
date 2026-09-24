@@ -60,7 +60,7 @@ Jede Ausnahme hat die folgenden Eigenschaften.
 
 | Ausnahme | Auslösebedingung |
 |---|---|
-| `MiAuthDeniedException` | Die Prüf-API hat `ok: false` zurückgegeben. Der Benutzer hat möglicherweise abgelehnt, Misskey gibt diesen Wert jedoch auch für unbekannte oder bereits abgerufene Sitzungen zurück. |
+| `MiAuthDeniedException` | Die Prüf-API hat `ok: false` zurückgegeben. Der Benutzer hat möglicherweise abgelehnt, Misskey gibt diesen Wert jedoch auch für unbekannte oder bereits verwendete Sitzungen zurück. |
 | `MiAuthSessionInvalidException` | Der Callback gehört zu einer anderen Sitzung oder die Prüf-API hat 404 oder 410 zurückgegeben. |
 | `MiAuthCheckFailedException` | Die Prüf-API hat einen anderen Fehlerstatus zurückgegeben. |
 
@@ -70,9 +70,9 @@ Jede Ausnahme hat die folgenden Eigenschaften.
 
 ## Fehler im Speicher
 
-`SecureTokenStore` umschließt Fehler von `flutter_secure_storage` nicht. Die Fehler werden unverändert an den Aufrufer weitergegeben (üblicherweise als `PlatformException`). Bei beschädigten gespeicherten Daten können beim Lesen auch `FormatException` oder `TypeError` ausgelöst werden. Behandeln Sie diese Fehler auch bei Aufrufen von `MisskeyAuthManager`, die Token lesen oder schreiben. Dazu zählen `loginWithOAuth` und `loginWithMiAuth`, die Token nach der Authentifizierung speichern.
+`SecureTokenStore` umschließt Fehler von `flutter_secure_storage` nicht. Die Fehler werden unverändert an den Aufrufer weitergegeben (üblicherweise als `PlatformException`). Bei beschädigten gespeicherten Daten können beim Lesen auch `FormatException` oder `TypeError` ausgelöst werden. Behandeln Sie diese Fehler auch bei Aufrufen von `MisskeyAuthManager`, die Token lesen oder schreiben. Dazu zählen auch `loginWithOAuth` und `loginWithMiAuth`, die Token nach der Authentifizierung speichern.
 
-`loginWithOAuth` und `loginWithMiAuth` speichern das Token und aktivieren anschließend das Konto. Schlägt nur der zweite Schritt fehl, bleibt das Token gespeichert, das Konto wird jedoch nicht aktiviert.
+`loginWithOAuth` und `loginWithMiAuth` speichern das Token und aktivieren anschließend das Konto. Schlägt nur die Aktivierung des Kontos fehl, bleibt das Token gespeichert, das Konto wird jedoch nicht aktiviert.
 
 ## Wiederholungsversuche
 

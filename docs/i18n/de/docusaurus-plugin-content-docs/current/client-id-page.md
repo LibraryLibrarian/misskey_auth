@@ -74,7 +74,7 @@ Beispiel für `redirect.html`.
         const source = new URLSearchParams(window.location.search);
         const forwarded = new URLSearchParams();
         for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
-            // Doppelte Werte beibehalten, damit die Bibliothek sie zurückweisen kann
+            // Doppelte Werte beim Weiterleiten beibehalten, damit die Bibliothek sie zurückweisen kann
             for (const value of source.getAll(name)) forwarded.append(name, value);
         }
         window.location.replace(`yourscheme://oauth/callback?${forwarded}`);

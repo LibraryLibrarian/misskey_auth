@@ -17,7 +17,7 @@ misskey_auth ist eine Flutter-Bibliothek für die Authentifizierung bei [Misskey
 - Rückkehr zur App über ein benutzerdefiniertes URL-Schema
 - Sichere Token-Speicherung mit `flutter_secure_storage`
 - Speicherung von Token für mehrere Konten und Wechsel zwischen aktiven Konten
-- High-Level-API `MisskeyAuthManager` zur Vermittlung von Authentifizierung und Token-Speicherung
+- High-Level-API `MisskeyAuthManager` zur Authentifizierung und Token-Speicherung
 - iOS und Android
 
 ## Voraussetzungen
