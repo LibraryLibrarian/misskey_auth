@@ -27,6 +27,6 @@ title: 升级说明
 
 ### 共享存储空间 {#shared-storage}
 
-默认的 `SecureTokenStore` 使用默认存储空间，应用中的其他代码也可能使用该存储空间。`flutter_secure_storage` 11 默认启用 `resetOnError`，因此恢复过程中也可能删除该存储空间中的其他值。升级前请检查共享存储配置。请参阅 [flutter_secure_storage 更新日志](https://pub.dev/packages/flutter_secure_storage/changelog)和[令牌存储](./token-storage.md#shared-storage)。
+默认的 `SecureTokenStore` 使用共享的默认存储空间。`flutter_secure_storage` 11 默认启用 `resetOnError`，因此恢复过程中也可能删除该存储空间中用于其他用途的值。如果与其他数据共享同一存储空间，请在升级前检查相关配置。请参阅 [flutter_secure_storage 更新日志](https://pub.dev/packages/flutter_secure_storage/changelog)和[令牌存储](./token-storage.md#shared-storage)。
 
 所有变更请参阅[更新日志](https://pub.dev/packages/misskey_auth/changelog)。
