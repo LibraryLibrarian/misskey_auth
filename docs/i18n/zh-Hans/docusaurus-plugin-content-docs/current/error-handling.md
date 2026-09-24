@@ -60,7 +60,7 @@ try {
 
 | 异常 | 抛出条件 |
 |---|---|
-| `MiAuthDeniedException` | 检查 API 返回 `ok: false`。用户可能拒绝了访问，但 Misskey 也会对未知或已使用的会话返回此值 |
+| `MiAuthDeniedException` | 检查 API 返回 `ok: false`。用户可能拒绝了访问，但 Misskey 也会对未知或已使用过的会话返回此值 |
 | `MiAuthSessionInvalidException` | 回调属于另一个会话，或检查 API 返回了 404 或 410 |
 | `MiAuthCheckFailedException` | 检查 API 返回了其他错误状态 |
 
@@ -70,9 +70,9 @@ try {
 
 ## 存储错误
 
-`SecureTokenStore` 不会包装 `flutter_secure_storage` 的错误。错误会以该软件包抛出的形式传递到调用代码，通常为 `PlatformException`。如果存储的数据已损坏，读取时也可能抛出 `FormatException` 或 `TypeError`。请在调用会读取或写入令牌的 `MisskeyAuthManager` 方法时处理这些错误，包括身份验证后保存令牌的 `loginWithOAuth` 和 `loginWithMiAuth`。
+`SecureTokenStore` 不会包装 `flutter_secure_storage` 的错误。错误会以该软件包抛出的形式传递到调用代码，通常为 `PlatformException`。如果存储的数据已损坏，读取时也可能抛出 `FormatException` 或 `TypeError`。请在调用会读取或写入令牌的 `MisskeyAuthManager` 方法时处理这些错误，这也包括身份验证后保存令牌的 `loginWithOAuth` 和 `loginWithMiAuth`。
 
-`loginWithOAuth` 和 `loginWithMiAuth` 会先保存令牌，再将账号设为活动账号。如果只有第二步失败，令牌仍会保存，但账号不会成为活动账号。
+`loginWithOAuth` 和 `loginWithMiAuth` 会先保存令牌，再将账号设为活动账号。如果仅将账号设为活动账号这一步失败，令牌仍会保存，但账号不会成为活动账号。
 
 ## 重试
 

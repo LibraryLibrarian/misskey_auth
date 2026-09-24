@@ -62,9 +62,9 @@ iOS（`CFBundleURLSchemes`）和 Android（`<data android:scheme="...">`）必�
 
 示例 Manifest 按照 `flutter_web_auth_2` 的建议，在导出的 `MainActivity` 和 `CallbackActivity` 上都设置了 `android:taskAffinity=""`。
 
-如果默认浏览器不支持 Auth Tab（例如 Chrome 137 之前的版本），使用此设置时，身份验证后浏览器标签页可能仍然打开。身份验证仍会成功，但用户需要手动关闭标签页。`flutter_web_auth_2` 会在浏览器支持 Auth Tab 时使用它，否则会回退到 Custom Tab。在 Chrome 109 上测试的回退路径中，Chrome 会在新任务中启动 `CallbackActivity`，因此它无法关闭留在应用任务中的标签页。
+如果默认浏览器不支持 Auth Tab（例如 Chrome 137 之前的版本），使用此设置时，身份验证后浏览器标签页可能仍然打开。身份验证仍会成功，但用户需要手动关闭标签页。`flutter_web_auth_2` 会在浏览器支持 Auth Tab 时使用它，否则会回退到 Custom Tab。在 Chrome 109 上测试的回退情况下，Chrome 会在新任务中启动 `CallbackActivity`，因此它无法关闭留在应用任务中的标签页。
 
-- 如需在回退路径下也关闭标签页，请从 `MainActivity` 和 `CallbackActivity` 中同时移除 `android:taskAffinity=""`。只从其中一个移除没有帮助。Auth Tab 不需要此更改；在 Android 13 和 Chrome 154 上，两种设置都能关闭标签页。
+- 如需在回退情况下也关闭标签页，请从 `MainActivity` 和 `CallbackActivity` 中同时移除 `android:taskAffinity=""`。只从其中一个移除没有帮助。Auth Tab 不需要此更改；在 Android 13 和 Chrome 154 上，两种设置都能关闭标签页。
 - `taskAffinity=""` 有时用于部分缓解 Android 11（API 30）之前设备上的任务劫持（StrandHogg）。针对这一漏洞，Android 官方建议将 `minSdkVersion` 设为 30 或更高版本。上游讨论请参阅 [flutter_web_auth_2 issue #158](https://github.com/ThexXTURBOXx/flutter_web_auth_2/issues/158)。
 
 ### `PlatformException(CANCELED, User canceled login, ...)`

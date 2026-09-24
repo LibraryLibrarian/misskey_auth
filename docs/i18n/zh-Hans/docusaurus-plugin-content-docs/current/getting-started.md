@@ -17,7 +17,7 @@ misskey_auth 是一个用于在 [Misskey](https://misskey-hub.net/en/) 服务器
 - 通过自定义 URL scheme 将回调发送到应用
 - 使用 `flutter_secure_storage` 安全地存储令牌
 - 保存多个账号的令牌，并切换当前活动账号
-- 高级 API `MisskeyAuthManager`，用于执行身份验证流程并保存令牌
+- 高级 API `MisskeyAuthManager`，用于执行身份验证并保存令牌
 - iOS 和 Android
 
 ## 运行要求

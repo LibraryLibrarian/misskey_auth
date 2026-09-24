@@ -31,7 +31,7 @@ await auth.signOutAll();  // 删除所有账号的令牌
 
 ## 超时
 
-`MisskeyAuthManager.defaultInstance()` 使用默认超时：连接为 10 秒，发送和接收各为 20 秒。如需更改，请自行构建 manager。manager 的超时仅适用于其自身对 `/api/i` 的请求，因此也要将超时传递给每个客户端：
+`MisskeyAuthManager.defaultInstance()` 使用默认超时：连接为 10 秒，发送和接收各为 20 秒。如需更改，请自行构建 `MisskeyAuthManager`。`MisskeyAuthManager` 的超时仅适用于它自身对 `/api/i` 的请求，因此也要将超时传递给每个客户端：
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` 使用 `flutter_secure_storage` 保存令牌：iOS 上使用 Keychain，Android 上使用 Keystore。如需更改存储选项，请传入自定义的 `FlutterSecureStorage`。misskey_auth 不会重新导出该类，因此请将 `flutter_secure_storage` 添加到依赖项并导入：
+`SecureTokenStore` 使用 `flutter_secure_storage` 保存令牌：iOS 上使用 Keychain，Android 上使用 Keystore。如需更改存储选项，请传入自行创建的 `FlutterSecureStorage`。misskey_auth 不会重新导出该类，因此请将 `flutter_secure_storage` 添加到依赖项并导入：
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -100,9 +100,9 @@ const store = SecureTokenStore(
 
 ### 并发
 
-- 写入操作（`upsert`、`delete`、`clearAll`、`setActive`）在同一个 isolate 内按顺序执行，且跨实例有效。并发写入不会导致索引中的账号丢失。
-- 读取不会被阻塞；而且，`upsert` 后接 `setActive` 这样的操作序列不是原子操作。
-- 不会协调来自其他 isolate 或进程的写入。
+- 写入操作（`upsert`、`delete`、`clearAll`、`setActive`）在同一个 isolate 内按顺序执行，即使实例不同也一样。并发写入不会导致索引中的账号丢失。
+- 读取不会被阻塞。此外，`upsert` 后接 `setActive` 这样的操作序列不是原子操作。
+- 不会与来自其他 isolate 或进程的写入进行互斥控制。
 
 ### `clearAll` 会删除什么
 

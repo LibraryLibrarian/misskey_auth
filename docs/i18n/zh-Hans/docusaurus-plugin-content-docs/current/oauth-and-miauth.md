@@ -104,7 +104,7 @@ final key = await auth.loginWithOAuth(
 final current = await auth.currentToken();
 ```
 
-OAuth 身份验证完成后，manager 会使用新令牌调用 `/api/i` 以获取账号 ID。
+OAuth 身份验证完成后，`MisskeyAuthManager` 会使用新令牌调用 `/api/i` 以获取账号 ID。
 
 ### MiAuth
 
@@ -120,18 +120,18 @@ final key = await auth.loginWithMiAuth(
     permissions: ['read:account', 'write:notes'],
     iconUrl: 'https://example.com/icon.png',
   ),
-  setActive: true, // 同时将此账号设为活动账号
+  setActive: true, // 除保存外，也将此账号设为活动账号
 );
 final current = await auth.currentToken();
 ```
 
-MiAuth 会随令牌一起返回用户信息，因此 manager 会使用其中的 `id` 作为账号 ID。
+MiAuth 会随令牌一起返回用户信息，因此 `MisskeyAuthManager` 会使用其中的 `id` 作为账号 ID。
 
 ## 在同一个应用中支持两种方式
 
 - 在 `Info.plist` 和 `AndroidManifest.xml` 中注册一个 scheme（例如 `yourscheme`），即可供 OAuth 和 MiAuth 共用。
 - MiAuth 仅回调到 scheme（`yourscheme://`）。MiAuth 不需要类似 `yourscheme://oauth/callback` 的路径。
-- 在 Android 上，请使用[平台配置](./platform-setup.md#android)中的仅指定 scheme 的 intent-filter。通过 host 或 path 限定的过滤器会阻止 MiAuth 回调到达应用。
+- 在 Android 上，请保留[平台配置](./platform-setup.md#android)中的仅指定 scheme 的 intent-filter。通过 host 或 path 限定的过滤器会阻止 MiAuth 回调到达应用。
 
 ## 另请参阅
 
