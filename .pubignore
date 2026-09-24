@@ -10,7 +10,8 @@
 /test/
 /tool/
 /doc/
-/pages/
+# ドキュメントサイト（client_id ページと中継ページを含む）
+/docs/
 /.github/
 
 # ルート直下の android/ ios/ は flutter create が生成した雛形で、
