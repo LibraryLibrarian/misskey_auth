@@ -30,7 +30,7 @@ Jede Ausnahme hat die folgenden Eigenschaften.
 - `details`: zusätzliche Informationen (falls vorhanden)
 - `originalException`: ursprüngliche Ausnahme (falls vorhanden)
 
-`message` und `details` sind für Logs gedacht. Sie enthalten auch Nachrichten auf Japanisch. Zeigen Sie Benutzern stattdessen je nach Ausnahmetyp einen in Ihrer App definierten Text an.
+`message` und `details` sind für Logs gedacht. Einige Meldungen sind auf Japanisch. Zeigen Sie Benutzern stattdessen je nach Ausnahmetyp einen in Ihrer App definierten Text an.
 
 ## Übersicht der Ausnahmen
 

@@ -16,7 +16,7 @@ misskey_auth ist eine Flutter-Bibliothek für die Authentifizierung bei [Misskey
 - PKCE (Proof Key for Code Exchange)
 - Rückkehr zur App über ein benutzerdefiniertes URL-Schema
 - Sichere Token-Speicherung mit `flutter_secure_storage`
-- Speicherung von Token für mehrere Konten und Wechsel zwischen aktiven Konten
+- Speicherung von Token für mehrere Konten und Wechsel des aktiven Kontos
 - High-Level-API `MisskeyAuthManager` zur Authentifizierung und Token-Speicherung
 - iOS und Android
 

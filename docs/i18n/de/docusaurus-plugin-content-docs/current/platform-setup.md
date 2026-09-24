@@ -42,9 +42,8 @@ Fügen Sie in `android/app/src/main/AndroidManifest.xml` die `CallbackActivity` 
         <category android:name="android.intent.category.BROWSABLE" />
         <!-- Minimalkonfiguration: nur das Schema -->
         <data android:scheme="yourscheme" />
-        <!-- Optional (nur OAuth): host/path passend zur benutzerdefinierten URL einschränken,
-             die der Browser letztlich öffnet. MiAuth kehrt ohne host/path zu `yourscheme://`
-             zurück; lassen Sie daher bei MiAuth die Angabe nur des Schemas bestehen. -->
+        <!-- Optional (nur OAuth): host/path auf die benutzerdefinierte URL einschränken, die der Browser letztlich öffnet.
+             MiAuth kehrt ohne host/path zu `yourscheme://` zurück; wenn Sie auch MiAuth verwenden, behalten Sie den Eintrag nur mit Schema bei. -->
         <!-- <data android:scheme="yourscheme" android:host="oauth" android:path="/callback" /> -->
     </intent-filter>
 </activity>
@@ -63,7 +62,7 @@ Hinweise:
 
 Im Beispielmanifest ist gemäß der Empfehlung von `flutter_web_auth_2` für die exportierte `MainActivity` und `CallbackActivity` jeweils `android:taskAffinity=""` festgelegt.
 
-Mit dieser Einstellung kann der Browser-Tab nach der Authentifizierung geöffnet bleiben, wenn der Standardbrowser Auth Tab nicht unterstützt (zum Beispiel Chrome vor 137). Die Authentifizierung selbst ist erfolgreich, aber der Benutzer muss den Tab schließen. `flutter_web_auth_2` verwendet Auth Tab, wenn der Browser dies unterstützt, andernfalls wechselt es auf Custom Tab. Beim mit Chrome 109 geprüften Fallback-Ablauf startet Chrome die `CallbackActivity` in einer neuen Aufgabe. Daher kann der Tab, der in der Aufgabe der App verbleibt, nicht geschlossen werden.
+Mit dieser Einstellung kann der Browser-Tab nach der Authentifizierung geöffnet bleiben, wenn der Standardbrowser Auth Tab nicht unterstützt (zum Beispiel Chrome vor 137). Die Authentifizierung selbst ist erfolgreich, aber der Benutzer muss den Tab schließen. `flutter_web_auth_2` verwendet Auth Tab, wenn der Browser dies unterstützt, andernfalls wechselt es auf Custom Tab. Beim mit Chrome 109 geprüften Fallback-Ablauf startet Chrome die `CallbackActivity` in einem neuen Task. Daher kann der Tab, der im Task der App verbleibt, nicht geschlossen werden.
 
 - Um den Tab auch beim Fallback zu schließen, entfernen Sie `android:taskAffinity=""` sowohl aus `MainActivity` als auch aus `CallbackActivity`. Das Entfernen nur bei einer der beiden Activities hilft nicht. Für Auth Tab ist diese Änderung nicht erforderlich. Unter Android 13 mit Chrome 154 wurde der Tab mit beiden Einstellungen geschlossen.
 - `taskAffinity=""` kann als teilweise Maßnahme gegen Task-Hijacking (StrandHogg) auf Geräten vor Android 11 (API 30) verwendet werden. Android empfiehlt als Schutz vor dieser Sicherheitslücke, `minSdkVersion` auf mindestens 30 festzulegen. Weitere Informationen finden Sie unter [Issue #158 von flutter_web_auth_2](https://github.com/ThexXTURBOXx/flutter_web_auth_2/issues/158).

@@ -54,13 +54,11 @@ Wenn `redirectUri` ein benutzerdefiniertes Schema verwendet, wartet die Biblioth
 
 ## Optional: HTTPS-Zwischenseite
 
-Sie können auch eine HTTPS-Seite als `redirect_uri` verwenden, die anschließend zur benutzerdefinierten URL weiterleitet. Dies ist keine Anforderung von Misskey. Wenn Sie diese Variante wählen, gehen Sie wie folgt vor.
+Sie können auch eine HTTPS-Seite als `redirect_uri` verwenden, die anschließend zum benutzerdefinierten Schema weiterleitet. Dies ist keine Anforderung von Misskey. Wenn Sie diese Variante wählen, gehen Sie wie folgt vor.
 
 - Geben Sie im `<link>`-Tag die Zwischenseite an (Beispiel: `<link rel="redirect_uri" href="https://yoursite/yourapp/redirect.html">`).
 - Geben Sie als `redirectUri` die URL der Zwischenseite an.
 - Geben Sie als `callbackScheme` das Schema des Weiterleitungsziels der Zwischenseite an.
-
-Beispiel für `redirect.html`.
 
 ```html
 <!DOCTYPE html>

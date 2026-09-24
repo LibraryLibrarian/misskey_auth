@@ -21,7 +21,7 @@ Solange die stabile Version von `flutter_web_auth_2` das Kotlin-Android-Plugin a
 
 In dieser Version wird `flutter_secure_storage` ohne Migration über Version 10 von Version 9 auf Version 11 aktualisiert. Unter Android können Anmeldedaten, die mit dem alten Standardverschlüsselungsverfahren gespeichert wurden, nicht direkt übernommen werden. Für jedes betroffene Konto ist eine erneute Authentifizierung erforderlich.
 
-- Dies ist eine inkompatible Änderung bei der Kompatibilität gespeicherter Daten unter Android. Das bedeutet nicht, dass auch unter iOS Daten verloren gehen.
+- Dies ist eine inkompatible Änderung an den unter Android gespeicherten Daten. Das bedeutet nicht, dass auch unter iOS Daten verloren gehen.
 - Behandeln Sie in der App, die die Bibliothek verwendet, fehlende Anmeldedaten und Fehler im Speicherbereich.
 - Das Löschen der Anmeldedaten auf dem Gerät widerruft das Token auf dem Server nicht.
 
