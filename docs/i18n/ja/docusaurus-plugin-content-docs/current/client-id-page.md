@@ -17,7 +17,7 @@ Misskey の OAuth 2.0 は IndieAuth 仕様に準拠しています。サーバ�
   ```
 
 - 認可リクエストの `redirect_uri` が、`<link>` タグのいずれかの URL と完全一致すること（スキーム、大文字小文字、末尾スラッシュまで一致）。両方を同じ表記で書いてください。
-- `redirect_uri` は HTTPS である必要はありません。Misskey が HTTPS を求めるのは `client_id` だけのため、`redirect_uri` にアプリのカスタムスキームの URL を指定できます。その場合、Misskey はブラウザを直接アプリへ戻します。
+- `redirect_uri` は HTTPS である必要はありません。Misskey が HTTPS を求めるのは `client_id` だけのため、`redirect_uri` にアプリのカスタムスキームの URL を指定できます。その場合、Misskey はブラウザを直接アプリへ戻します（例: `yourscheme://oauth/callback?code=...&state=...`）。
 
 ## ページの例
 

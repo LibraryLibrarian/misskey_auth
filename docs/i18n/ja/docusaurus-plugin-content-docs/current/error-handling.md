@@ -8,6 +8,8 @@ title: エラーハンドリング
 認証の API は `MisskeyAuthException` のサブクラスを投げます。個別に扱いたい型を catch し、残りは `MisskeyAuthException` で受けてください。
 
 ```dart
+import 'dart:developer';
+
 try {
   await auth.loginWithOAuth(config);
 } on UserCancelledException {
@@ -37,10 +39,10 @@ try {
 | 例外 | 投げられる条件 |
 |---|---|
 | `UserCancelledException` | ユーザーがブラウザを閉じた、または認証をキャンセルした。[プラットフォーム設定](./platform-setup.md)も参照 |
-| `CallbackSchemeErrorException` | コールバックの URL スキームが未設定または不一致だとプラットフォームが報告した |
+| `CallbackSchemeErrorException` | プラットフォームのエラーメッセージがコールバックに言及している。通常は、コールバックの URL スキームが未登録または不一致であることを意味する |
 | `AuthorizationLaunchException` | ブラウザを開けなかった、またはプラットフォームがその他のエラーを報告した |
-| `NetworkException` | 応答を得られずにリクエストが失敗した（タイムアウト、接続なし、TLS エラーなど） |
-| `ResponseParseException` | 応答が想定した JSON ではなかった、または必須のフィールドがなかった |
+| `NetworkException` | 応答を得られずにリクエストが失敗した（タイムアウト、接続なし、TLS エラーなど）。`loginWithOAuth` では、`/api/i` がエラーステータスを返した場合にも投げられる |
+| `ResponseParseException` | 応答が想定した JSON ではなかった、またはトークンやユーザーの `id` などの必須のフィールドがなかった |
 | `MisskeyAuthException` | 想定外のエラー。この表と以下の表にあるすべての例外の基底クラス |
 
 ### OAuth
@@ -48,7 +50,7 @@ try {
 | 例外 | 投げられる条件 |
 |---|---|
 | `OAuthNotSupportedException` | サーバーが OAuth に非対応（`/.well-known/oauth-authorization-server` が 404 または 501 を返した） |
-| `ServerInfoException` | サーバー情報を取得できなかった、`issuer` が接続先と一致しなかった、またはエンドポイントが HTTPS の URL ではなかった |
+| `ServerInfoException` | サーバー情報の取得で 404・501 以外のエラーステータスが返った、`issuer` が `https://{host}` と完全一致しなかった、または認可エンドポイントかトークンエンドポイントが HTTPS の絶対 URL ではなかった。`OAuthNotSupportedException` と異なり、MiAuth に切り替えるべきことを意味しない |
 | `StateMismatchException` | コールバックの `state` がない、またはリクエストと一致しない |
 | `AuthorizationServerErrorException` | コールバックに `error` が含まれていた（例: ユーザーがアクセスを拒否したときの `access_denied`）。`details` に `error` と `error_description` が入る |
 | `AuthorizationCodeMissingException` | コールバックに認可コードがない、または複数ある |
@@ -68,13 +70,17 @@ try {
 
 ## 保存領域のエラー
 
-`SecureTokenStore` は `flutter_secure_storage` のエラーを包みません。エラーはそのパッケージが投げたまま（通常は `PlatformException`）呼び出し側に届きます。トークンを読み書きする `MisskeyAuthManager` の呼び出しでは、これらも扱ってください。認証後にトークンを保存する `loginWithOAuth` と `loginWithMiAuth` も含みます。
+`SecureTokenStore` は `flutter_secure_storage` のエラーを包みません。エラーはそのパッケージが投げたまま（通常は `PlatformException`）呼び出し側に届きます。保存データが壊れている場合は、読み出し時に `FormatException` や `TypeError` が投げられることもあります。トークンを読み書きする `MisskeyAuthManager` の呼び出しでは、これらのエラーも扱ってください。認証後にトークンを保存する `loginWithOAuth` と `loginWithMiAuth` も含みます。
+
+`loginWithOAuth` と `loginWithMiAuth` は、トークンを保存してからアカウントをアクティブにします。後者だけが失敗した場合、トークンは保存されたままで、アカウントはアクティブになりません。
 
 ## 再試行
 
-- OAuth のサーバー情報の取得と `/api/i` の呼び出しは、タイムアウト、接続エラー、HTTP 429・500・502・503・504 のときに、合計3回まで試行します。
+- OAuth のサーバー情報の取得と `/api/i` の呼び出しは、タイムアウト、接続エラー、その他の通信エラー、HTTP 429・500・502・503・504 のときに、合計3回まで試行します。
 - トークンの交換と MiAuth のチェック API は再試行しません。認可コードと MiAuth のセッションは一度しか使えず、応答が失われてもサーバー側では処理が済んでいる可能性があるためです。最初から認証をやり直してください。
 
 ## 認証後にログインが失敗した場合
 
-`loginWithOAuth` はトークンを取得した後に `/api/i` を呼び出します。この呼び出しが失敗すると、トークンを保存せずに例外を投げます。端末上のトークンを削除したり失ったりしても、サーバー側では失効しません。サーバーが発行したトークンは有効なままです。ユーザーは再度サインインできます。
+`loginWithOAuth` はトークンを取得した後に `/api/i` を呼び出します。この呼び出しが失敗すると、トークンを保存せずに例外を投げます。`loginWithOAuth` と `loginWithMiAuth` は、ユーザー情報に `id` がない場合も、トークンを保存せずに例外を投げます。
+
+これらの場合、サーバーはすでにトークンを発行しており、サーバー側ではそのトークンが有効なままです。ライブラリはトークンを失効させません。ユーザーは再度サインインでき、その際は新しいトークンが発行されます。

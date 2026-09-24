@@ -36,7 +36,7 @@ Misskey には、アプリがアクセストークンを取得する方法が2�
 |---|---|
 | `host` | Misskey サーバーのホスト |
 | `appName` | ユーザーに表示するアプリ名 |
-| `callbackScheme` | アプリのカスタムスキーム。ライブラリは `yourscheme://` に戻す |
+| `callbackScheme` | アプリのカスタムスキーム。Misskey はブラウザを `yourscheme://` へリダイレクトする |
 | `permissions` | 要求する権限（例: `['read:account', 'write:notes']`）。任意 |
 | `iconUrl` | ユーザーに表示するアプリアイコンの URL。任意 |
 
@@ -132,3 +132,8 @@ MiAuth はトークンと一緒にユーザー情報を返すため、manager �
 - `Info.plist` と `AndroidManifest.xml` に `yourscheme` のようなスキームを1つ登録すれば、OAuth と MiAuth で共有できます。
 - MiAuth はスキームのみ（`yourscheme://`）に戻ります。MiAuth のために `yourscheme://oauth/callback` のようなパスを用意する必要はありません。
 - Android では、[プラットフォーム設定](./platform-setup.md#android)のスキームのみの intent-filter を使ってください。host や path で制限した filter では、MiAuth のコールバックがアプリに届きません。
+
+## 関連リンク
+
+- [Misskey の OAuth のドキュメント](https://misskey-hub.net/ja/docs/for-developers/api/token/oauth/)
+- [Misskey の MiAuth のドキュメント](https://misskey-hub.net/ja/docs/for-developers/api/token/miauth/)

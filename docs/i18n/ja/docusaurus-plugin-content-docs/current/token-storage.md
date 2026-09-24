@@ -29,7 +29,7 @@ await auth.signOutAll();  // すべてのアカウントのトークンを削除
 
 サインアウトは端末上のトークンを削除するだけです。サーバー側でトークンを失効させることはありません。
 
-### タイムアウト
+## タイムアウト
 
 `MisskeyAuthManager.defaultInstance()` は既定のタイムアウト（接続 10 秒、送信と受信は各 20 秒）を使います。変更する場合は manager を自分で組み立てます。manager のタイムアウトは manager 自身が行う `/api/i` のリクエストにだけ適用されるため、各クライアントにも渡してください。
 
@@ -43,7 +43,7 @@ final auth = MisskeyAuthManager(
 );
 ```
 
-各コンストラクタは `connectTimeout`、`sendTimeout`、`receiveTimeout` を受け取ります。
+各コンストラクタは `connectTimeout`、`sendTimeout`、`receiveTimeout` を受け取ります。`dio` も受け取ります。クライアントは渡された `Dio` にもタイムアウトの引数を適用しますが、`MisskeyAuthManager` は `dio` を渡された場合にタイムアウトの引数を無視します。その場合は `Dio` 側で直接設定してください。
 
 ## モデル
 
@@ -68,7 +68,7 @@ class AccountEntry {
 }
 ```
 
-`AccountKey` はホストとユーザー ID の組み合わせのため、同じユーザーでもサーバーが異なれば別のアカウントになります。既存の `AccountKey` にトークンを保存すると、古いトークンを置き換えます。
+ユーザー ID は1つのサーバー内でしか一意でないため、`AccountKey` はホストとユーザー ID を組み合わせます。ホストは設定に渡した文字列のまま保存されるので、同じサーバーには常に同じ表記（例: 小文字の `misskey.io`）を使ってください。既存の `AccountKey` にトークンを保存すると、古いトークンを置き換えます。
 
 ## `TokenStore`
 
@@ -88,9 +88,11 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` は `flutter_secure_storage` でトークンを保存します。保存先は iOS ではキーチェーン、Android では Keystore です。保存のオプションを変える場合は、`FlutterSecureStorage` を渡します。
+`SecureTokenStore` は `flutter_secure_storage` でトークンを保存します。保存先は iOS ではキーチェーン、Android では Keystore です。保存のオプションを変える場合は、`FlutterSecureStorage` を渡します。misskey_auth はこのクラスを再エクスポートしていないため、`flutter_secure_storage` を依存関係に追加して import してください。
 
 ```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 const store = SecureTokenStore(
   storage: FlutterSecureStorage(/* 任意のオプション */),
 );
@@ -104,7 +106,7 @@ const store = SecureTokenStore(
 
 ### `clearAll` が削除するもの
 
-`clearAll` は、ストアのインデックスに載っているアカウント、インデックス自体、アクティブなアカウントの設定を削除します。保存領域全体の列挙は行いません。Android では、1件の復号に失敗しただけで `readAll` が保存領域全体を消去することがあるためです。
+`clearAll` は、ストアのインデックスに載っているアカウント、インデックス自体、アクティブなアカウントの設定を削除します。保存領域全体の列挙は行いません。Android では、1件の復号に失敗しただけで `readAll` が保存領域全体を消去することがあるためです。そのため、以前のバージョンでインデックスに載らずに残ったトークンは削除されません。
 
 ### 共有される保存領域 {#shared-storage}
 
