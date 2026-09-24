@@ -50,19 +50,19 @@ try {
 | 예외 | 발생 조건 |
 |---|---|
 | `OAuthNotSupportedException` | 서버가 OAuth를 지원하지 않습니다(`/.well-known/oauth-authorization-server`가 404 또는 501을 반환함). |
-| `ServerInfoException` | 서버 정보 요청에서 404·501 이외의 오류 상태를 반환했거나, `issuer`가 `https://{host}`와 정확히 일치하지 않거나, authorization endpoint 또는 token endpoint가 HTTPS 절대 URL이 아닙니다. `OAuthNotSupportedException`과 달리 MiAuth로 전환해야 한다는 의미는 아닙니다. |
+| `ServerInfoException` | 서버 정보 요청에서 404·501 이외의 오류 상태를 반환했거나, `issuer`가 `https://{host}`와 정확히 일치하지 않거나, 인가 엔드포인트 또는 토큰 엔드포인트가 HTTPS 절대 URL이 아닙니다. `OAuthNotSupportedException`과 달리 MiAuth로 전환해야 한다는 의미는 아닙니다. |
 | `StateMismatchException` | 콜백의 `state`가 없거나 요청과 일치하지 않습니다. |
 | `AuthorizationServerErrorException` | 콜백에 `error`가 포함되어 있습니다(예: 사용자가 액세스를 거부했을 때의 `access_denied`). `details`에는 `error`와 `error_description`이 포함됩니다. |
-| `AuthorizationCodeMissingException` | 콜백에 authorization code가 없거나 두 개 이상 있습니다. |
+| `AuthorizationCodeMissingException` | 콜백에 인가 코드가 없거나 두 개 이상 있습니다. |
 | `TokenExchangeException` | token endpoint가 오류를 반환했습니다. 메시지에는 HTTP 상태와 서버 오류가 포함됩니다. |
 
 ### MiAuth
 
 | 예외 | 발생 조건 |
 |---|---|
-| `MiAuthDeniedException` | check API가 `ok: false`를 반환했습니다. 사용자가 액세스를 거부했을 수 있지만, Misskey는 알 수 없는 세션이나 사용이 끝난 세션에도 이 값을 반환합니다. |
-| `MiAuthSessionInvalidException` | 콜백이 다른 세션에 대한 것이거나 check API가 404 또는 410을 반환했습니다. |
-| `MiAuthCheckFailedException` | check API가 그 밖의 오류 상태를 반환했습니다. |
+| `MiAuthDeniedException` | 확인 API가 `ok: false`를 반환했습니다. 사용자가 액세스를 거부했을 수 있지만, Misskey는 알 수 없는 세션이나 사용이 끝난 세션에도 이 값을 반환합니다. |
+| `MiAuthSessionInvalidException` | 콜백이 다른 세션에 대한 것이거나 확인 API가 404 또는 410을 반환했습니다. |
+| `MiAuthCheckFailedException` | 확인 API가 그 밖의 오류 상태를 반환했습니다. |
 
 ### 현재 버전에서 발생하지 않는 예외
 
@@ -77,7 +77,7 @@ try {
 ## 재시도
 
 - OAuth 서버 정보 조회와 `/api/i` 호출은 시간 초과, 연결 오류, 기타 전송 오류, HTTP 429·500·502·503·504에서 최대 총 세 번 시도합니다.
-- 토큰 교환과 MiAuth check API는 재시도하지 않습니다. authorization code와 MiAuth 세션은 한 번만 사용할 수 있으며, 응답을 받지 못했더라도 서버에서 요청 처리가 완료되었을 수 있습니다. 처음부터 인증을 다시 시작하세요.
+- 토큰 교환과 MiAuth 확인 API는 재시도하지 않습니다. 인가 코드와 MiAuth 세션은 한 번만 사용할 수 있으며, 응답을 받지 못했더라도 서버에서 요청 처리가 완료되었을 수 있습니다. 처음부터 인증을 다시 시작하세요.
 
 ## 인증 후 로그인에 실패하는 경우
 
