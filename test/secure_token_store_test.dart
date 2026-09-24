@@ -59,9 +59,9 @@ void main() {
     const token = StoredToken(accessToken: 'synthetic', tokenType: 'MiAuth');
     const third = AccountKey(host: 'example.test', accountId: 'user3');
 
-    /// インデックスの読み取りを遅らせ、書き込みが重なる状況を作る
+    /// インデックスを読んだ後に遅らせ、古い値を持ったまま書き込みが重なる状況を作る
     Future<void> slowIndexRead(String operation, String? key) async {
-      if (operation == 'read' && key == 'misskey_accounts_index') {
+      if (operation == 'afterRead' && key == 'misskey_accounts_index') {
         await Future<void>.delayed(const Duration(milliseconds: 5));
       }
     }
@@ -108,16 +108,19 @@ void main() {
       expect(await store.read(other), isNull);
     });
 
-    test('clearAll removes unindexed tokens despite a broken index', () async {
-      FlutterSecureStorage.setMockInitialValues({
-        'misskey_token::example.test::user1': '{}',
-        'misskey_token::example.test::orphan': '{}',
-        'misskey_accounts_index': 'not json',
-        'misskey_active_account': '{"host":"example.test","accountId":"user1"}',
-        'unrelated_key': 'preserve',
-      });
-      await store.clearAll();
-      expect(await store.storage.readAll(), {'unrelated_key': 'preserve'});
+    test('clearAll never enumerates the whole storage', () async {
+      // Android の readAll は復号失敗時に保存領域全体を消去し得るため使わない
+      final guarded = SecureTokenStore(
+        storage: ControlledStorage(
+          before: (operation, _) async {
+            if (operation == 'readAll') fail('readAll must not be called');
+          },
+        ),
+      );
+      await guarded.clearAll();
+      expect(await store.list(), isEmpty);
+      expect(await store.read(key), isNull);
+      expect(await store.storage.read(key: 'unrelated_key'), 'preserve');
     });
   });
 }
@@ -154,7 +157,22 @@ class ControlledStorage extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) async {
     await before?.call('read', key);
-    return super.read(key: key);
+    final value = await super.read(key: key);
+    await before?.call('afterRead', key);
+    return value;
+  }
+
+  @override
+  Future<Map<String, String>> readAll({
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    await before?.call('readAll', null);
+    return super.readAll();
   }
 
   @override

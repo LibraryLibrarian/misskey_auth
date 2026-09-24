@@ -23,9 +23,6 @@ class SecureTokenStore implements TokenStore {
   static const String _indexKey = 'misskey_accounts_index';
   static const String _activeKey = 'misskey_active_account';
 
-  /// トークンを保存するキーの接頭辞（[AccountKey.storageKey] と一致させる）
-  static const String _tokenKeyPrefix = 'misskey_token::';
-
   /// 最後に予約された書き込み操作の完了
   ///
   /// 既定の保存領域はインスタンス間で共有されるため、静的に持つ
@@ -92,18 +89,14 @@ class SecureTokenStore implements TokenStore {
   @override
   /// すべてのトークンと関連メタ情報（インデックス/アクティブ）を削除
   ///
-  /// インデックスが壊れていても、インデックスから外れたトークンが残っていても
-  /// 削除できるよう、キーの接頭辞で対象を探す。このライブラリ以外のキーは残す
+  /// 削除対象はインデックスに載っているアカウントのみ。Android では `readAll`
+  /// が1件の復号失敗で保存領域全体を消去し得る（`resetOnError` 既定値）ため、
+  /// 保存領域の列挙は行わない
   Future<void> clearAll() {
     return _serialized(() async {
-      final all = await storage.readAll();
-      // 削除中に元の Map が変わっても影響しないよう、先に対象を確定させる
-      final tokenKeys = [
-        for (final key in all.keys)
-          if (key.startsWith(_tokenKeyPrefix)) key,
-      ];
-      for (final key in tokenKeys) {
-        await storage.delete(key: key);
+      final keys = await _readIndex();
+      for (final k in keys) {
+        await storage.delete(key: k.storageKey());
       }
       await storage.delete(key: _indexKey);
       await storage.delete(key: _activeKey);
