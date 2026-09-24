@@ -17,7 +17,7 @@ Misskey's OAuth 2.0 follows the IndieAuth specification. Instead of registering 
   ```
 
 - The `redirect_uri` in the authorization request must exactly match a URL in a `<link>` tag, including the scheme, letter case, and trailing slash. Write it the same way in both places.
-- `redirect_uri` does not need to be HTTPS. Misskey requires HTTPS only for `client_id`, so `redirect_uri` can be your app's custom scheme URL. Misskey then redirects the browser straight back to your app.
+- `redirect_uri` does not need to be HTTPS. Misskey requires HTTPS only for `client_id`, so `redirect_uri` can be your app's custom scheme URL. Misskey then redirects the browser straight back to your app, for example to `yourscheme://oauth/callback?code=...&state=...`.
 
 ## Example Page
 

@@ -36,7 +36,7 @@ To check whether a server supports OAuth, call `MisskeyOAuthClient().getOAuthSer
 |---|---|
 | `host` | Misskey server host |
 | `appName` | App name shown to the user |
-| `callbackScheme` | Your app's custom scheme. The library calls back to `yourscheme://` |
+| `callbackScheme` | Your app's custom scheme. Misskey redirects the browser to `yourscheme://` |
 | `permissions` | Requested permissions, such as `['read:account', 'write:notes']`. Optional |
 | `iconUrl` | URL of the app icon shown to the user. Optional |
 
@@ -132,3 +132,8 @@ MiAuth returns user information together with the token, and the manager uses it
 - Register one scheme, such as `yourscheme`, in `Info.plist` and `AndroidManifest.xml`. OAuth and MiAuth can share it.
 - MiAuth calls back to the scheme only (`yourscheme://`). You do not need a path such as `yourscheme://oauth/callback` for MiAuth.
 - On Android, keep the scheme-only intent-filter from [Platform Setup](./platform-setup.md#android). A filter restricted by host or path stops MiAuth callbacks from reaching the app.
+
+## See Also
+
+- [Misskey OAuth documentation](https://misskey-hub.net/en/docs/for-developers/api/token/oauth/)
+- [Misskey MiAuth documentation](https://misskey-hub.net/en/docs/for-developers/api/token/miauth/)

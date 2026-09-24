@@ -29,7 +29,7 @@ await auth.signOutAll();  // Deletes the tokens of all accounts
 
 Signing out deletes the token from the device only. It does not revoke the token on the server.
 
-### Timeouts
+## Timeouts
 
 `MisskeyAuthManager.defaultInstance()` uses the default timeouts: 10 seconds to connect, and 20 seconds each to send and receive. To change them, build the manager yourself. The timeouts of the manager apply only to its own request to `/api/i`, so pass them to each client as well:
 
@@ -43,7 +43,7 @@ final auth = MisskeyAuthManager(
 );
 ```
 
-The constructors accept `connectTimeout`, `sendTimeout`, and `receiveTimeout`.
+The constructors accept `connectTimeout`, `sendTimeout`, and `receiveTimeout`. They also accept a `dio`. The clients apply the timeout arguments to a `Dio` that you pass, but `MisskeyAuthManager` ignores them when `dio` is given; configure that `Dio` directly.
 
 ## Models
 
@@ -68,7 +68,7 @@ class AccountEntry {
 }
 ```
 
-`AccountKey` combines the host and the user ID, so the same user on different servers are different accounts. Saving a token for an existing `AccountKey` replaces the old one.
+`AccountKey` combines the host and the user ID, because a user ID is unique only within one server. The host is stored exactly as you pass it in the config, so always use the same form for a server, for example lowercase `misskey.io`. Saving a token for an existing `AccountKey` replaces the old one.
 
 ## `TokenStore`
 
@@ -88,9 +88,11 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` saves tokens with `flutter_secure_storage`: the Keychain on iOS and the Keystore on Android. To change the storage options, pass your own `FlutterSecureStorage`:
+`SecureTokenStore` saves tokens with `flutter_secure_storage`: the Keychain on iOS and the Keystore on Android. To change the storage options, pass your own `FlutterSecureStorage`. misskey_auth does not re-export it, so add `flutter_secure_storage` to your dependencies and import it:
 
 ```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 const store = SecureTokenStore(
   storage: FlutterSecureStorage(/* your options */),
 );
@@ -104,7 +106,7 @@ const store = SecureTokenStore(
 
 ### What `clearAll` Deletes
 
-`clearAll` deletes the accounts listed in the store's index, the index itself, and the active account. It does not enumerate the whole storage, because on Android `readAll` can wipe the entire storage when a single entry fails to decrypt.
+`clearAll` deletes the accounts listed in the store's index, the index itself, and the active account. It does not enumerate the whole storage, because on Android `readAll` can wipe the entire storage when a single entry fails to decrypt. Tokens left without an index entry by earlier versions are therefore not removed.
 
 ### Shared Storage
 

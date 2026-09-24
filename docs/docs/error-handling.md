@@ -8,6 +8,8 @@ title: Error Handling
 The authentication APIs throw subclasses of `MisskeyAuthException`. Catch the specific types you want to handle, and `MisskeyAuthException` for the rest.
 
 ```dart
+import 'dart:developer';
+
 try {
   await auth.loginWithOAuth(config);
 } on UserCancelledException {
@@ -37,10 +39,10 @@ Each exception has:
 | Exception | Thrown when |
 |---|---|
 | `UserCancelledException` | The user closed the browser or cancelled authentication. See also [Platform Setup](./platform-setup.md) |
-| `CallbackSchemeErrorException` | The platform reported that the callback URL scheme is not set or does not match |
+| `CallbackSchemeErrorException` | The platform error message mentions the callback, which usually means that the callback URL scheme is not registered or does not match |
 | `AuthorizationLaunchException` | The browser could not be opened, or the platform reported another error |
-| `NetworkException` | A request failed without a response: timeout, no connection, TLS error, and so on |
-| `ResponseParseException` | A response was not the expected JSON, or a required field was missing |
+| `NetworkException` | A request failed without a response: timeout, no connection, TLS error, and so on. `loginWithOAuth` also throws it when `/api/i` returns an error status |
+| `ResponseParseException` | A response was not the expected JSON, or a required field, such as the token or the user `id`, was missing |
 | `MisskeyAuthException` | An unexpected error. The base class of all the exceptions above and below |
 
 ### OAuth
@@ -48,7 +50,7 @@ Each exception has:
 | Exception | Thrown when |
 |---|---|
 | `OAuthNotSupportedException` | The server does not support OAuth (`/.well-known/oauth-authorization-server` returned 404 or 501) |
-| `ServerInfoException` | The server information could not be fetched, its `issuer` does not match the server, or its endpoints are not HTTPS URLs |
+| `ServerInfoException` | The server information request returned an error status other than 404 or 501, its `issuer` is not exactly `https://{host}`, or its authorization or token endpoint is not an absolute HTTPS URL. Unlike `OAuthNotSupportedException`, this does not mean that you should fall back to MiAuth |
 | `StateMismatchException` | The `state` in the callback is missing or does not match the request |
 | `AuthorizationServerErrorException` | The callback contains an `error`, for example `access_denied` when the user denies access. `details` contains `error` and `error_description` |
 | `AuthorizationCodeMissingException` | The callback contains no authorization code, or more than one |
@@ -68,13 +70,17 @@ Each exception has:
 
 ## Storage Errors
 
-`SecureTokenStore` does not wrap errors from `flutter_secure_storage`. They reach your code as that package throws them, usually as `PlatformException`. Handle them around `MisskeyAuthManager` calls that read or write tokens, including `loginWithOAuth` and `loginWithMiAuth`, which save the token after authentication.
+`SecureTokenStore` does not wrap errors from `flutter_secure_storage`. They reach your code as that package throws them, usually as `PlatformException`. If stored data is corrupted, reading it can also throw `FormatException` or `TypeError`. Handle these errors around `MisskeyAuthManager` calls that read or write tokens, including `loginWithOAuth` and `loginWithMiAuth`, which save the token after authentication.
+
+`loginWithOAuth` and `loginWithMiAuth` save the token first and then make the account active. If only the second step fails, the token stays saved but the account is not active.
 
 ## Retries
 
-- Fetching the OAuth server information and calling `/api/i` are retried up to three attempts in total, on timeouts, connection errors, and HTTP 429, 500, 502, 503, and 504.
+- Fetching the OAuth server information and calling `/api/i` are retried up to three attempts in total, on timeouts, connection errors, other transport errors, and HTTP 429, 500, 502, 503, and 504.
 - The token exchange and the MiAuth check API are not retried. An authorization code and a MiAuth session can be used only once, and the server may have completed the request even if the response was lost. Start the authentication again from the beginning.
 
 ## When Login Fails After Authentication
 
-`loginWithOAuth` calls `/api/i` after it gets a token. If that call fails, the method throws without saving the token. Deleting or losing a token on the device does not revoke it on the server; the token issued by the server stays valid. The user can sign in again.
+`loginWithOAuth` calls `/api/i` after it gets a token. If that call fails, the method throws and does not save the token. `loginWithOAuth` and `loginWithMiAuth` also throw without saving the token when the user information has no `id`.
+
+In these cases the server has already issued the token, and it stays valid there; the library does not revoke it. The user can sign in again, which issues a new token.
