@@ -415,8 +415,9 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
               controller: _redirectUriController,
               decoration: const InputDecoration(
                 labelText: 'リダイレクトURI',
-                hintText: '例: https://example.com/redirect',
-                helperText: '要HTTPS',
+                hintText: '例: misskeyauth://oauth/callback',
+                helperText: 'client_idページの登録URLと完全一致（カスタムスキーム可）',
+                helperMaxLines: 2,
               ),
             ),
             const SizedBox(height: 8),
