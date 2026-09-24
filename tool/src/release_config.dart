@@ -14,5 +14,9 @@ const releaseConfig = ReleaseConfig(
     'README.zh-Hans.md',
     'docs/docs/getting-started.md',
     'docs/i18n/ja/docusaurus-plugin-content-docs/current/getting-started.md',
+    'docs/i18n/de/docusaurus-plugin-content-docs/current/getting-started.md',
+    'docs/i18n/fr/docusaurus-plugin-content-docs/current/getting-started.md',
+    'docs/i18n/ko/docusaurus-plugin-content-docs/current/getting-started.md',
+    'docs/i18n/zh-Hans/docusaurus-plugin-content-docs/current/getting-started.md',
   ],
 );
