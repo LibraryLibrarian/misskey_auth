@@ -72,7 +72,7 @@ Chaque exception possède les propriétés suivantes :
 
 `SecureTokenStore` n’encapsule pas les erreurs de `flutter_secure_storage`. Elles parviennent à votre code telles que ce package les lève, généralement sous la forme de `PlatformException`. Si les données stockées sont corrompues, leur lecture peut également lever `FormatException` ou `TypeError`. Traitez ces erreurs autour des appels à `MisskeyAuthManager` qui lisent ou écrivent des jetons, notamment `loginWithOAuth` et `loginWithMiAuth`, qui enregistrent le jeton après l’authentification.
 
-`loginWithOAuth` et `loginWithMiAuth` enregistrent d’abord le jeton, puis activent le compte. Si seule la deuxième étape échoue, le jeton reste enregistré, mais le compte n’est pas actif.
+`loginWithOAuth` et `loginWithMiAuth` enregistrent d’abord le jeton, puis activent le compte. Si seule l’opération d’activation du compte échoue, le jeton reste enregistré, mais le compte n’est pas actif.
 
 ## Nouvelles tentatives
 

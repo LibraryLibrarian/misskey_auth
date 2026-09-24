@@ -17,7 +17,7 @@ misskey_auth est une bibliothèque Flutter pour vous authentifier auprès des se
 - Retour vers l’application au moyen d’un schéma d’URL personnalisé
 - Stockage sécurisé des jetons avec `flutter_secure_storage`
 - Stockage des jetons de plusieurs comptes et changement du compte actif
-- `MisskeyAuthManager`, une API de haut niveau qui exécute les flux et enregistre les jetons
+- `MisskeyAuthManager`, une API de haut niveau qui exécute l’authentification et enregistre les jetons
 - iOS et Android
 
 ## Prérequis

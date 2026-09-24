@@ -19,13 +19,13 @@ Conservez `android.builtInKotlin=false` et `android.newDsl=false` tant que la ve
 
 ### Les utilisateurs Android doivent se reconnecter
 
-Cette version met à niveau `flutter_secure_storage` de la version 9.x à la version 11.x sans étape de migration via la version 10.x. Sur Android, les identifiants chiffrés avec les anciennes valeurs par défaut ne peuvent pas être transférés directement ; les utilisateurs doivent s’authentifier à nouveau pour chaque compte concerné.
+Cette version met à niveau `flutter_secure_storage` de la version 9.x à la version 11.x sans passer par la migration de la version 10.x. Sur Android, les identifiants chiffrés avec les anciennes valeurs par défaut ne peuvent pas être transférés directement ; les utilisateurs doivent s’authentifier à nouveau pour chaque compte concerné.
 
 - Il s’agit d’une rupture de compatibilité des données de stockage sur Android. Cela n’implique pas la même perte de données sur iOS.
-- Les applications hôtes doivent gérer les identifiants manquants et les erreurs de stockage.
+- Les applications hôtes doivent gérer les identifiants manquants et les erreurs de l’espace de stockage.
 - La suppression des identifiants locaux ne révoque pas les jetons côté serveur.
 
-### Espace de stockage partagé
+### Espace de stockage partagé {#shared-storage}
 
 Le `SecureTokenStore` par défaut utilise l’espace de stockage par défaut partagé. La version 11 de `flutter_secure_storage` active `resetOnError` par défaut ; le rétablissement peut donc aussi supprimer d’autres valeurs dans cet espace. Vérifiez la configuration des espaces de stockage partagés avant la mise à niveau. Consultez le [journal des modifications de flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage/changelog) et [Stockage des jetons](./token-storage.md#shared-storage).
 

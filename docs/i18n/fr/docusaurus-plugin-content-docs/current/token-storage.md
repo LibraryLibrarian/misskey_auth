@@ -31,7 +31,7 @@ La déconnexion supprime uniquement le jeton de l’appareil. Elle ne révoque p
 
 ## Délais d’expiration
 
-`MisskeyAuthManager.defaultInstance()` utilise les délais par défaut : 10 secondes pour la connexion, et 20 secondes pour l’envoi et la réception. Pour les modifier, construisez vous-même le gestionnaire. Ses délais ne s’appliquent qu’à sa propre requête `/api/i` ; transmettez-les donc également à chaque client :
+`MisskeyAuthManager.defaultInstance()` utilise les délais par défaut : 10 secondes pour la connexion, et 20 secondes pour l’envoi et la réception. Pour les modifier, construisez vous-même `MisskeyAuthManager`. Ses délais ne s’appliquent qu’à sa propre requête `/api/i` ; transmettez-les donc également à chaque client :
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` enregistre les jetons avec `flutter_secure_storage` : dans le trousseau sur iOS et le Keystore sur Android. Pour modifier les options de stockage, transmettez votre propre `FlutterSecureStorage`. misskey_auth ne réexporte pas cette classe ; ajoutez donc `flutter_secure_storage` à vos dépendances et importez-la :
+`SecureTokenStore` enregistre les jetons avec `flutter_secure_storage` : dans le trousseau sur iOS et le Keystore sur Android. Pour modifier les options de stockage, transmettez une instance de `FlutterSecureStorage` que vous avez créée vous-même. misskey_auth ne réexporte pas cette classe ; ajoutez donc `flutter_secure_storage` à vos dépendances et importez-la :
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -100,9 +100,9 @@ const store = SecureTokenStore(
 
 ### Concurrence
 
-- Les opérations d’écriture (`upsert`, `delete`, `clearAll`, `setActive`) s’exécutent une par une dans un isolate, y compris entre différentes instances. Des écritures concurrentes ne font pas perdre de comptes dans l’index.
+- Les opérations d’écriture (`upsert`, `delete`, `clearAll`, `setActive`) s’exécutent une par une dans un même isolate, même entre différentes instances. Des écritures concurrentes ne font pas perdre de comptes dans l’index.
 - Les lectures ne sont pas bloquées, et une séquence telle que `upsert` suivie de `setActive` n’est pas atomique.
-- Les écritures provenant d’autres isolates ou processus ne sont pas coordonnées.
+- Aucune exclusion mutuelle n’est assurée avec les écritures provenant d’autres isolates ou processus.
 
 ### Ce que supprime `clearAll`
 

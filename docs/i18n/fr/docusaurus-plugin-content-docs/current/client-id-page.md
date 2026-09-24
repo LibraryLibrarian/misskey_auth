@@ -72,7 +72,7 @@ Vous pouvez également utiliser une page HTTPS comme `redirect_uri` et transfér
         const source = new URLSearchParams(window.location.search);
         const forwarded = new URLSearchParams();
         for (const name of ['code', 'state', 'error', 'error_description', 'iss']) {
-            // Conserve les valeurs dupliquées afin que la bibliothèque puisse les rejeter.
+            // Transfère également les valeurs dupliquées afin que la bibliothèque puisse les rejeter.
             for (const value of source.getAll(name)) forwarded.append(name, value);
         }
         window.location.replace(`yourscheme://oauth/callback?${forwarded}`);

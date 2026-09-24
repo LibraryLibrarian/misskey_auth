@@ -104,7 +104,7 @@ final key = await auth.loginWithOAuth(
 final current = await auth.currentToken();
 ```
 
-Après OAuth, le gestionnaire appelle `/api/i` avec le nouveau jeton pour récupérer l’identifiant du compte.
+Après OAuth, `MisskeyAuthManager` appelle `/api/i` avec le nouveau jeton pour récupérer l’identifiant du compte.
 
 ### MiAuth
 
@@ -120,12 +120,12 @@ final key = await auth.loginWithMiAuth(
     permissions: ['read:account', 'write:notes'],
     iconUrl: 'https://example.com/icon.png',
   ),
-  setActive: true, // Définit aussi ce compte comme compte actif
+  setActive: true, // En plus de l’enregistrer, définit ce compte comme compte actif
 );
 final current = await auth.currentToken();
 ```
 
-MiAuth renvoie les informations utilisateur avec le jeton, et le gestionnaire utilise leur `id` comme identifiant du compte.
+MiAuth renvoie les informations utilisateur avec le jeton, et `MisskeyAuthManager` utilise leur `id` comme identifiant du compte.
 
 ## Prendre en charge les deux méthodes dans une application
 
