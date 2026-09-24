@@ -376,6 +376,8 @@ abstract class TokenStore {
 }
 ```
 
+`SecureTokenStore` runs write operations (`upsert`, `delete`, `clearAll`, `setActive`) one at a time within an isolate, including across instances, so concurrent writes do not lose accounts from the index. Reads are not blocked, and a sequence such as `upsert` followed by `setActive` is not atomic. Writes from other isolates or processes are not coordinated. `clearAll` removes every stored token by key prefix, including tokens missing from the index, and keeps keys that this library does not own.
+
 #### Models (excerpt)
 
 ```dart
@@ -779,6 +781,8 @@ abstract class TokenStore {
   Future<AccountKey?> getActive();
 }
 ```
+
+`SecureTokenStore` は書き込み操作（`upsert` / `delete` / `clearAll` / `setActive`）を isolate 内で1つずつ実行し、インスタンスが異なっても同時書き込みでアカウントが一覧から消えないようにしている。読み取りは待たせず、`upsert` から `setActive` のような複数操作のまとまりは不可分ではない。別の isolate やプロセスからの書き込みとは調整しない。`clearAll` はインデックスから外れたものも含め、キーの接頭辞で全トークンを削除し、このライブラリ以外のキーは残す。
 
 #### モデル（抜粋）
 
