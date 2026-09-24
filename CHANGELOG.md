@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Excluded development-only files from the published package, reducing the archive from 3 MB to 31 KB. The `android/` and `ios/` directories at the repository root are `flutter create` scaffolding rather than platform implementations of this package, and the demo GIF in `assets/` is referenced from the README by absolute URL.
+- The example app's client_id page and HTTPS relay page moved to `https://librarylibrarian.github.io/misskey_auth/example/` and `https://librarylibrarian.github.io/misskey_auth/example/redirect.html`, and the example now uses them by default. The previous URLs no longer serve these pages, so OAuth in the example from earlier releases fails until you enter the new URLs. The pages are for trying the example; publish your own client_id page for your app.
 
 ### Fixed
 - `SecureTokenStore` now runs `upsert`, `delete`, `clearAll`, and `setActive` one at a time within an isolate, shared across instances. Concurrent writes, such as two accounts signing in at once, could previously drop an account from the index. A failed write does not block the writes queued after it. Reads are not serialized, and writes from other isolates are not coordinated.
