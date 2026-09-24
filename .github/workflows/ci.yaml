@@ -65,6 +65,7 @@ jobs:
               - 'pubspec.yaml'
               - 'lib/**'
               - 'README.md'
+              - 'README.*.md'
               - 'CHANGELOG.md'
               - 'LICENSE'
               - '.pubignore'
