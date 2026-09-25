@@ -92,60 +92,59 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   }
 
   String _mapErrorToMessage(Object error) {
-    final e = t.errors;
     // MisskeyAuth のカスタム例外をユーザー向けの文言に整形
     if (error is MisskeyAuthException) {
       final details = error.details;
       final suffix = details != null ? ': $details' : '';
       if (error is UserCancelledException) {
-        return e.userCancelled;
+        return t.errors.userCancelled;
       }
       if (error is CallbackSchemeErrorException) {
-        return e.callbackScheme;
+        return t.errors.callbackScheme;
       }
       if (error is AuthorizationLaunchException) {
-        return e.authorizationLaunch;
+        return t.errors.authorizationLaunch;
       }
       if (error is NetworkException) {
-        return e.network;
+        return t.errors.network;
       }
       if (error is ResponseParseException) {
-        return e.responseParse;
+        return t.errors.responseParse;
       }
       if (error is SecureStorageException) {
-        return e.secureStorage;
+        return t.errors.secureStorage;
       }
       if (error is InvalidAuthConfigException) {
-        return e.invalidAuthConfig;
+        return t.errors.invalidAuthConfig;
       }
       if (error is ServerInfoException) {
-        return '${e.serverInfo}$suffix';
+        return '${t.errors.serverInfo}$suffix';
       }
       // OAuth
       if (error is OAuthNotSupportedException) {
-        return e.oauthNotSupported;
+        return t.errors.oauthNotSupported;
       }
       if (error is StateMismatchException) {
-        return e.stateMismatch;
+        return t.errors.stateMismatch;
       }
       if (error is AuthorizationCodeMissingException) {
-        return e.authorizationCodeMissing;
+        return t.errors.authorizationCodeMissing;
       }
       if (error is AuthorizationServerErrorException) {
-        return '${e.authorizationServer}$suffix';
+        return '${t.errors.authorizationServer}$suffix';
       }
       if (error is TokenExchangeException) {
-        return '${e.tokenExchange}$suffix';
+        return '${t.errors.tokenExchange}$suffix';
       }
       // MiAuth
       if (error is MiAuthDeniedException) {
-        return e.miAuthDenied;
+        return t.errors.miAuthDenied;
       }
       if (error is MiAuthCheckFailedException) {
-        return '${e.miAuthCheckFailed}$suffix';
+        return '${t.errors.miAuthCheckFailed}$suffix';
       }
       if (error is MiAuthSessionInvalidException) {
-        return '${e.miAuthSessionInvalid}$suffix';
+        return '${t.errors.miAuthSessionInvalid}$suffix';
       }
       return error.toString();
     }
