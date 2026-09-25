@@ -1,0 +1,70 @@
+{
+  "nav": {
+    "serverInfo": "服务器信息",
+    "accounts": "账户"
+  },
+  "common": {
+    "callbackScheme": "回调 scheme",
+    "host": "主机",
+    "customScopes": "自定义 scope（逗号分隔）",
+    "example": "例如：$value"
+  },
+  "oauth": {
+    "title": "OAuth 设置",
+    "clientId": "客户端 ID（URL）",
+    "redirectUri": "重定向 URI",
+    "redirectUriHelper": "必须与 client_id 页面中登记的 URL 完全一致（可以使用自定义 scheme）",
+    "submit": "使用 OAuth 登录",
+    "success": "登录成功！",
+    "failed": "身份验证错误：$error"
+  },
+  "miauth": {
+    "title": "MiAuth 设置",
+    "appName": "应用名称",
+    "iconUrl": "图标 URL（可选）",
+    "submit": "使用 MiAuth 登录",
+    "success": "MiAuth 登录成功！",
+    "failed": "MiAuth 错误：$error"
+  },
+  "serverInfo": {
+    "checkTitle": "查看服务器信息",
+    "check": "查看服务器信息",
+    "oauthNotSupported": "此服务器不支持 OAuth（请改用 MiAuth）",
+    "title": "服务器信息",
+    "authorizationEndpoint": "授权端点",
+    "tokenEndpoint": "令牌端点",
+    "scopesSupported": "支持的 scope（点击复制）",
+    "copied": "已复制：$scope"
+  },
+  "accounts": {
+    "title": "已登录的账户",
+    "reload": "重新加载",
+    "loadFailed": "无法获取账户信息",
+    "empty": "没有已登录的账户",
+    "savedAt": "保存时间：$date",
+    "delete": "删除此账户",
+    "activeChanged": "已更改默认账户：$account"
+  },
+  "validation": {
+    "hostRequired": "请输入主机",
+    "callbackSchemeRequired": "请输入回调 scheme"
+  },
+  "errors": {
+    "userCancelled": "身份验证已取消",
+    "callbackScheme": "回调 scheme 配置不正确（请检查 AndroidManifest.xml / Info.plist）",
+    "authorizationLaunch": "无法打开身份验证页面",
+    "network": "发生网络错误",
+    "responseParse": "无法解析服务器响应",
+    "secureStorage": "安全存储操作失败",
+    "invalidAuthConfig": "身份验证设置无效",
+    "serverInfo": "无法获取服务器信息",
+    "oauthNotSupported": "此服务器不支持 OAuth（请改用 MiAuth）",
+    "stateMismatch": "安全验证失败（state 不匹配）",
+    "authorizationCodeMissing": "无法获取授权码",
+    "authorizationServer": "授权服务器返回了错误",
+    "tokenExchange": "令牌交换失败",
+    "miAuthDenied": "MiAuth 已取消或被拒绝",
+    "miAuthCheckFailed": "MiAuth 验证失败",
+    "miAuthSessionInvalid": "MiAuth 会话无效或已过期"
+  }
+}

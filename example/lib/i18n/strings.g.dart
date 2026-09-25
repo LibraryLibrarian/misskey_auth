@@ -3,8 +3,8 @@
 /// Source: lib/i18n
 /// To regenerate, run: `dart run slang`
 ///
-/// Locales: 2
-/// Strings: 104 (52 per locale)
+/// Locales: 6
+/// Strings: 312 (52 per locale)
 
 // coverage:ignore-file
 // ignore_for_file: type=lint, unused_import
@@ -16,7 +16,11 @@ import 'package:slang/generated.dart';
 import 'package:slang_flutter/slang_flutter.dart';
 export 'package:slang_flutter/slang_flutter.dart';
 
+import 'strings_de.g.dart' as l_de;
+import 'strings_fr.g.dart' as l_fr;
 import 'strings_ja.g.dart' as l_ja;
+import 'strings_ko.g.dart' as l_ko;
+import 'strings_zh_Hans.g.dart' as l_zh_Hans;
 part 'strings_en.g.dart';
 
 /// Supported locales.
@@ -27,7 +31,11 @@ part 'strings_en.g.dart';
 /// - if (LocaleSettings.currentLocale == AppLocale.en) // locale check
 enum AppLocale with BaseAppLocale<AppLocale, Translations> {
 	en(languageCode: 'en'),
-	ja(languageCode: 'ja');
+	de(languageCode: 'de'),
+	fr(languageCode: 'fr'),
+	ja(languageCode: 'ja'),
+	ko(languageCode: 'ko'),
+	zhHans(languageCode: 'zh', scriptCode: 'Hans');
 
 	const AppLocale({
 		required this.languageCode,
@@ -65,8 +73,32 @@ enum AppLocale with BaseAppLocale<AppLocale, Translations> {
 					cardinalResolver: cardinalResolver,
 					ordinalResolver: ordinalResolver,
 				);
+			case AppLocale.de:
+				return l_de.TranslationsDe(
+					overrides: overrides,
+					cardinalResolver: cardinalResolver,
+					ordinalResolver: ordinalResolver,
+				);
+			case AppLocale.fr:
+				return l_fr.TranslationsFr(
+					overrides: overrides,
+					cardinalResolver: cardinalResolver,
+					ordinalResolver: ordinalResolver,
+				);
 			case AppLocale.ja:
 				return l_ja.TranslationsJa(
+					overrides: overrides,
+					cardinalResolver: cardinalResolver,
+					ordinalResolver: ordinalResolver,
+				);
+			case AppLocale.ko:
+				return l_ko.TranslationsKo(
+					overrides: overrides,
+					cardinalResolver: cardinalResolver,
+					ordinalResolver: ordinalResolver,
+				);
+			case AppLocale.zhHans:
+				return l_zh_Hans.TranslationsZhHans(
 					overrides: overrides,
 					cardinalResolver: cardinalResolver,
 					ordinalResolver: ordinalResolver,
