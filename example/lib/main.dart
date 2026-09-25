@@ -152,6 +152,12 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     return error.toString();
   }
 
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -199,7 +205,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     try {
       final host = _hostController.text.trim();
       if (host.isEmpty) {
-        throw Exception(t.validation.hostRequired);
+        _showMessage(t.validation.hostRequired);
+        return;
       }
 
       final serverInfo = await _oauthClient.getOAuthServerInfo(host);
@@ -288,12 +295,14 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       _addMiCustomScopesFromInput();
       final host = _hostController.text.trim();
       if (host.isEmpty) {
-        throw Exception(t.validation.hostRequired);
+        _showMessage(t.validation.hostRequired);
+        return;
       }
 
       final scheme = _callbackSchemeController.text.trim();
       if (scheme.isEmpty) {
-        throw Exception(t.validation.callbackSchemeRequired);
+        _showMessage(t.validation.callbackSchemeRequired);
+        return;
       }
 
       final permissions = _miPermissionsController.text
