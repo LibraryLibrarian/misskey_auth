@@ -29,4 +29,25 @@ void main() {
     expect(find.text('サーバー情報'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  for (final locale in AppLocale.values) {
+    testWidgets('renders every tab without overflow in ${locale.languageTag}', (
+      tester,
+    ) async {
+      LocaleSettings.setLocaleSync(locale);
+      await tester.pumpWidget(_app());
+      for (final icon in [
+        Icons.lock,
+        Icons.vpn_key,
+        Icons.info_outline,
+        Icons.people,
+      ]) {
+        await tester.tap(find.byIcon(icon));
+        // アカウント一覧はセキュアストレージの応答を待ち続けるため、
+        // pumpAndSettle ではなく一定時間だけ進める
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
 }
