@@ -293,4 +293,4 @@ app.*.symbols
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
 # slang の生成物。dart run build_runner build で生成する
-*.g.dart
+/lib/i18n/*.g.dart
