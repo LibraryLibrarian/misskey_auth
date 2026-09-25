@@ -8,7 +8,7 @@ The UI text is localized with [slang](https://pub.dev/packages/slang). The gener
 
 ```sh
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 flutter run
 ```
 

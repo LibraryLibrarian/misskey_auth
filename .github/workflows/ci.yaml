@@ -115,7 +115,7 @@ jobs:
       # example の slang 生成物は git 管理外のため、analyze / test の前に生成する
       - name: Generate example code
         working-directory: example
-        run: flutter pub get && dart run build_runner build --delete-conflicting-outputs
+        run: flutter pub get && dart run build_runner build
       # 翻訳キーの過不足を検出する。基準言語（en）にあって他言語にないキーと、
       # コードから参照されていないキーがあれば失敗させる
       - name: Check example translations
@@ -164,7 +164,7 @@ jobs:
         with: { distribution: 'temurin', java-version: '17', cache: 'gradle' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
-      - run: cd example && flutter pub get && dart run build_runner build --delete-conflicting-outputs && flutter build apk
+      - run: cd example && flutter pub get && dart run build_runner build && flutter build apk
       - uses: actions/upload-artifact@v4
         with:
           name: example-android-apk
@@ -183,7 +183,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
-      - run: cd example && flutter pub get && dart run build_runner build --delete-conflicting-outputs && flutter build ios --debug --simulator
+      - run: cd example && flutter pub get && dart run build_runner build && flutter build ios --debug --simulator
 
   # 公開不能な状態は持ち込んだ PR の時点で検出する（40 秒程度で完了するため常時実行に見合う）。
   # リリース経路（main 向け PR / main への push）では paths に関わらず必ず実行する
