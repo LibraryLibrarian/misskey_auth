@@ -34,6 +34,10 @@ void main() {
     testWidgets('renders every tab without overflow in ${locale.languageTag}', (
       tester,
     ) async {
+      // スマートフォン相当の幅で、長い翻訳がはみ出さないことを確かめる
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
       LocaleSettings.setLocaleSync(locale);
       await tester.pumpWidget(_app());
       for (final icon in [
