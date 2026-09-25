@@ -1,16 +1,19 @@
 # misskey_auth_example
 
-A new Flutter project.
+An example app for `misskey_auth` that signs in with OAuth or MiAuth.
 
-## Getting Started
+## Running
 
-This project is a starting point for a Flutter application.
+The UI text is localized with [slang](https://pub.dev/packages/slang). The generated Dart files are not checked in, so generate them before running the app:
 
-A few resources to get you started if this is your first Flutter project:
+```sh
+flutter pub get
+dart run build_runner build
+flutter run
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Run `dart run build_runner build` again after editing the translation files in `lib/i18n/`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Languages
+
+The app follows the device language: English, Japanese, Simplified Chinese, German, French and Korean. Other languages fall back to English.

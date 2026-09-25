@@ -1,0 +1,70 @@
+{
+  "nav": {
+    "serverInfo": "서버 정보",
+    "accounts": "계정"
+  },
+  "common": {
+    "callbackScheme": "콜백 스킴",
+    "host": "호스트",
+    "customScopes": "사용자 지정 스코프(쉼표로 구분)",
+    "example": "예: $value"
+  },
+  "oauth": {
+    "title": "OAuth 설정",
+    "clientId": "클라이언트 ID(URL)",
+    "redirectUri": "리디렉션 URI",
+    "redirectUriHelper": "client_id 페이지에 등록한 URL과 정확히 일치해야 합니다(사용자 지정 스킴 사용 가능)",
+    "submit": "OAuth로 로그인",
+    "success": "로그인했습니다!",
+    "failed": "인증 오류: $error"
+  },
+  "miauth": {
+    "title": "MiAuth 설정",
+    "appName": "앱 이름",
+    "iconUrl": "아이콘 URL(선택 사항)",
+    "submit": "MiAuth로 로그인",
+    "success": "MiAuth로 로그인했습니다!",
+    "failed": "MiAuth 오류: $error"
+  },
+  "serverInfo": {
+    "checkTitle": "서버 정보 확인",
+    "check": "서버 정보 확인",
+    "oauthNotSupported": "이 서버는 OAuth를 지원하지 않습니다(MiAuth를 사용하세요)",
+    "title": "서버 정보",
+    "authorizationEndpoint": "인가 엔드포인트",
+    "tokenEndpoint": "토큰 엔드포인트",
+    "scopesSupported": "지원하는 스코프(탭하여 복사)",
+    "copied": "복사했습니다: $scope"
+  },
+  "accounts": {
+    "title": "로그인한 계정",
+    "reload": "새로고침",
+    "loadFailed": "계정 정보를 가져오지 못했습니다",
+    "empty": "로그인한 계정이 없습니다",
+    "savedAt": "저장됨: $date",
+    "delete": "이 계정 삭제",
+    "activeChanged": "활성 계정을 변경했습니다: $account"
+  },
+  "validation": {
+    "hostRequired": "호스트를 입력하세요",
+    "callbackSchemeRequired": "콜백 스킴을 입력하세요"
+  },
+  "errors": {
+    "userCancelled": "인증이 취소되었습니다",
+    "callbackScheme": "콜백 스킴 설정이 올바르지 않습니다(AndroidManifest.xml / Info.plist를 확인하세요)",
+    "authorizationLaunch": "인증 화면을 열지 못했습니다",
+    "network": "네트워크 오류가 발생했습니다",
+    "responseParse": "서버 응답을 해석하지 못했습니다",
+    "secureStorage": "보안 저장소 작업에 실패했습니다",
+    "invalidAuthConfig": "인증 설정이 올바르지 않습니다",
+    "serverInfo": "서버 정보를 가져오지 못했습니다",
+    "oauthNotSupported": "이 서버는 OAuth를 지원하지 않습니다(MiAuth를 사용하세요)",
+    "stateMismatch": "보안 검증에 실패했습니다(state 불일치)",
+    "authorizationCodeMissing": "인가 코드를 가져오지 못했습니다",
+    "authorizationServer": "인가 서버에서 오류가 발생했습니다",
+    "tokenExchange": "토큰 교환에 실패했습니다",
+    "miAuthDenied": "MiAuth가 취소되었거나 거부되었습니다",
+    "miAuthCheckFailed": "MiAuth 검증에 실패했습니다",
+    "miAuthSessionInvalid": "MiAuth 세션이 올바르지 않거나 만료되었습니다"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "nav": {
+    "serverInfo": "Infos serveur",
+    "accounts": "Comptes"
+  },
+  "common": {
+    "callbackScheme": "Schéma de rappel",
+    "host": "Hôte",
+    "customScopes": "Portées personnalisées (séparées par des virgules)",
+    "example": "ex. : $value"
+  },
+  "oauth": {
+    "title": "Paramètres OAuth",
+    "clientId": "ID client (URL)",
+    "redirectUri": "URI de redirection",
+    "redirectUriHelper": "Doit correspondre exactement à l’URL indiquée sur la page client_id (un schéma personnalisé est autorisé)",
+    "submit": "Se connecter avec OAuth",
+    "success": "Connexion réussie !",
+    "failed": "Erreur d’authentification : $error"
+  },
+  "miauth": {
+    "title": "Paramètres MiAuth",
+    "appName": "Nom de l’application",
+    "iconUrl": "URL de l’icône (facultatif)",
+    "submit": "Se connecter avec MiAuth",
+    "success": "Connexion avec MiAuth réussie !",
+    "failed": "Erreur MiAuth : $error"
+  },
+  "serverInfo": {
+    "checkTitle": "Vérifier les informations du serveur",
+    "check": "Vérifier les informations du serveur",
+    "oauthNotSupported": "Ce serveur ne prend pas en charge OAuth (utilisez MiAuth)",
+    "title": "Informations du serveur",
+    "authorizationEndpoint": "Point de terminaison d’autorisation",
+    "tokenEndpoint": "Point de terminaison de jeton",
+    "scopesSupported": "Portées prises en charge (touchez pour copier)",
+    "copied": "Copié : $scope"
+  },
+  "accounts": {
+    "title": "Comptes connectés",
+    "reload": "Actualiser",
+    "loadFailed": "Impossible de récupérer les informations des comptes",
+    "empty": "Aucun compte connecté",
+    "savedAt": "Enregistré : $date",
+    "delete": "Supprimer ce compte",
+    "activeChanged": "Compte actif modifié : $account"
+  },
+  "validation": {
+    "hostRequired": "Saisissez un hôte",
+    "callbackSchemeRequired": "Saisissez un schéma de rappel"
+  },
+  "errors": {
+    "userCancelled": "L’authentification a été annulée",
+    "callbackScheme": "Le schéma de rappel n’est pas configuré correctement (vérifiez AndroidManifest.xml / Info.plist)",
+    "authorizationLaunch": "Impossible d’ouvrir l’écran d’authentification",
+    "network": "Une erreur réseau s’est produite",
+    "responseParse": "Impossible d’analyser la réponse du serveur",
+    "secureStorage": "L’opération sur le stockage sécurisé a échoué",
+    "invalidAuthConfig": "Les paramètres d’authentification ne sont pas valides",
+    "serverInfo": "Impossible de récupérer les informations du serveur",
+    "oauthNotSupported": "Ce serveur ne prend pas en charge OAuth (utilisez MiAuth)",
+    "stateMismatch": "La vérification de sécurité a échoué (le state ne correspond pas)",
+    "authorizationCodeMissing": "Impossible d’obtenir le code d’autorisation",
+    "authorizationServer": "Le serveur d’autorisation a renvoyé une erreur",
+    "tokenExchange": "L’échange de jeton a échoué",
+    "miAuthDenied": "MiAuth a été annulé ou refusé",
+    "miAuthCheckFailed": "La vérification MiAuth a échoué",
+    "miAuthSessionInvalid": "La session MiAuth n’est pas valide ou a expiré"
+  }
+}

@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:misskey_auth/misskey_auth.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+// slang の生成物。git 管理外のため `dart run build_runner build` で生成する（README.md 参照）
+import 'i18n/strings.g.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  // 端末の言語に合わせる。対応していない言語では英語になる
+  LocaleSettings.useDeviceLocaleSync();
+  runApp(TranslationProvider(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -14,6 +21,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Misskey Auth Example',
+      locale: TranslationProvider.of(context).flutterLocale,
+      supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
@@ -83,63 +93,70 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   }
 
   String _mapErrorToMessage(Object error) {
-    // MisskeyAuth のカスタム例外をユーザー向け日本語に整形
+    // MisskeyAuth のカスタム例外をユーザー向けの文言に整形
     if (error is MisskeyAuthException) {
       final details = error.details;
+      final suffix = details != null ? ': $details' : '';
       if (error is UserCancelledException) {
-        return '認証がキャンセルされました';
+        return t.errors.userCancelled;
       }
       if (error is CallbackSchemeErrorException) {
-        return 'コールバックスキームの設定が正しくありません（AndroidManifest/Info.plist を確認してください）';
+        return t.errors.callbackScheme;
       }
       if (error is AuthorizationLaunchException) {
-        return '認証画面を起動できませんでした';
+        return t.errors.authorizationLaunch;
       }
       if (error is NetworkException) {
-        return 'ネットワークエラーが発生しました';
+        return t.errors.network;
       }
       if (error is ResponseParseException) {
-        return 'サーバー応答の解析に失敗しました';
+        return t.errors.responseParse;
       }
       if (error is SecureStorageException) {
-        return 'セキュアストレージの操作に失敗しました';
+        return t.errors.secureStorage;
       }
       if (error is InvalidAuthConfigException) {
-        return '認証設定が無効です';
+        return t.errors.invalidAuthConfig;
       }
       if (error is ServerInfoException) {
-        return 'サーバー情報の取得に失敗しました${details != null ? ': $details' : ''}';
+        return '${t.errors.serverInfo}$suffix';
       }
       // OAuth
       if (error is OAuthNotSupportedException) {
-        return 'このサーバーはOAuth認証に対応していません（MiAuthをご利用ください）';
+        return t.errors.oauthNotSupported;
       }
       if (error is StateMismatchException) {
-        return 'セキュリティ検証に失敗しました（state不一致）';
+        return t.errors.stateMismatch;
       }
       if (error is AuthorizationCodeMissingException) {
-        return '認証コードを取得できませんでした';
+        return t.errors.authorizationCodeMissing;
       }
       if (error is AuthorizationServerErrorException) {
-        return '認可サーバーでエラーが発生しました${details != null ? ': $details' : ''}';
+        return '${t.errors.authorizationServer}$suffix';
       }
       if (error is TokenExchangeException) {
-        return 'トークン交換に失敗しました${details != null ? ': $details' : ''}';
+        return '${t.errors.tokenExchange}$suffix';
       }
       // MiAuth
       if (error is MiAuthDeniedException) {
-        return 'MiAuth がキャンセル/拒否されました';
+        return t.errors.miAuthDenied;
       }
       if (error is MiAuthCheckFailedException) {
-        return 'MiAuth の検証に失敗しました${details != null ? ': $details' : ''}';
+        return '${t.errors.miAuthCheckFailed}$suffix';
       }
       if (error is MiAuthSessionInvalidException) {
-        return 'MiAuth のセッションが無効または期限切れです${details != null ? ': $details' : ''}';
+        return '${t.errors.miAuthSessionInvalid}$suffix';
       }
       return error.toString();
     }
     // その他の例外はそのまま文字列化
     return error.toString();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -189,7 +206,8 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
     try {
       final host = _hostController.text.trim();
       if (host.isEmpty) {
-        throw Exception('ホストを入力してください');
+        _showMessage(t.validation.hostRequired);
+        return;
       }
 
       final serverInfo = await _oauthClient.getOAuthServerInfo(host);
@@ -203,9 +221,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            const SnackBar(
-              content: Text('OAuth認証はサポートされていません（MiAuth認証を使用してください）'),
-            ),
+            SnackBar(content: Text(t.serverInfo.oauthNotSupported)),
           );
       }
     } on MisskeyAuthException catch (e) {
@@ -247,7 +263,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('認証に成功しました！')));
+          ..showSnackBar(SnackBar(content: Text(t.oauth.success)));
         setState(() {
           _currentIndex = 3; // アカウント一覧タブへ
         });
@@ -262,7 +278,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('認証エラー: $e')));
+          ..showSnackBar(SnackBar(content: Text(t.oauth.failed(error: e))));
       }
     } finally {
       if (mounted) {
@@ -280,12 +296,14 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       _addMiCustomScopesFromInput();
       final host = _hostController.text.trim();
       if (host.isEmpty) {
-        throw Exception('ホストを入力してください');
+        _showMessage(t.validation.hostRequired);
+        return;
       }
 
       final scheme = _callbackSchemeController.text.trim();
       if (scheme.isEmpty) {
-        throw Exception('コールバックスキームを入力してください');
+        _showMessage(t.validation.callbackSchemeRequired);
+        return;
       }
 
       final permissions = _miPermissionsController.text
@@ -308,7 +326,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('MiAuth に成功しました！')));
+          ..showSnackBar(SnackBar(content: Text(t.miauth.success)));
         setState(() {
           _currentIndex = 3; // アカウント一覧タブへ
         });
@@ -323,7 +341,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('MiAuth エラー: $e')));
+          ..showSnackBar(SnackBar(content: Text(t.miauth.failed(error: e))));
       }
     } finally {
       if (mounted) {
@@ -334,6 +352,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -357,14 +376,20 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.lock), label: 'OAuth'),
-          NavigationDestination(icon: Icon(Icons.vpn_key), label: 'MiAuth'),
-          NavigationDestination(
-            icon: Icon(Icons.info_outline),
-            label: 'サーバー情報',
+        destinations: [
+          const NavigationDestination(icon: Icon(Icons.lock), label: 'OAuth'),
+          const NavigationDestination(
+            icon: Icon(Icons.vpn_key),
+            label: 'MiAuth',
           ),
-          NavigationDestination(icon: Icon(Icons.people), label: 'アカウント一覧'),
+          NavigationDestination(
+            icon: const Icon(Icons.info_outline),
+            label: t.nav.serverInfo,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.people),
+            label: t.nav.accounts,
+          ),
         ],
         onDestinationSelected: (index) {
           setState(() {
@@ -376,60 +401,65 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   }
 
   Widget _buildOAuthForm(BuildContext context) {
+    final t = context.t;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'OAuth認証設定',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              t.oauth.title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _callbackSchemeController,
-              decoration: const InputDecoration(
-                labelText: 'コールバックスキーム',
-                hintText: '例: misskeyauth',
+              decoration: InputDecoration(
+                labelText: t.common.callbackScheme,
+                hintText: t.common.example(value: 'misskeyauth'),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _hostController,
-              decoration: const InputDecoration(
-                labelText: 'ホスト',
-                hintText: '例: misskey.io',
+              decoration: InputDecoration(
+                labelText: t.common.host,
+                hintText: t.common.example(value: 'misskey.io'),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _clientIdController,
-              decoration: const InputDecoration(
-                labelText: 'クライアントID (URL)',
-                hintText: '例: https://example.com/my-app',
+              decoration: InputDecoration(
+                labelText: t.oauth.clientId,
+                hintText: t.common.example(value: 'https://example.com/my-app'),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _redirectUriController,
-              decoration: const InputDecoration(
-                labelText: 'リダイレクトURI',
-                hintText: '例: misskeyauth://oauth/callback',
-                helperText: 'client_idページの登録URLと完全一致（カスタムスキーム可）',
+              decoration: InputDecoration(
+                labelText: t.oauth.redirectUri,
+                hintText: t.common.example(
+                  value: 'misskeyauth://oauth/callback',
+                ),
+                helperText: t.oauth.redirectUriHelper,
                 helperMaxLines: 2,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'カスタムスコープ（カンマ区切り）',
-              style: TextStyle(fontWeight: FontWeight.w600),
+            Text(
+              t.common.customScopes,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _oauthCustomScopesController,
-              decoration: const InputDecoration(
-                labelText: '例: write:drive, read:favorites',
+              decoration: InputDecoration(
+                labelText: t.common.example(
+                  value: 'write:drive, read:favorites',
+                ),
               ),
               keyboardType: TextInputType.text,
               textInputAction: TextInputAction.done,
@@ -444,7 +474,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('OAuthで認証'),
+                child: Text(t.oauth.submit),
               ),
             ),
           ],
@@ -454,50 +484,53 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   }
 
   Widget _buildMiAuthForm(BuildContext context) {
+    final t = context.t;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'MiAuth認証設定',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              t.miauth.title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _callbackSchemeController,
-              decoration: const InputDecoration(
-                labelText: 'コールバックスキーム',
-                hintText: '例: misskeyauth',
+              decoration: InputDecoration(
+                labelText: t.common.callbackScheme,
+                hintText: t.common.example(value: 'misskeyauth'),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _hostController,
-              decoration: const InputDecoration(
-                labelText: 'ホスト',
-                hintText: '例: misskey.io',
+              decoration: InputDecoration(
+                labelText: t.common.host,
+                hintText: t.common.example(value: 'misskey.io'),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _miAppNameController,
-              decoration: const InputDecoration(
-                labelText: 'アプリ名',
-                hintText: '例: Misskey Auth Example',
+              decoration: InputDecoration(
+                labelText: t.miauth.appName,
+                hintText: t.common.example(value: 'Misskey Auth Example'),
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'カスタムスコープ（カンマ区切り）',
-              style: TextStyle(fontWeight: FontWeight.w600),
+            Text(
+              t.common.customScopes,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _miCustomScopesController,
-              decoration: const InputDecoration(
-                labelText: '例: write:drive, read:favorites',
+              decoration: InputDecoration(
+                labelText: t.common.example(
+                  value: 'write:drive, read:favorites',
+                ),
               ),
               keyboardType: TextInputType.text,
               textInputAction: TextInputAction.done,
@@ -506,7 +539,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
             const SizedBox(height: 8),
             TextField(
               controller: _miIconUrlController,
-              decoration: const InputDecoration(labelText: 'アイコンURL（任意）'),
+              decoration: InputDecoration(labelText: t.miauth.iconUrl),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -517,7 +550,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('MiAuthで認証'),
+                child: Text(t.miauth.submit),
               ),
             ),
           ],
@@ -527,28 +560,29 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   }
 
   Widget _buildServerInfoCard() {
+    final t = context.t;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'サーバー情報',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              t.serverInfo.title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text('認証エンドポイント'),
+            Text(t.serverInfo.authorizationEndpoint),
             const SizedBox(height: 4),
             SelectableText(_serverInfo!.authorizationEndpoint),
             const SizedBox(height: 8),
-            const Text('トークンエンドポイント'),
+            Text(t.serverInfo.tokenEndpoint),
             const SizedBox(height: 4),
             SelectableText(_serverInfo!.tokenEndpoint),
             if (_serverInfo!.scopesSupported != null &&
                 _serverInfo!.scopesSupported!.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const Text('サポートされているスコープ（タップでコピー）'),
+              Text(t.serverInfo.scopesSupported),
               const SizedBox(height: 4),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 200),
@@ -565,7 +599,11 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                           ScaffoldMessenger.of(context)
                             ..hideCurrentSnackBar()
                             ..showSnackBar(
-                              SnackBar(content: Text('コピーしました: $scope')),
+                              SnackBar(
+                                content: Text(
+                                  t.serverInfo.copied(scope: scope),
+                                ),
+                              ),
                             );
                         },
                         child: Padding(
@@ -585,6 +623,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   }
 
   Widget _buildServerInfoTab(BuildContext context) {
+    final t = context.t;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -594,16 +633,19 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'サーバー情報の確認',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  t.serverInfo.checkTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _hostController,
-                  decoration: const InputDecoration(
-                    labelText: 'ホスト',
-                    hintText: '例: misskey.io',
+                  decoration: InputDecoration(
+                    labelText: t.common.host,
+                    hintText: t.common.example(value: 'misskey.io'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -611,7 +653,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _checkServerInfo,
-                    child: const Text('サーバー情報を確認'),
+                    child: Text(t.serverInfo.check),
                   ),
                 ),
               ],
@@ -627,6 +669,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   }
 
   Widget _buildAccountsTab(BuildContext context) {
+    final t = context.t;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -635,15 +678,18 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'ログイン済みアカウント',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    t.accounts.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh),
-                  tooltip: '再読込',
+                  tooltip: t.accounts.reload,
                   onPressed: () {
                     setState(() {}); // FutureBuilder を再評価
                   },
@@ -666,12 +712,12 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                   );
                 }
                 if (!snapshot.hasData) {
-                  return const Text('アカウント情報を取得できませんでした');
+                  return Text(t.accounts.loadFailed);
                 }
                 final accounts = (snapshot.data![0] as List<AccountEntry>);
                 final active = snapshot.data![1] as AccountKey?;
                 if (accounts.isEmpty) {
-                  return const Text('ログイン済みのアカウントはありません');
+                  return Text(t.accounts.empty);
                 }
                 return ListView.separated(
                   shrinkWrap: true,
@@ -684,7 +730,12 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                     final isActive = active != null && active == key;
                     final title = entry.userName ?? key.accountId;
                     final saved = entry.createdAt != null
-                        ? '保存: ${entry.createdAt!.toLocal().toString().substring(0, 19)}'
+                        ? t.accounts.savedAt(
+                            date: entry.createdAt!
+                                .toLocal()
+                                .toString()
+                                .substring(0, 19),
+                          )
                         : null;
                     return ListTile(
                       leading: Icon(
@@ -702,7 +753,7 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                           await _auth.signOut(key);
                           if (mounted) setState(() {});
                         },
-                        tooltip: 'このアカウントを削除',
+                        tooltip: t.accounts.delete,
                       ),
                       onTap: () async {
                         await _auth.setActive(key);
@@ -712,7 +763,11 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                           ..hideCurrentSnackBar()
                           ..showSnackBar(
                             SnackBar(
-                              content: Text('デフォルトを変更: ${key.accountId}'),
+                              content: Text(
+                                t.accounts.activeChanged(
+                                  account: key.accountId,
+                                ),
+                              ),
                             ),
                           );
                       },

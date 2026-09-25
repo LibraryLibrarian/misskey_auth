@@ -46,6 +46,7 @@ jobs:
               - 'example/lib/**'
               - 'example/test/**'
               - 'example/pubspec.yaml'
+              - 'example/build.yaml'
               - '.github/workflows/**'
             # ネイティブビルド固有のリスク（ツールチェーン / プラグイン結合）がある変更のみを対象にする。
             # Dart レベルの破壊は package ジョブの dart analyze が example/lib まで検出するため含めない
@@ -111,6 +112,25 @@ jobs:
       - name: Resolve (max)
         if: matrix.resolution == 'max'
         run: flutter pub upgrade
+      # example の slang 生成物は git 管理外のため、analyze / test の前に生成する
+      - name: Generate example code
+        working-directory: example
+        run: flutter pub get && dart run build_runner build
+      # 翻訳キーの過不足を検出する。基準言語（en）にあって他言語にないキーと、
+      # コードから参照されていないキーがあれば失敗させる
+      - name: Check example translations
+        if: matrix.format
+        working-directory: example
+        run: |
+          out="$RUNNER_TEMP/slang"
+          mkdir -p "$out"
+          dart run slang analyze --full --outdir="$out"
+          for f in "$out/_missing_translations.json" "$out/_unused_translations.json"; do
+            if ! jq -e '[del(."@@info")[] | length] | all(. == 0)' "$f" > /dev/null; then
+              cat "$f"
+              exit 1
+            fi
+          done
       # dart format の整形結果は SDK バージョンで変わりうるため、最新 SDK の1本のみを正とする
       - name: Format check
         if: matrix.format
@@ -144,7 +164,7 @@ jobs:
         with: { distribution: 'temurin', java-version: '17', cache: 'gradle' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
-      - run: cd example && flutter pub get && flutter build apk
+      - run: cd example && flutter pub get && dart run build_runner build && flutter build apk
       - uses: actions/upload-artifact@v4
         with:
           name: example-android-apk
@@ -163,7 +183,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
-      - run: cd example && flutter pub get && flutter build ios --debug --simulator
+      - run: cd example && flutter pub get && dart run build_runner build && flutter build ios --debug --simulator
 
   # 公開不能な状態は持ち込んだ PR の時点で検出する（40 秒程度で完了するため常時実行に見合う）。
   # リリース経路（main 向け PR / main への push）では paths に関わらず必ず実行する
