@@ -30,6 +30,7 @@ jobs:
       android: ${{ steps.filter.outputs.android }}
       ios: ${{ steps.filter.outputs.ios }}
       publish: ${{ steps.filter.outputs.publish }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -65,10 +66,16 @@ jobs:
               - 'pubspec.yaml'
               - 'lib/**'
               - 'README.md'
+              - 'README.*.md'
               - 'CHANGELOG.md'
               - 'LICENSE'
               - '.pubignore'
               - '.gitignore'
+              - '.github/workflows/**'
+            # ドキュメントサイトは main への push で公開される。client_id ページと中継ページも
+            # このビルドの成果物として配信されるため、壊れたビルドを main へ持ち込まない
+            docs:
+              - 'docs/**'
               - '.github/workflows/**'
 
   package:
@@ -188,6 +195,31 @@ jobs:
             exit 1
           fi
 
+  # docs.yml は main への push でしか動かないため、ビルドの失敗（onBrokenLinks: 'throw' を含む）は
+  # PR の時点で検出する。リリース経路では paths に関わらず必ず実行する
+  docs-build:
+    needs: changes
+    if: >-
+      needs.changes.outputs.docs == 'true' ||
+      github.base_ref == 'main' ||
+      github.ref == 'refs/heads/main' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: docs/.node-version
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
   # 公開済みバージョンとの公開API差分を報告する。CHANGELOG で宣言した影響度と
   # 実際のAPI差分の食い違いは、これまでリリース後にしか分からなかった。
   #
@@ -288,7 +320,7 @@ jobs:
 
   gate:
     name: all checks passed
-    needs: [changes, package, example-android, example-ios, publish-dry-run]
+    needs: [changes, package, example-android, example-ios, publish-dry-run, docs-build]
     if: always()
     runs-on: ubuntu-latest
     steps:

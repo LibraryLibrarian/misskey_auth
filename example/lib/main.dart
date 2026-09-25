@@ -164,9 +164,9 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
   void _setDefaultValues() {
     _hostController.text = 'misskey.io';
     _clientIdController.text =
-        'https://librarylibrarian.github.io/misskey_auth/';
+        'https://librarylibrarian.github.io/misskey_auth/example/';
     _redirectUriController.text =
-        'https://librarylibrarian.github.io/misskey_auth/redirect.html';
+        'https://librarylibrarian.github.io/misskey_auth/example/redirect.html';
     _scopeController.text = 'read:account write:notes';
     _callbackSchemeController.text = 'misskeyauth';
 
