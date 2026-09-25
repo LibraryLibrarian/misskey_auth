@@ -4,6 +4,7 @@ import 'package:loader_overlay/loader_overlay.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+// slang の生成物。git 管理外のため `dart run build_runner build` で生成する（README.md 参照）
 import 'i18n/strings.g.dart';
 
 void main() {
