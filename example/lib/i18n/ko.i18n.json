@@ -41,9 +41,9 @@
     "reload": "새로고침",
     "loadFailed": "계정 정보를 가져오지 못했습니다",
     "empty": "로그인한 계정이 없습니다",
-    "savedAt": "저장: $date",
+    "savedAt": "저장됨: $date",
     "delete": "이 계정 삭제",
-    "activeChanged": "기본 계정을 변경했습니다: $account"
+    "activeChanged": "활성 계정을 변경했습니다: $account"
   },
   "validation": {
     "hostRequired": "호스트를 입력하세요",

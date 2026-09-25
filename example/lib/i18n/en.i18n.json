@@ -43,7 +43,7 @@
     "empty": "No signed-in accounts",
     "savedAt": "Saved: $date",
     "delete": "Remove this account",
-    "activeChanged": "Default account changed: $account"
+    "activeChanged": "Active account changed: $account"
   },
   "validation": {
     "hostRequired": "Enter a host",

@@ -57,7 +57,7 @@ class _Translations$nav$zh_Hans extends Translations$nav$en {
 
 	// Translations
 	@override String get serverInfo => '服务器信息';
-	@override String get accounts => '账户';
+	@override String get accounts => '账号';
 }
 
 // Path: common
@@ -69,7 +69,7 @@ class _Translations$common$zh_Hans extends Translations$common$en {
 	// Translations
 	@override String get callbackScheme => '回调 scheme';
 	@override String get host => '主机';
-	@override String get customScopes => '自定义 scope（逗号分隔）';
+	@override String get customScopes => '自定义作用域（逗号分隔）';
 	@override String example({required Object value}) => '例如：${value}';
 }
 
@@ -117,7 +117,7 @@ class _Translations$serverInfo$zh_Hans extends Translations$serverInfo$en {
 	@override String get title => '服务器信息';
 	@override String get authorizationEndpoint => '授权端点';
 	@override String get tokenEndpoint => '令牌端点';
-	@override String get scopesSupported => '支持的 scope（点击复制）';
+	@override String get scopesSupported => '支持的作用域（点击复制）';
 	@override String copied({required Object scope}) => '已复制：${scope}';
 }
 
@@ -128,13 +128,13 @@ class _Translations$accounts$zh_Hans extends Translations$accounts$en {
 	final TranslationsZhHans _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => '已登录的账户';
+	@override String get title => '已登录的账号';
 	@override String get reload => '重新加载';
-	@override String get loadFailed => '无法获取账户信息';
-	@override String get empty => '没有已登录的账户';
+	@override String get loadFailed => '无法获取账号信息';
+	@override String get empty => '没有已登录的账号';
 	@override String savedAt({required Object date}) => '保存时间：${date}';
-	@override String get delete => '删除此账户';
-	@override String activeChanged({required Object account}) => '已更改默认账户：${account}';
+	@override String get delete => '删除此账号';
+	@override String activeChanged({required Object account}) => '已更改活动账号：${account}';
 }
 
 // Path: validation
@@ -182,10 +182,10 @@ extension on TranslationsZhHans {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
 			'nav.serverInfo' => '服务器信息',
-			'nav.accounts' => '账户',
+			'nav.accounts' => '账号',
 			'common.callbackScheme' => '回调 scheme',
 			'common.host' => '主机',
-			'common.customScopes' => '自定义 scope（逗号分隔）',
+			'common.customScopes' => '自定义作用域（逗号分隔）',
 			'common.example' => ({required Object value}) => '例如：${value}',
 			'oauth.title' => 'OAuth 设置',
 			'oauth.clientId' => '客户端 ID（URL）',
@@ -206,15 +206,15 @@ extension on TranslationsZhHans {
 			'serverInfo.title' => '服务器信息',
 			'serverInfo.authorizationEndpoint' => '授权端点',
 			'serverInfo.tokenEndpoint' => '令牌端点',
-			'serverInfo.scopesSupported' => '支持的 scope（点击复制）',
+			'serverInfo.scopesSupported' => '支持的作用域（点击复制）',
 			'serverInfo.copied' => ({required Object scope}) => '已复制：${scope}',
-			'accounts.title' => '已登录的账户',
+			'accounts.title' => '已登录的账号',
 			'accounts.reload' => '重新加载',
-			'accounts.loadFailed' => '无法获取账户信息',
-			'accounts.empty' => '没有已登录的账户',
+			'accounts.loadFailed' => '无法获取账号信息',
+			'accounts.empty' => '没有已登录的账号',
 			'accounts.savedAt' => ({required Object date}) => '保存时间：${date}',
-			'accounts.delete' => '删除此账户',
-			'accounts.activeChanged' => ({required Object account}) => '已更改默认账户：${account}',
+			'accounts.delete' => '删除此账号',
+			'accounts.activeChanged' => ({required Object account}) => '已更改活动账号：${account}',
 			'validation.hostRequired' => '请输入主机',
 			'validation.callbackSchemeRequired' => '请输入回调 scheme',
 			'errors.userCancelled' => '身份验证已取消',

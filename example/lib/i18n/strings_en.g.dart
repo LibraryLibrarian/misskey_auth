@@ -203,8 +203,8 @@ class Translations$accounts$en {
 	/// en: 'Remove this account'
 	String get delete => 'Remove this account';
 
-	/// en: 'Default account changed: $account'
-	String activeChanged({required Object account}) => 'Default account changed: ${account}';
+	/// en: 'Active account changed: $account'
+	String activeChanged({required Object account}) => 'Active account changed: ${account}';
 }
 
 // Path: validation
@@ -320,7 +320,7 @@ extension on Translations {
 			'accounts.empty' => 'No signed-in accounts',
 			'accounts.savedAt' => ({required Object date}) => 'Saved: ${date}',
 			'accounts.delete' => 'Remove this account',
-			'accounts.activeChanged' => ({required Object account}) => 'Default account changed: ${account}',
+			'accounts.activeChanged' => ({required Object account}) => 'Active account changed: ${account}',
 			'validation.hostRequired' => 'Enter a host',
 			'validation.callbackSchemeRequired' => 'Enter a callback scheme',
 			'errors.userCancelled' => 'Authentication was cancelled',

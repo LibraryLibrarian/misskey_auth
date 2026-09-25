@@ -132,9 +132,9 @@ class _Translations$accounts$ko extends Translations$accounts$en {
 	@override String get reload => '새로고침';
 	@override String get loadFailed => '계정 정보를 가져오지 못했습니다';
 	@override String get empty => '로그인한 계정이 없습니다';
-	@override String savedAt({required Object date}) => '저장: ${date}';
+	@override String savedAt({required Object date}) => '저장됨: ${date}';
 	@override String get delete => '이 계정 삭제';
-	@override String activeChanged({required Object account}) => '기본 계정을 변경했습니다: ${account}';
+	@override String activeChanged({required Object account}) => '활성 계정을 변경했습니다: ${account}';
 }
 
 // Path: validation
@@ -212,9 +212,9 @@ extension on TranslationsKo {
 			'accounts.reload' => '새로고침',
 			'accounts.loadFailed' => '계정 정보를 가져오지 못했습니다',
 			'accounts.empty' => '로그인한 계정이 없습니다',
-			'accounts.savedAt' => ({required Object date}) => '저장: ${date}',
+			'accounts.savedAt' => ({required Object date}) => '저장됨: ${date}',
 			'accounts.delete' => '이 계정 삭제',
-			'accounts.activeChanged' => ({required Object account}) => '기본 계정을 변경했습니다: ${account}',
+			'accounts.activeChanged' => ({required Object account}) => '활성 계정을 변경했습니다: ${account}',
 			'validation.hostRequired' => '호스트를 입력하세요',
 			'validation.callbackSchemeRequired' => '콜백 스킴을 입력하세요',
 			'errors.userCancelled' => '인증이 취소되었습니다',

@@ -69,7 +69,7 @@ class _Translations$common$de extends Translations$common$en {
 	// Translations
 	@override String get callbackScheme => 'Callback-Schema';
 	@override String get host => 'Host';
-	@override String get customScopes => 'Eigene Scopes (durch Kommas getrennt)';
+	@override String get customScopes => 'Benutzerdefinierte Scopes (durch Kommas getrennt)';
 	@override String example({required Object value}) => 'z. B. ${value}';
 }
 
@@ -82,7 +82,7 @@ class _Translations$oauth$de extends Translations$oauth$en {
 	// Translations
 	@override String get title => 'OAuth-Einstellungen';
 	@override String get clientId => 'Client-ID (URL)';
-	@override String get redirectUri => 'Weiterleitungs-URI';
+	@override String get redirectUri => 'Redirect-URI';
 	@override String get redirectUriHelper => 'Muss exakt mit der auf der client_id-Seite eingetragenen URL übereinstimmen (benutzerdefiniertes Schema erlaubt)';
 	@override String get submit => 'Mit OAuth anmelden';
 	@override String get success => 'Anmeldung erfolgreich!';
@@ -134,7 +134,7 @@ class _Translations$accounts$de extends Translations$accounts$en {
 	@override String get empty => 'Keine angemeldeten Konten';
 	@override String savedAt({required Object date}) => 'Gespeichert: ${date}';
 	@override String get delete => 'Dieses Konto entfernen';
-	@override String activeChanged({required Object account}) => 'Standardkonto geändert: ${account}';
+	@override String activeChanged({required Object account}) => 'Aktives Konto geändert: ${account}';
 }
 
 // Path: validation
@@ -159,7 +159,7 @@ class _Translations$errors$de extends Translations$errors$en {
 	@override String get callbackScheme => 'Das Callback-Schema ist nicht korrekt konfiguriert (prüfen Sie AndroidManifest.xml / Info.plist)';
 	@override String get authorizationLaunch => 'Der Authentifizierungsbildschirm konnte nicht geöffnet werden';
 	@override String get network => 'Ein Netzwerkfehler ist aufgetreten';
-	@override String get responseParse => 'Die Serverantwort konnte nicht verarbeitet werden';
+	@override String get responseParse => 'Die Serverantwort konnte nicht ausgewertet werden';
 	@override String get secureStorage => 'Der Zugriff auf den sicheren Speicher ist fehlgeschlagen';
 	@override String get invalidAuthConfig => 'Die Authentifizierungseinstellungen sind ungültig';
 	@override String get serverInfo => 'Serverinformationen konnten nicht abgerufen werden';
@@ -185,11 +185,11 @@ extension on TranslationsDe {
 			'nav.accounts' => 'Konten',
 			'common.callbackScheme' => 'Callback-Schema',
 			'common.host' => 'Host',
-			'common.customScopes' => 'Eigene Scopes (durch Kommas getrennt)',
+			'common.customScopes' => 'Benutzerdefinierte Scopes (durch Kommas getrennt)',
 			'common.example' => ({required Object value}) => 'z. B. ${value}',
 			'oauth.title' => 'OAuth-Einstellungen',
 			'oauth.clientId' => 'Client-ID (URL)',
-			'oauth.redirectUri' => 'Weiterleitungs-URI',
+			'oauth.redirectUri' => 'Redirect-URI',
 			'oauth.redirectUriHelper' => 'Muss exakt mit der auf der client_id-Seite eingetragenen URL übereinstimmen (benutzerdefiniertes Schema erlaubt)',
 			'oauth.submit' => 'Mit OAuth anmelden',
 			'oauth.success' => 'Anmeldung erfolgreich!',
@@ -214,14 +214,14 @@ extension on TranslationsDe {
 			'accounts.empty' => 'Keine angemeldeten Konten',
 			'accounts.savedAt' => ({required Object date}) => 'Gespeichert: ${date}',
 			'accounts.delete' => 'Dieses Konto entfernen',
-			'accounts.activeChanged' => ({required Object account}) => 'Standardkonto geändert: ${account}',
+			'accounts.activeChanged' => ({required Object account}) => 'Aktives Konto geändert: ${account}',
 			'validation.hostRequired' => 'Geben Sie einen Host ein',
 			'validation.callbackSchemeRequired' => 'Geben Sie ein Callback-Schema ein',
 			'errors.userCancelled' => 'Die Authentifizierung wurde abgebrochen',
 			'errors.callbackScheme' => 'Das Callback-Schema ist nicht korrekt konfiguriert (prüfen Sie AndroidManifest.xml / Info.plist)',
 			'errors.authorizationLaunch' => 'Der Authentifizierungsbildschirm konnte nicht geöffnet werden',
 			'errors.network' => 'Ein Netzwerkfehler ist aufgetreten',
-			'errors.responseParse' => 'Die Serverantwort konnte nicht verarbeitet werden',
+			'errors.responseParse' => 'Die Serverantwort konnte nicht ausgewertet werden',
 			'errors.secureStorage' => 'Der Zugriff auf den sicheren Speicher ist fehlgeschlagen',
 			'errors.invalidAuthConfig' => 'Die Authentifizierungseinstellungen sind ungültig',
 			'errors.serverInfo' => 'Serverinformationen konnten nicht abgerufen werden',

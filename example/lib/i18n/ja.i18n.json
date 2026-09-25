@@ -43,7 +43,7 @@
     "empty": "ログイン済みのアカウントはありません",
     "savedAt": "保存: $date",
     "delete": "このアカウントを削除",
-    "activeChanged": "デフォルトを変更: $account"
+    "activeChanged": "アクティブなアカウントを変更: $account"
   },
   "validation": {
     "hostRequired": "ホストを入力してください",
@@ -60,7 +60,7 @@
     "serverInfo": "サーバー情報の取得に失敗しました",
     "oauthNotSupported": "このサーバーはOAuth認証に対応していません（MiAuthをご利用ください）",
     "stateMismatch": "セキュリティ検証に失敗しました（state不一致）",
-    "authorizationCodeMissing": "認証コードを取得できませんでした",
+    "authorizationCodeMissing": "認可コードを取得できませんでした",
     "authorizationServer": "認可サーバーでエラーが発生しました",
     "tokenExchange": "トークン交換に失敗しました",
     "miAuthDenied": "MiAuth がキャンセル/拒否されました",

@@ -134,7 +134,7 @@ class _Translations$accounts$ja extends Translations$accounts$en {
 	@override String get empty => 'ログイン済みのアカウントはありません';
 	@override String savedAt({required Object date}) => '保存: ${date}';
 	@override String get delete => 'このアカウントを削除';
-	@override String activeChanged({required Object account}) => 'デフォルトを変更: ${account}';
+	@override String activeChanged({required Object account}) => 'アクティブなアカウントを変更: ${account}';
 }
 
 // Path: validation
@@ -165,7 +165,7 @@ class _Translations$errors$ja extends Translations$errors$en {
 	@override String get serverInfo => 'サーバー情報の取得に失敗しました';
 	@override String get oauthNotSupported => 'このサーバーはOAuth認証に対応していません（MiAuthをご利用ください）';
 	@override String get stateMismatch => 'セキュリティ検証に失敗しました（state不一致）';
-	@override String get authorizationCodeMissing => '認証コードを取得できませんでした';
+	@override String get authorizationCodeMissing => '認可コードを取得できませんでした';
 	@override String get authorizationServer => '認可サーバーでエラーが発生しました';
 	@override String get tokenExchange => 'トークン交換に失敗しました';
 	@override String get miAuthDenied => 'MiAuth がキャンセル/拒否されました';
@@ -214,7 +214,7 @@ extension on TranslationsJa {
 			'accounts.empty' => 'ログイン済みのアカウントはありません',
 			'accounts.savedAt' => ({required Object date}) => '保存: ${date}',
 			'accounts.delete' => 'このアカウントを削除',
-			'accounts.activeChanged' => ({required Object account}) => 'デフォルトを変更: ${account}',
+			'accounts.activeChanged' => ({required Object account}) => 'アクティブなアカウントを変更: ${account}',
 			'validation.hostRequired' => 'ホストを入力してください',
 			'validation.callbackSchemeRequired' => 'コールバックスキームを入力してください',
 			'errors.userCancelled' => '認証がキャンセルされました',
@@ -227,7 +227,7 @@ extension on TranslationsJa {
 			'errors.serverInfo' => 'サーバー情報の取得に失敗しました',
 			'errors.oauthNotSupported' => 'このサーバーはOAuth認証に対応していません（MiAuthをご利用ください）',
 			'errors.stateMismatch' => 'セキュリティ検証に失敗しました（state不一致）',
-			'errors.authorizationCodeMissing' => '認証コードを取得できませんでした',
+			'errors.authorizationCodeMissing' => '認可コードを取得できませんでした',
 			'errors.authorizationServer' => '認可サーバーでエラーが発生しました',
 			'errors.tokenExchange' => 'トークン交換に失敗しました',
 			'errors.miAuthDenied' => 'MiAuth がキャンセル/拒否されました',

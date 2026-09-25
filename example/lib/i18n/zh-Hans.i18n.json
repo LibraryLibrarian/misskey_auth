@@ -1,12 +1,12 @@
 {
   "nav": {
     "serverInfo": "服务器信息",
-    "accounts": "账户"
+    "accounts": "账号"
   },
   "common": {
     "callbackScheme": "回调 scheme",
     "host": "主机",
-    "customScopes": "自定义 scope（逗号分隔）",
+    "customScopes": "自定义作用域（逗号分隔）",
     "example": "例如：$value"
   },
   "oauth": {
@@ -33,17 +33,17 @@
     "title": "服务器信息",
     "authorizationEndpoint": "授权端点",
     "tokenEndpoint": "令牌端点",
-    "scopesSupported": "支持的 scope（点击复制）",
+    "scopesSupported": "支持的作用域（点击复制）",
     "copied": "已复制：$scope"
   },
   "accounts": {
-    "title": "已登录的账户",
+    "title": "已登录的账号",
     "reload": "重新加载",
-    "loadFailed": "无法获取账户信息",
-    "empty": "没有已登录的账户",
+    "loadFailed": "无法获取账号信息",
+    "empty": "没有已登录的账号",
     "savedAt": "保存时间：$date",
-    "delete": "删除此账户",
-    "activeChanged": "已更改默认账户：$account"
+    "delete": "删除此账号",
+    "activeChanged": "已更改活动账号：$account"
   },
   "validation": {
     "hostRequired": "请输入主机",

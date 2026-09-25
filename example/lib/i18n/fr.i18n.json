@@ -1,12 +1,12 @@
 {
   "nav": {
-    "serverInfo": "Serveur",
+    "serverInfo": "Infos serveur",
     "accounts": "Comptes"
   },
   "common": {
     "callbackScheme": "Schéma de rappel",
     "host": "Hôte",
-    "customScopes": "Scopes personnalisés (séparés par des virgules)",
+    "customScopes": "Portées personnalisées (séparées par des virgules)",
     "example": "ex. : $value"
   },
   "oauth": {
@@ -33,7 +33,7 @@
     "title": "Informations du serveur",
     "authorizationEndpoint": "Point de terminaison d’autorisation",
     "tokenEndpoint": "Point de terminaison de jeton",
-    "scopesSupported": "Scopes pris en charge (touchez pour copier)",
+    "scopesSupported": "Portées prises en charge (touchez pour copier)",
     "copied": "Copié : $scope"
   },
   "accounts": {
@@ -43,7 +43,7 @@
     "empty": "Aucun compte connecté",
     "savedAt": "Enregistré : $date",
     "delete": "Supprimer ce compte",
-    "activeChanged": "Compte par défaut modifié : $account"
+    "activeChanged": "Compte actif modifié : $account"
   },
   "validation": {
     "hostRequired": "Saisissez un hôte",
@@ -59,7 +59,7 @@
     "invalidAuthConfig": "Les paramètres d’authentification ne sont pas valides",
     "serverInfo": "Impossible de récupérer les informations du serveur",
     "oauthNotSupported": "Ce serveur ne prend pas en charge OAuth (utilisez MiAuth)",
-    "stateMismatch": "La vérification de sécurité a échoué (state ne correspond pas)",
+    "stateMismatch": "La vérification de sécurité a échoué (le state ne correspond pas)",
     "authorizationCodeMissing": "Impossible d’obtenir le code d’autorisation",
     "authorizationServer": "Le serveur d’autorisation a renvoyé une erreur",
     "tokenExchange": "L’échange de jeton a échoué",

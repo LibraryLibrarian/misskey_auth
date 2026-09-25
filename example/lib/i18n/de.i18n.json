@@ -6,13 +6,13 @@
   "common": {
     "callbackScheme": "Callback-Schema",
     "host": "Host",
-    "customScopes": "Eigene Scopes (durch Kommas getrennt)",
+    "customScopes": "Benutzerdefinierte Scopes (durch Kommas getrennt)",
     "example": "z. B. $value"
   },
   "oauth": {
     "title": "OAuth-Einstellungen",
     "clientId": "Client-ID (URL)",
-    "redirectUri": "Weiterleitungs-URI",
+    "redirectUri": "Redirect-URI",
     "redirectUriHelper": "Muss exakt mit der auf der client_id-Seite eingetragenen URL übereinstimmen (benutzerdefiniertes Schema erlaubt)",
     "submit": "Mit OAuth anmelden",
     "success": "Anmeldung erfolgreich!",
@@ -43,7 +43,7 @@
     "empty": "Keine angemeldeten Konten",
     "savedAt": "Gespeichert: $date",
     "delete": "Dieses Konto entfernen",
-    "activeChanged": "Standardkonto geändert: $account"
+    "activeChanged": "Aktives Konto geändert: $account"
   },
   "validation": {
     "hostRequired": "Geben Sie einen Host ein",
@@ -54,7 +54,7 @@
     "callbackScheme": "Das Callback-Schema ist nicht korrekt konfiguriert (prüfen Sie AndroidManifest.xml / Info.plist)",
     "authorizationLaunch": "Der Authentifizierungsbildschirm konnte nicht geöffnet werden",
     "network": "Ein Netzwerkfehler ist aufgetreten",
-    "responseParse": "Die Serverantwort konnte nicht verarbeitet werden",
+    "responseParse": "Die Serverantwort konnte nicht ausgewertet werden",
     "secureStorage": "Der Zugriff auf den sicheren Speicher ist fehlgeschlagen",
     "invalidAuthConfig": "Die Authentifizierungseinstellungen sind ungültig",
     "serverInfo": "Serverinformationen konnten nicht abgerufen werden",

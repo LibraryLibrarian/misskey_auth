@@ -56,7 +56,7 @@ class _Translations$nav$fr extends Translations$nav$en {
 	final TranslationsFr _root; // ignore: unused_field
 
 	// Translations
-	@override String get serverInfo => 'Serveur';
+	@override String get serverInfo => 'Infos serveur';
 	@override String get accounts => 'Comptes';
 }
 
@@ -69,7 +69,7 @@ class _Translations$common$fr extends Translations$common$en {
 	// Translations
 	@override String get callbackScheme => 'Schéma de rappel';
 	@override String get host => 'Hôte';
-	@override String get customScopes => 'Scopes personnalisés (séparés par des virgules)';
+	@override String get customScopes => 'Portées personnalisées (séparées par des virgules)';
 	@override String example({required Object value}) => 'ex. : ${value}';
 }
 
@@ -117,7 +117,7 @@ class _Translations$serverInfo$fr extends Translations$serverInfo$en {
 	@override String get title => 'Informations du serveur';
 	@override String get authorizationEndpoint => 'Point de terminaison d’autorisation';
 	@override String get tokenEndpoint => 'Point de terminaison de jeton';
-	@override String get scopesSupported => 'Scopes pris en charge (touchez pour copier)';
+	@override String get scopesSupported => 'Portées prises en charge (touchez pour copier)';
 	@override String copied({required Object scope}) => 'Copié : ${scope}';
 }
 
@@ -134,7 +134,7 @@ class _Translations$accounts$fr extends Translations$accounts$en {
 	@override String get empty => 'Aucun compte connecté';
 	@override String savedAt({required Object date}) => 'Enregistré : ${date}';
 	@override String get delete => 'Supprimer ce compte';
-	@override String activeChanged({required Object account}) => 'Compte par défaut modifié : ${account}';
+	@override String activeChanged({required Object account}) => 'Compte actif modifié : ${account}';
 }
 
 // Path: validation
@@ -164,7 +164,7 @@ class _Translations$errors$fr extends Translations$errors$en {
 	@override String get invalidAuthConfig => 'Les paramètres d’authentification ne sont pas valides';
 	@override String get serverInfo => 'Impossible de récupérer les informations du serveur';
 	@override String get oauthNotSupported => 'Ce serveur ne prend pas en charge OAuth (utilisez MiAuth)';
-	@override String get stateMismatch => 'La vérification de sécurité a échoué (state ne correspond pas)';
+	@override String get stateMismatch => 'La vérification de sécurité a échoué (le state ne correspond pas)';
 	@override String get authorizationCodeMissing => 'Impossible d’obtenir le code d’autorisation';
 	@override String get authorizationServer => 'Le serveur d’autorisation a renvoyé une erreur';
 	@override String get tokenExchange => 'L’échange de jeton a échoué';
@@ -181,11 +181,11 @@ class _Translations$errors$fr extends Translations$errors$en {
 extension on TranslationsFr {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'nav.serverInfo' => 'Serveur',
+			'nav.serverInfo' => 'Infos serveur',
 			'nav.accounts' => 'Comptes',
 			'common.callbackScheme' => 'Schéma de rappel',
 			'common.host' => 'Hôte',
-			'common.customScopes' => 'Scopes personnalisés (séparés par des virgules)',
+			'common.customScopes' => 'Portées personnalisées (séparées par des virgules)',
 			'common.example' => ({required Object value}) => 'ex. : ${value}',
 			'oauth.title' => 'Paramètres OAuth',
 			'oauth.clientId' => 'ID client (URL)',
@@ -206,7 +206,7 @@ extension on TranslationsFr {
 			'serverInfo.title' => 'Informations du serveur',
 			'serverInfo.authorizationEndpoint' => 'Point de terminaison d’autorisation',
 			'serverInfo.tokenEndpoint' => 'Point de terminaison de jeton',
-			'serverInfo.scopesSupported' => 'Scopes pris en charge (touchez pour copier)',
+			'serverInfo.scopesSupported' => 'Portées prises en charge (touchez pour copier)',
 			'serverInfo.copied' => ({required Object scope}) => 'Copié : ${scope}',
 			'accounts.title' => 'Comptes connectés',
 			'accounts.reload' => 'Actualiser',
@@ -214,7 +214,7 @@ extension on TranslationsFr {
 			'accounts.empty' => 'Aucun compte connecté',
 			'accounts.savedAt' => ({required Object date}) => 'Enregistré : ${date}',
 			'accounts.delete' => 'Supprimer ce compte',
-			'accounts.activeChanged' => ({required Object account}) => 'Compte par défaut modifié : ${account}',
+			'accounts.activeChanged' => ({required Object account}) => 'Compte actif modifié : ${account}',
 			'validation.hostRequired' => 'Saisissez un hôte',
 			'validation.callbackSchemeRequired' => 'Saisissez un schéma de rappel',
 			'errors.userCancelled' => 'L’authentification a été annulée',
@@ -226,7 +226,7 @@ extension on TranslationsFr {
 			'errors.invalidAuthConfig' => 'Les paramètres d’authentification ne sont pas valides',
 			'errors.serverInfo' => 'Impossible de récupérer les informations du serveur',
 			'errors.oauthNotSupported' => 'Ce serveur ne prend pas en charge OAuth (utilisez MiAuth)',
-			'errors.stateMismatch' => 'La vérification de sécurité a échoué (state ne correspond pas)',
+			'errors.stateMismatch' => 'La vérification de sécurité a échoué (le state ne correspond pas)',
 			'errors.authorizationCodeMissing' => 'Impossible d’obtenir le code d’autorisation',
 			'errors.authorizationServer' => 'Le serveur d’autorisation a renvoyé une erreur',
 			'errors.tokenExchange' => 'L’échange de jeton a échoué',
