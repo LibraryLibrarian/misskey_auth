@@ -34,7 +34,7 @@
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.1
+  misskey_auth: ^0.2.0-beta.2
 ```
 
 ## 快速开始

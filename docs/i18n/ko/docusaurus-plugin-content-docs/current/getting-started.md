@@ -34,7 +34,7 @@ misskey_auth는 [Misskey](https://misskey-hub.net/ko/) 서버 인증을 위한 F
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.1
+  misskey_auth: ^0.2.0-beta.2
 ```
 
 그런 다음 패키지를 가져옵니다.

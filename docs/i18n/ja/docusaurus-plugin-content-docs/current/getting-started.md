@@ -34,7 +34,7 @@ misskey_auth は、[Misskey](https://misskey-hub.net/) サーバーでの認証�
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.1
+  misskey_auth: ^0.2.0-beta.2
 ```
 
 続けて取得します。

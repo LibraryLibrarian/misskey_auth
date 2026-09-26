@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-beta.2] - 2026-09-26
+
 ### Changed
 - Excluded development-only files from the published package, reducing the archive from 3 MB to about 35 KB. The `android/` and `ios/` directories at the repository root are `flutter create` scaffolding rather than platform implementations of this package, and the demo GIF in `assets/` is referenced from the README by absolute URL.
 - The example app's client_id page and HTTPS relay page moved to `https://librarylibrarian.github.io/misskey_auth/example/` and `https://librarylibrarian.github.io/misskey_auth/example/redirect.html`, and the example now uses them by default. The previous URLs no longer serve these pages, so OAuth in the example from earlier releases fails until you enter the new URLs. The pages are for trying the example; publish your own client_id page for your app.

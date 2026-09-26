@@ -34,7 +34,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.1
+  misskey_auth: ^0.2.0-beta.2
 ```
 
 Then fetch it:
