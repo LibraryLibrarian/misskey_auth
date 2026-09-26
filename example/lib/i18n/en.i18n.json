@@ -52,7 +52,7 @@
   },
   "errors": {
     "userCancelled": "Authentication was cancelled",
-    "callbackScheme": "The callback scheme is not configured correctly (check AndroidManifest.xml / Info.plist)",
+    "callbackScheme": "The callback scheme is not configured correctly (on Android, check AndroidManifest.xml; on iOS, check Info.plist)",
     "authorizationLaunch": "Could not open the authentication screen",
     "network": "A network error occurred",
     "responseParse": "Could not parse the server response",

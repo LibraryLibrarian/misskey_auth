@@ -52,7 +52,7 @@
   },
   "errors": {
     "userCancelled": "認証がキャンセルされました",
-    "callbackScheme": "コールバックスキームの設定が正しくありません（AndroidManifest/Info.plist を確認してください）",
+    "callbackScheme": "コールバックスキームの設定が正しくありません（Android は AndroidManifest.xml、iOS は Info.plist を確認してください）",
     "authorizationLaunch": "認証画面を起動できませんでした",
     "network": "ネットワークエラーが発生しました",
     "responseParse": "サーバー応答の解析に失敗しました",

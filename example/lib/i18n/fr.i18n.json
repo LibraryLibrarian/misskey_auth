@@ -52,7 +52,7 @@
   },
   "errors": {
     "userCancelled": "L’authentification a été annulée",
-    "callbackScheme": "Le schéma de rappel n’est pas configuré correctement (vérifiez AndroidManifest.xml / Info.plist)",
+    "callbackScheme": "Le schéma de rappel n’est pas configuré correctement (vérifiez AndroidManifest.xml sur Android et Info.plist sur iOS)",
     "authorizationLaunch": "Impossible d’ouvrir l’écran d’authentification",
     "network": "Une erreur réseau s’est produite",
     "responseParse": "Impossible d’analyser la réponse du serveur",
