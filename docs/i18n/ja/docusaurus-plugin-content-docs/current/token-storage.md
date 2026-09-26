@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` は `flutter_secure_storage` でトークンを保存します。保存先は iOS ではキーチェーン、Android では Keystore です。保存のオプションを変える場合は、独自に生成した `FlutterSecureStorage` を渡します。misskey_auth はこのクラスを再エクスポートしていないため、`flutter_secure_storage` を依存関係に追加して import してください。
+`SecureTokenStore` は `flutter_secure_storage` でトークンを保存します。保存先は iOS と macOS ではキーチェーン、Android では Keystore です。保存のオプションを変える場合は、独自に生成した `FlutterSecureStorage` を渡します。misskey_auth はこのクラスを再エクスポートしていないため、`flutter_secure_storage` を依存関係に追加して import してください。
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

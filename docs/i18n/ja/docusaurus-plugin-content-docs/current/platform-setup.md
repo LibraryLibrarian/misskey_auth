@@ -7,7 +7,7 @@ title: プラットフォーム設定
 
 認証は外部ブラウザで行います。認証が終わるとブラウザがアプリのカスタムスキームの URL を開き、OS がその URL をアプリに渡します。スキームの登録はアプリ側で行います。ライブラリが Manifest や `Info.plist` に追加することはありません。
 
-iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）には同じスキーム名を登録してください。完全一致が必要です。
+iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）には同じスキーム名を登録してください。完全一致が必要です。macOS では登録は不要です（[macOS](#macos) を参照）。
 
 ## iOS
 
@@ -74,3 +74,47 @@ iOS（`CFBundleURLSchemes`）と Android（`<data android:scheme="...">`）に�
 1. コールバックがアプリに届いていない。`CallbackActivity` に一致する `<intent-filter>` があるか確認してください。
 2. PWA や別のアプリがリンクを横取りした。
 3. `redirect_uri` が client_id ページの `<link rel="redirect_uri">` と完全一致せず、Misskey がリダイレクトしなかった。
+
+## macOS
+
+macOS ではスキームの登録は不要です。`flutter_web_auth_2` は認証ページを `ASWebAuthenticationSession` で開き、コールバックの URL を直接受け取ります。そのため `macos/Runner/Info.plist` に `CFBundleURLTypes` を追加する必要はありません。
+
+`macos/Runner/DebugProfile.entitlements` と `macos/Runner/Release.entitlements` の両方に、次の entitlement を追加してください。
+
+```xml
+<!-- サンドボックス内のアプリから Misskey サーバーへの通信 -->
+<key>com.apple.security.network.client</key>
+<true/>
+<!-- SecureTokenStore が既定で使うキーチェーン -->
+<key>keychain-access-groups</key>
+<array/>
+```
+
+設定の全体は [`example/macos/Runner/`](https://github.com/LibraryLibrarian/misskey_auth/tree/main/example/macos/Runner) にあります。
+
+注意:
+
+- `keychain-access-groups` を使うには、Apple Developer のチームで署名し、provisioning profile を用意する必要があります。Xcode で `macos/Runner.xcworkspace` を開き、Runner ターゲットの Signing & Capabilities でチームを選んでください。チームを選ばないと、Xcode はこの entitlement を付けて署名できません。
+- 無料の Apple Developer アカウントの場合、開発用の provisioning profile ではビルドした Mac でしかアプリを起動できません。
+
+### `keychain-access-groups` を使わずにトークンを保存する
+
+この entitlement を使いたくない場合は、データ保護キーチェーンを使わない `FlutterSecureStorage` を渡します。`mOptions` は macOS でのみ使われるため、他のプラットフォームでも同じコードのまま動きます。
+
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:misskey_auth/misskey_auth.dart';
+
+final auth = MisskeyAuthManager(
+  miauth: MisskeyMiAuthClient(),
+  oauth: MisskeyOAuthClient(),
+  store: const SecureTokenStore(
+    storage: FlutterSecureStorage(
+      mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+    ),
+  ),
+);
+```
+
+- 一方の設定で保存したトークンは、もう一方の設定では読めません。公開後に切り替えると、ユーザーは再度サインインが必要になります。
+- この設定で変わるのはトークンの保存先だけです。アプリを配布する際には、通常どおり署名と公証（notarization）が必要です。
