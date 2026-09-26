@@ -1,7 +1,8 @@
 {
   "nav": {
     "serverInfo": "서버 정보",
-    "accounts": "계정"
+    "accounts": "계정",
+    "licenses": "오픈소스 라이선스"
   },
   "common": {
     "callbackScheme": "콜백 스킴",

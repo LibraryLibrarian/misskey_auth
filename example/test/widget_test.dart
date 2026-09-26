@@ -46,7 +46,13 @@ void main() {
         Icons.info_outline,
         Icons.people,
       ]) {
-        await tester.tap(find.byIcon(icon));
+        // AppBar のライセンスボタンも info_outline のため、タブの中に限定する
+        await tester.tap(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.byIcon(icon),
+          ),
+        );
         // アカウント一覧はセキュアストレージの応答を待ち続けるため、
         // pumpAndSettle ではなく一定時間だけ進める
         await tester.pump(const Duration(seconds: 1));

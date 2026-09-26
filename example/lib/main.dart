@@ -357,6 +357,13 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Misskey Auth Sample'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: t.nav.licenses,
+            onPressed: () => showLicensePage(context: context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

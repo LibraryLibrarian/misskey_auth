@@ -1,7 +1,8 @@
 {
   "nav": {
     "serverInfo": "服务器信息",
-    "accounts": "账号"
+    "accounts": "账号",
+    "licenses": "开源许可"
   },
   "common": {
     "callbackScheme": "回调 scheme",

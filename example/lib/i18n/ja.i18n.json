@@ -1,7 +1,8 @@
 {
   "nav": {
     "serverInfo": "サーバー情報",
-    "accounts": "アカウント一覧"
+    "accounts": "アカウント一覧",
+    "licenses": "オープンソースライセンス"
   },
   "common": {
     "callbackScheme": "コールバックスキーム",
