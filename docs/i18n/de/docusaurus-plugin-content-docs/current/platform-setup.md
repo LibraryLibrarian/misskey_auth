@@ -95,11 +95,11 @@ Die vollständige Konfiguration finden Sie unter [`example/macos/Runner/`](https
 Hinweise:
 
 - `keychain-access-groups` erfordert die Signierung mit Ihrem Apple-Developer-Team und ein provisioning profile. Öffnen Sie in Xcode `macos/Runner.xcworkspace` und wählen Sie das Team unter Signing & Capabilities des Runner-Targets aus. Ohne Team kann Xcode die App nicht mit diesem Entitlement signieren.
-- Bei einem kostenlosen Apple-Developer-Konto kann die App mit dem Entwicklungs-provisioning-profile nur auf dem Mac gestartet werden, auf dem sie erstellt wurde.
+- Bei einem kostenlosen Apple-Developer-Konto kann die App mit dem provisioning profile für die Entwicklung nur auf dem Mac gestartet werden, auf dem sie erstellt wurde.
 
-### Tokens ohne `keychain-access-groups` speichern
+### Token ohne `keychain-access-groups` speichern
 
-Wenn Sie dieses Entitlement nicht verwenden möchten, übergeben Sie ein `FlutterSecureStorage`, das den Datensicherungs-Schlüsselbund nicht verwendet. `mOptions` gilt nur unter macOS, daher funktioniert derselbe Code auch auf den anderen Plattformen:
+Wenn Sie dieses Entitlement nicht verwenden möchten, übergeben Sie ein `FlutterSecureStorage`, das den Data-Protection-Schlüsselbund nicht verwendet. `mOptions` gilt nur unter macOS, daher funktioniert derselbe Code auch auf den anderen Plattformen:
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -116,5 +116,5 @@ final auth = MisskeyAuthManager(
 );
 ```
 
-- Mit der einen Einstellung gespeicherte Tokens können mit der anderen nicht gelesen werden. Bei einem Wechsel nach der Veröffentlichung müssen sich Benutzer erneut anmelden.
-- Diese Einstellung ändert nur den Speicherort der Tokens. Für die Verteilung der App sind weiterhin wie üblich Signierung und Notarisierung erforderlich.
+- Mit der einen Einstellung gespeicherte Token können mit der anderen nicht gelesen werden. Bei einem Wechsel nach der Veröffentlichung müssen sich Benutzer erneut anmelden.
+- Diese Einstellung ändert nur den Speicherort der Token. Für die Verteilung der App sind weiterhin wie üblich Signierung und Notarisierung erforderlich.

@@ -82,7 +82,7 @@ macOS 无需注册 scheme。`flutter_web_auth_2` 会使用 `ASWebAuthenticationS
 请将以下 entitlements 添加到 `macos/Runner/DebugProfile.entitlements` 和 `macos/Runner/Release.entitlements`：
 
 ```xml
-<!-- 允许沙盒应用访问 Misskey 服务器的网络请求 -->
+<!-- 沙盒应用向 Misskey 服务器发出的网络请求 -->
 <key>com.apple.security.network.client</key>
 <true/>
 <!-- SecureTokenStore 默认使用的钥匙串 -->
