@@ -20,13 +20,14 @@
 - 使用 `flutter_secure_storage` 安全保存令牌
 - 保存多个账户的令牌并切换当前账户
 - `MisskeyAuthManager`：高层 API，负责执行身份验证流程并保存令牌
-- iOS 和 Android
+- iOS、Android 和 macOS
 
 ## 运行要求
 
 - Flutter 3.47.1 或更高版本，Dart 3.13.1 或更高版本且低于 4.0
 - Android API 24 或更高版本，compileSdk 37 或更高版本
 - iOS 15 或更高版本
+- macOS 12.0 或更高版本
 
 从旧版本升级时，请先阅读[升级注意事项](https://librarylibrarian.github.io/misskey_auth/zh-Hans/upgrading)。Android 用户需要重新登录。
 
@@ -74,7 +75,7 @@ final current = await auth.currentToken();
 运行此代码前，需要完成以下两项设置。
 
 1. **client_id 页面（仅 OAuth）。** 发布一个 HTTPS 页面，并在其中通过 `<link rel="redirect_uri">` 声明 `redirect_uri`。请参阅 [client_id 页面](https://librarylibrarian.github.io/misskey_auth/zh-Hans/client-id-page)。
-2. **在应用中注册自定义 URL scheme。** 在 iOS 的 `Info.plist` 中，以及 Android 的 `flutter_web_auth_2` 的 `CallbackActivity` 中添加 `yourscheme`。请参阅[平台配置](https://librarylibrarian.github.io/misskey_auth/zh-Hans/platform-setup)。
+2. **在应用中注册自定义 URL scheme。** 在 iOS 的 `Info.plist` 中，以及 Android 的 `flutter_web_auth_2` 的 `CallbackActivity` 中添加 `yourscheme`。macOS 无需注册，但需要用于网络访问和钥匙串的 entitlements。请参阅[平台配置](https://librarylibrarian.github.io/misskey_auth/zh-Hans/platform-setup)。
 
 ## 文档
 

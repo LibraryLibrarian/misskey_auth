@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` enregistre les jetons avec `flutter_secure_storage` : dans le trousseau sur iOS et le Keystore sur Android. Pour modifier les options de stockage, transmettez une instance de `FlutterSecureStorage` que vous avez créée vous-même. misskey_auth ne réexporte pas cette classe ; ajoutez donc `flutter_secure_storage` à vos dépendances et importez-la :
+`SecureTokenStore` enregistre les jetons avec `flutter_secure_storage` : dans le trousseau sur iOS et macOS, et dans le Keystore sur Android. Pour modifier les options de stockage, transmettez une instance de `FlutterSecureStorage` que vous avez créée vous-même. misskey_auth ne réexporte pas cette classe ; ajoutez donc `flutter_secure_storage` à vos dépendances et importez-la :
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

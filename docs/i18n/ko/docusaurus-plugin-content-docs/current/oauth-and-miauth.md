@@ -129,7 +129,7 @@ MiAuth는 토큰과 함께 사용자 정보도 반환하며, `MisskeyAuthManager
 
 ## 하나의 앱에서 두 방식 모두 지원하기
 
-- `Info.plist`와 `AndroidManifest.xml`에 `yourscheme`과 같은 스킴 하나를 등록하면 OAuth와 MiAuth에서 함께 사용할 수 있습니다.
+- `Info.plist`와 `AndroidManifest.xml`에 `yourscheme`과 같은 스킴 하나를 등록하면 OAuth와 MiAuth에서 함께 사용할 수 있습니다. macOS에서는 등록이 필요하지 않습니다.
 - MiAuth는 스킴만(`yourscheme://`)으로 콜백합니다. MiAuth용으로 `yourscheme://oauth/callback`과 같은 경로를 준비할 필요가 없습니다.
 - Android에서는 [플랫폼 설정](./platform-setup.md#android)의 스킴만 지정하는 intent-filter를 유지하세요. host나 path로 제한된 필터를 사용하면 MiAuth 콜백이 앱에 전달되지 않습니다.
 

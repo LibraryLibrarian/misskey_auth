@@ -18,13 +18,14 @@ misskey_auth est une bibliothèque Flutter pour vous authentifier auprès des se
 - Stockage sécurisé des jetons avec `flutter_secure_storage`
 - Stockage des jetons de plusieurs comptes et changement du compte actif
 - `MisskeyAuthManager`, une API de haut niveau qui exécute l’authentification et enregistre les jetons
-- iOS et Android
+- iOS, Android et macOS
 
 ## Prérequis
 
 - Flutter 3.47.1 ou version ultérieure, et Dart 3.13.1 ou version ultérieure (avant Dart 4)
 - Android API 24 ou version ultérieure, avec compileSdk 37 ou version ultérieure
 - iOS 15 ou version ultérieure
+- macOS 12.0 ou version ultérieure
 
 Si vous effectuez une mise à niveau depuis une version antérieure, consultez d’abord [Mise à niveau](./upgrading.md). Sur Android, les utilisateurs doivent se reconnecter.
 
@@ -90,7 +91,7 @@ print(current?.accessToken);
 ## Étapes suivantes
 
 - [Page client_id](./client-id-page.md) : la page exigée par Misskey pour OAuth
-- [Configuration des plateformes](./platform-setup.md) : configuration iOS et Android
+- [Configuration des plateformes](./platform-setup.md) : configuration iOS, Android et macOS
 - [OAuth et MiAuth](./oauth-and-miauth.md) : différences entre les deux méthodes et exemples avec ou sans stockage des jetons
 - [Stockage des jetons](./token-storage.md) : plusieurs comptes, `TokenStore` et `SecureTokenStore`
 - [Gestion des erreurs](./error-handling.md) : exceptions levées par la bibliothèque

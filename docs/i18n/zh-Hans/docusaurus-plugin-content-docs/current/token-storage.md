@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` 使用 `flutter_secure_storage` 保存令牌：iOS 上使用 Keychain，Android 上使用 Keystore。如需更改存储选项，请传入自行创建的 `FlutterSecureStorage`。misskey_auth 不会重新导出该类，因此请将 `flutter_secure_storage` 添加到依赖项并导入：
+`SecureTokenStore` 使用 `flutter_secure_storage` 保存令牌：iOS 和 macOS 上使用 Keychain，Android 上使用 Keystore。如需更改存储选项，请传入自行创建的 `FlutterSecureStorage`。misskey_auth 不会重新导出该类，因此请将 `flutter_secure_storage` 添加到依赖项并导入：
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

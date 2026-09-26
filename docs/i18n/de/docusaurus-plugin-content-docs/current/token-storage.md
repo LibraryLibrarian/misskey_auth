@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` speichert Token mit `flutter_secure_storage`. Unter iOS werden sie im Schlüsselbund und unter Android im Keystore gespeichert. Wenn Sie die Speicheroptionen ändern möchten, übergeben Sie ein selbst erstelltes `FlutterSecureStorage`-Objekt. Da misskey_auth diese Klasse nicht erneut exportiert, fügen Sie `flutter_secure_storage` als Abhängigkeit hinzu und importieren Sie es.
+`SecureTokenStore` speichert Token mit `flutter_secure_storage`. Unter iOS und macOS werden sie im Schlüsselbund und unter Android im Keystore gespeichert. Wenn Sie die Speicheroptionen ändern möchten, übergeben Sie ein selbst erstelltes `FlutterSecureStorage`-Objekt. Da misskey_auth diese Klasse nicht erneut exportiert, fügen Sie `flutter_secure_storage` als Abhängigkeit hinzu und importieren Sie es.
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
