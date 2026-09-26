@@ -34,7 +34,7 @@ misskey_auth 是一个用于在 [Misskey](https://misskey-hub.net/en/) 服务器
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.1
+  misskey_auth: ^0.2.0-beta.2
 ```
 
 然后获取依赖：

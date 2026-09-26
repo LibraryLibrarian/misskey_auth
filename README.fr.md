@@ -34,7 +34,7 @@ Si vous effectuez une mise à niveau depuis une version antérieure, consultez d
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.1
+  misskey_auth: ^0.2.0-beta.2
 ```
 
 ## Démarrage rapide

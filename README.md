@@ -34,7 +34,7 @@ If you are upgrading from an earlier version, read [Upgrading](https://libraryli
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.1
+  misskey_auth: ^0.2.0-beta.2
 ```
 
 ## Quick Start
