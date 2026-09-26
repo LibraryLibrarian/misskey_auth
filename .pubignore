@@ -26,6 +26,7 @@
 # example はソースだけを残す
 /example/android/
 /example/ios/
+/example/macos/
 /example/test/
 /example/.idea/
 
