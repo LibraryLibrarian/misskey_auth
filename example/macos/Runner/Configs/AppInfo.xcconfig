@@ -8,7 +8,7 @@
 PRODUCT_NAME = misskey_auth_example
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.misskeyAuthExample
+PRODUCT_BUNDLE_IDENTIFIER = com.librarylibrarian.misskeyAuthExample
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
