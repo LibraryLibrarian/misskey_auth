@@ -30,6 +30,16 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('opens the license page from the AppBar', (tester) async {
+    LocaleSettings.setLocaleSync(AppLocale.en);
+    await tester.pumpWidget(_app());
+    await tester.tap(find.byTooltip('Open source licenses'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(LicensePage), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final locale in AppLocale.values) {
     testWidgets('renders every tab without overflow in ${locale.languageTag}', (
       tester,
