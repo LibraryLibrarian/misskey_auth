@@ -1,10 +1,90 @@
+// このファイルは misskey_auth / misskey_client / mastodon_client /
+// misskey_mfm_parser / misskey_emoji / misskey_mfm_renderer の6リポジトリで
+// バイト単位で同一に保つ。リポジトリごとの違いは release_config.dart に置く。
+//
+// 変更する場合は6リポジトリすべてへ同じ内容を反映すること。同一性は次で確認する。
+//   shasum -a 256 */tool/src/release_project.dart
+//
+// Flutter 3.38.7 と 3.47.1 の dart format が同じ出力を返すことを確認済み。
+// 折り返し位置が SDK 間で割れる書き方を持ち込まないこと。
+
 import 'dart:io';
 
-/// Files that contain the package dependency version shown to users.
-const versionReferencePaths = <String>['README.md'];
+/// How many times a package depends on itself inside a single reference file.
+sealed class VersionReferenceCount {
+  const VersionReferenceCount();
 
-// English and Japanese installation examples share one README.
-const _expectedReferenceCount = 2;
+  /// Requires exactly [count] references, failing when the number differs.
+  const factory VersionReferenceCount.exactly(int count) = _ExactReferences;
+
+  /// Requires at least one reference and updates every one of them.
+  const factory VersionReferenceCount.atLeastOne() = _AnyReferences;
+
+  void _check(int found, {required String path, required String packageName});
+}
+
+final class _ExactReferences extends VersionReferenceCount {
+  const _ExactReferences(this.count);
+
+  final int count;
+
+  @override
+  void _check(int found, {required String path, required String packageName}) {
+    if (found == count) return;
+    final noun = count == 1 ? 'reference' : 'references';
+    final amount = count == 1 ? 'one' : '$count';
+    throw ReleaseToolException(
+      '$path must contain exactly $amount dependency $noun for $packageName.',
+    );
+  }
+}
+
+final class _AnyReferences extends VersionReferenceCount {
+  const _AnyReferences();
+
+  @override
+  void _check(int found, {required String path, required String packageName}) {
+    if (found > 0) return;
+    throw ReleaseToolException(
+      '$path must contain at least one dependency reference for $packageName.',
+    );
+  }
+}
+
+/// Per-repository release settings.
+///
+/// Everything that differs between the packages sharing this tool lives here,
+/// so that `release_project.dart` itself stays byte-identical across them.
+final class ReleaseConfig {
+  /// Creates a configuration; every field is optional.
+  const ReleaseConfig({
+    this.versionReferencePaths = const <String>[],
+    this.referenceCount = const VersionReferenceCount.exactly(1),
+    this.exampleLockPath,
+  });
+
+  /// Files that show the package dependency version to users.
+  final List<String> versionReferencePaths;
+
+  /// How many references each of [versionReferencePaths] must contain.
+  final VersionReferenceCount referenceCount;
+
+  /// A `pubspec.lock` that pins this package through a path dependency.
+  ///
+  /// `null` when the repository has no example application to keep in sync.
+  final String? exampleLockPath;
+}
+
+const _promotionPointerTemplate = 'Included in [{version}].';
+const _categoryOrder = <String>[
+  'Breaking changes',
+  'Added',
+  'Changed',
+  'Deprecated',
+  'Removed',
+  'Fixed',
+  'Security',
+];
 
 final RegExp _semanticVersionPattern = RegExp(
   r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)'
@@ -12,6 +92,10 @@ final RegExp _semanticVersionPattern = RegExp(
   r'(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?'
   r'(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$',
 );
+
+final RegExp _datedHeadingSuffix = RegExp(r' - \d{4}-\d{2}-\d{2}[ \t]*$');
+
+final RegExp _numericIdentifier = RegExp(r'^\d+$');
 
 /// An expected release file or value was missing or inconsistent.
 final class ReleaseToolException implements Exception {
@@ -28,6 +112,249 @@ final class ReleaseToolException implements Exception {
 /// Returns the package version declared in `pubspec.yaml` under [root].
 String readPubspecVersion(Directory root) => _readProject(root).version;
 
+/// The release channel used when deriving the next version.
+enum ReleaseChannel {
+  /// Publishes `x.y.z-beta.n` from the release train that is currently open.
+  beta,
+
+  /// Publishes `x.y.z`, collapsing the prereleases that led up to it.
+  stable,
+}
+
+/// Derives the next version from `CHANGELOG.md` under [root].
+///
+/// The impact is declared in the changelog rather than inferred from commit
+/// messages, because commit subjects have recorded breaking changes as `docs:`
+/// in this project's own history. A non-empty `### Breaking changes` section
+/// or a `**Breaking:**` bullet means a breaking release, a non-empty
+/// `### Added` section means a feature release, and anything else is a fix
+/// release. Fenced code blocks are ignored so that examples are not read as
+/// declarations.
+///
+/// The impact is accumulated from every entry published since the last stable
+/// release, so reopening the same train keeps its version. While the major
+/// version is `0`, a breaking release raises the minor version instead, which
+/// is what Semantic Versioning permits and what this project has always done.
+///
+/// Before the first stable release the core version never moves: the train
+/// being assembled is itself the target, so a breaking change only advances
+/// the prerelease counter.
+String nextReleaseVersion(
+  Directory root, {
+  ReleaseChannel channel = ReleaseChannel.beta,
+}) {
+  final project = _readProject(root);
+  final entries = _changelogEntries(_readFile(root, 'CHANGELOG.md'));
+
+  final unreleased = entries.where((entry) => entry.isUnreleased).toList();
+  if (unreleased.length != 1) {
+    throw const ReleaseToolException(
+      'CHANGELOG.md must contain exactly one Unreleased heading.',
+    );
+  }
+  final pending = unreleased.single.body;
+  // 折り返し位置が SDK 間で割れないよう、メソッドチェーンを分ける
+  final current = _ReleaseVersion(project.version);
+  final currentIsPrerelease = current.prerelease.isNotEmpty;
+  // 空の Unreleased が許されるのは、プレリリースを正式版へ昇格する場合だけ。
+  // 昇格ではベータ各版の内容が畳み込まれるため、リリースノートは空にならない。
+  final promoting = channel == ReleaseChannel.stable && currentIsPrerelease;
+  if (!_hasReleaseContent(pending) && !promoting) {
+    throw const ReleaseToolException(
+      'CHANGELOG.md has no entries under Unreleased. Nothing to release.',
+    );
+  }
+
+  final released = entries.where((entry) => entry.isRelease).toList();
+  String? lastStable;
+  for (final entry in released) {
+    if (_ReleaseVersion(entry.version).prerelease.isNotEmpty) continue;
+    if (lastStable == null) {
+      lastStable = entry.version;
+      continue;
+    }
+    if (compareReleaseVersions(entry.version, lastStable) > 0) {
+      lastStable = entry.version;
+    }
+  }
+
+  var impact = _releaseImpact(pending);
+  for (final entry in released) {
+    if (lastStable != null &&
+        compareReleaseVersions(entry.version, lastStable) <= 0) {
+      continue;
+    }
+    final entryImpact = _releaseImpact(entry.body);
+    if (entryImpact > impact) impact = entryImpact;
+  }
+
+  final currentCore = current.core.join('.');
+  final String targetCore;
+  if (lastStable == null) {
+    // 安定版を一度も公開していない。いま組んでいる列が目標そのものなので、
+    // 破壊的変更が入ってもコアは動かさない。
+    targetCore = currentCore;
+  } else {
+    final bumped = _bumpCore(_ReleaseVersion(lastStable).core, impact);
+    final ahead = compareReleaseVersions(bumped, currentCore) > 0;
+    targetCore = ahead ? bumped : currentCore;
+  }
+
+  if (channel == ReleaseChannel.stable) {
+    if (compareReleaseVersions(targetCore, project.version) <= 0) {
+      throw ReleaseToolException(
+        'Version $targetCore would not be greater than ${project.version}.',
+      );
+    }
+    return targetCore;
+  }
+
+  final sameTrain = currentCore == targetCore && current.prerelease.isNotEmpty;
+  if (!sameTrain) return '$targetCore-beta.1';
+
+  // 既に開いている列は識別子を引き継ぐ。採番できる形は `<label>` と
+  // `<label>.<number>` だけで、それ以外を推測すると現在より小さい版を
+  // 返しかねないため明示的に断る。
+  final prerelease = current.prerelease;
+  final label = prerelease.first;
+  final labelOnly = prerelease.length == 1;
+  final numbered =
+      prerelease.length == 2 && _numericIdentifier.hasMatch(prerelease[1]);
+  if (_numericIdentifier.hasMatch(label) || (!labelOnly && !numbered)) {
+    throw ReleaseToolException(
+      'Cannot number the next prerelease after ${project.version}. '
+      'Supported forms are <label> and <label>.<number>. '
+      'Pass an explicit version instead.',
+    );
+  }
+  final counter = numbered ? int.parse(prerelease[1]) : 0;
+  return '$targetCore-$label.${counter + 1}';
+}
+
+/// Whether [body] holds anything beyond blank category headings.
+bool _hasReleaseContent(String body) {
+  if (body.trim().isEmpty) return false;
+  final withoutHeadings = body.replaceAll(_categoryHeading, '');
+  return withoutHeadings.trim().isNotEmpty;
+}
+
+const _impactPatch = 0;
+const _impactMinor = 1;
+const _impactMajor = 2;
+
+// 過去の記載には **Breaking:** / **BREAKING**: / **Breaking**: が混在する。
+// 箇条書きの先頭に限定しないと `**Breaking changes are documented below**`
+// のような散文まで拾ってしまう。
+final RegExp _breakingBullet = RegExp(
+  r'^[ \t]*[-*][ \t]+\*\*[ \t]*breaking[ \t]*:?[ \t]*\*\*[ \t]*:?',
+  caseSensitive: false,
+  multiLine: true,
+);
+
+final RegExp _fencedCode = RegExp(r'^[ \t]*```[^\n]*$', multiLine: true);
+
+final RegExp _categoryHeading = RegExp(
+  r'^###[ \t]+(.+?)[ \t]*$',
+  multiLine: true,
+);
+
+/// Drops fenced code blocks so that examples cannot be read as declarations.
+String _withoutCodeBlocks(String body) {
+  final fences = _fencedCode.allMatches(body).toList();
+  if (fences.isEmpty) return body;
+  final buffer = StringBuffer();
+  var cursor = 0;
+  for (var i = 0; i + 1 < fences.length; i += 2) {
+    buffer.write(body.substring(cursor, fences[i].start));
+    cursor = fences[i + 1].end;
+  }
+  // 閉じていないフェンスは、そこから末尾までをコードとして扱う
+  if (fences.length.isOdd) return buffer.toString();
+  buffer.write(body.substring(cursor));
+  return buffer.toString();
+}
+
+int _releaseImpact(String rawBody) {
+  final body = _withoutCodeBlocks(rawBody);
+  if (_breakingBullet.hasMatch(body)) return _impactMajor;
+  final categories = _bodyCategories(body);
+  for (final entry in categories.entries) {
+    final name = entry.key.toLowerCase();
+    final breaking = name == 'breaking changes' || name == 'breaking';
+    if (breaking && entry.value.trim().isNotEmpty) return _impactMajor;
+  }
+  final added = categories['Added'];
+  if (added != null && added.trim().isNotEmpty) return _impactMinor;
+  return _impactPatch;
+}
+
+Map<String, String> _bodyCategories(String body) {
+  final categories = <String, String>{};
+  final headings = _categoryHeading.allMatches(body).toList();
+  for (var i = 0; i < headings.length; i++) {
+    final heading = headings[i];
+    final end = i + 1 < headings.length ? headings[i + 1].start : body.length;
+    final name = heading.group(1)!;
+    final text = body.substring(heading.end, end);
+    categories[name] = '${categories[name] ?? ''}$text';
+  }
+  return categories;
+}
+
+String _bumpCore(List<String> core, int impact) {
+  final major = int.parse(core[0]);
+  final minor = int.parse(core[1]);
+  final patch = int.parse(core[2]);
+  if (impact == _impactMajor) {
+    // major が 0 の間、破壊的変更は minor で表す
+    if (major == 0) return '0.${minor + 1}.0';
+    return '${major + 1}.0.0';
+  }
+  if (impact == _impactMinor) return '$major.${minor + 1}.0';
+  return '$major.$minor.${patch + 1}';
+}
+
+final RegExp _entryHeading = RegExp(
+  r'^## \[([^\]\r\n]+)\][^\r\n]*',
+  multiLine: true,
+);
+
+final RegExp _entryHeadingCandidate = RegExp(r'^##[ \t]*\[', multiLine: true);
+
+List<_ChangelogEntry> _changelogEntries(String changelog) {
+  final headings = _entryHeading.allMatches(changelog).toList();
+  // 壊れた見出しは黙って無視すると影響度を過小評価する。たとえば閉じ括弧を
+  // 欠いた安定版の見出しは「安定版を一度も公開していない」と誤認される。
+  final candidates = _entryHeadingCandidate.allMatches(changelog).length;
+  if (candidates != headings.length) {
+    throw const ReleaseToolException(
+      'CHANGELOG.md has a malformed release heading. '
+      'Every heading must read "## [version] - YYYY-MM-DD".',
+    );
+  }
+  final entries = <_ChangelogEntry>[];
+  for (var i = 0; i < headings.length; i++) {
+    final heading = headings[i];
+    final end = i + 1 < headings.length
+        ? headings[i + 1].start
+        : changelog.length;
+    final body = changelog.substring(heading.end, end);
+    entries.add(_ChangelogEntry(heading.group(1)!, body));
+  }
+  return entries;
+}
+
+final class _ChangelogEntry {
+  _ChangelogEntry(this.version, this.body);
+
+  final String version;
+  final String body;
+
+  bool get isUnreleased => version == 'Unreleased';
+
+  bool get isRelease => _semanticVersionPattern.hasMatch(version);
+}
+
 /// Updates every release version reference under [root].
 ///
 /// All inputs are validated before any file is written. The returned paths are
@@ -35,6 +362,7 @@ String readPubspecVersion(Directory root) => _readProject(root).version;
 List<String> bumpVersion(
   Directory root,
   String nextVersion, {
+  required ReleaseConfig config,
   DateTime? releaseDate,
 }) {
   validateReleaseVersion(nextVersion);
@@ -46,6 +374,12 @@ List<String> bumpVersion(
     );
   }
 
+  if (compareReleaseVersions(nextVersion, project.version) <= 0) {
+    throw ReleaseToolException(
+      'Version $nextVersion must be greater than ${project.version}.',
+    );
+  }
+
   final updates = <String, String>{};
   updates['pubspec.yaml'] = _replacePubspecVersion(
     project.pubspec,
@@ -53,14 +387,14 @@ List<String> bumpVersion(
     nextVersion,
   );
 
-  for (final path in versionReferencePaths) {
-    final content = _readFile(root, path);
-    updates[path] = _replaceVersionReference(
-      content,
+  for (final path in config.versionReferencePaths) {
+    updates[path] = _replaceVersionReferences(
+      _readFile(root, path),
       path: path,
       packageName: project.name,
       currentVersion: project.version,
       nextVersion: nextVersion,
+      count: config.referenceCount,
     );
   }
 
@@ -71,6 +405,17 @@ List<String> bumpVersion(
     releaseDate ?? DateTime.now(),
   );
 
+  final lockPath = config.exampleLockPath;
+  if (lockPath != null) {
+    updates[lockPath] = _replaceExampleLockVersion(
+      _readFile(root, lockPath),
+      path: lockPath,
+      packageName: project.name,
+      currentVersion: project.version,
+      nextVersion: nextVersion,
+    );
+  }
+
   for (final entry in updates.entries) {
     _file(root, entry.key).writeAsStringSync(entry.value);
   }
@@ -79,7 +424,11 @@ List<String> bumpVersion(
 }
 
 /// Verifies that [expectedVersion] matches every release version reference.
-void verifyRelease(Directory root, String expectedVersion) {
+void verifyRelease(
+  Directory root,
+  String expectedVersion, {
+  required ReleaseConfig config,
+}) {
   validateReleaseVersion(expectedVersion);
 
   final project = _readProject(root);
@@ -89,11 +438,21 @@ void verifyRelease(Directory root, String expectedVersion) {
     );
   }
 
-  for (final path in versionReferencePaths) {
-    final content = _readFile(root, path);
-    _readVersionReference(
-      content,
+  for (final path in config.versionReferencePaths) {
+    _readVersionReferences(
+      _readFile(root, path),
       path: path,
+      packageName: project.name,
+      expectedVersion: expectedVersion,
+      count: config.referenceCount,
+    );
+  }
+
+  final lockPath = config.exampleLockPath;
+  if (lockPath != null) {
+    _readExampleLockVersion(
+      _readFile(root, lockPath),
+      path: lockPath,
       packageName: project.name,
       expectedVersion: expectedVersion,
     );
@@ -167,6 +526,59 @@ void validateReleaseVersion(String version) {
   }
 }
 
+/// Compares valid Semantic Versions by precedence, ignoring build metadata.
+int compareReleaseVersions(String a, String b) {
+  validateReleaseVersion(a);
+  validateReleaseVersion(b);
+  final left = _ReleaseVersion(a);
+  final right = _ReleaseVersion(b);
+  for (var i = 0; i < left.core.length; i++) {
+    final leftCore = BigInt.parse(left.core[i]);
+    final rightCore = BigInt.parse(right.core[i]);
+    final order = leftCore.compareTo(rightCore);
+    if (order != 0) return order;
+  }
+  final leftPre = left.prerelease;
+  final rightPre = right.prerelease;
+  if (leftPre.isEmpty) return rightPre.isEmpty ? 0 : 1;
+  if (rightPre.isEmpty) return -1;
+  for (var i = 0; i < leftPre.length && i < rightPre.length; i++) {
+    final leftNumber = _numericIdentifier.hasMatch(leftPre[i])
+        ? BigInt.parse(leftPre[i])
+        : null;
+    final rightNumber = _numericIdentifier.hasMatch(rightPre[i])
+        ? BigInt.parse(rightPre[i])
+        : null;
+    final int order;
+    if (leftNumber != null && rightNumber != null) {
+      order = leftNumber.compareTo(rightNumber);
+    } else if (leftNumber != null) {
+      order = -1;
+    } else if (rightNumber != null) {
+      order = 1;
+    } else {
+      order = leftPre[i].compareTo(rightPre[i]);
+    }
+    if (order != 0) return order;
+  }
+  return leftPre.length.compareTo(rightPre.length);
+}
+
+final class _ReleaseVersion {
+  _ReleaseVersion(String version) {
+    final precedence = version.split('+').first;
+    final separator = precedence.indexOf('-');
+    core = (separator < 0 ? precedence : precedence.substring(0, separator))
+        .split('.');
+    prerelease = separator < 0
+        ? <String>[]
+        : precedence.substring(separator + 1).split('.');
+  }
+
+  late final List<String> core;
+  late final List<String> prerelease;
+}
+
 _Project _readProject(Directory root) {
   final pubspec = _readFile(root, 'pubspec.yaml');
   final name = _readSingleValue(pubspec, path: 'pubspec.yaml', field: 'name');
@@ -227,51 +639,59 @@ String _replacePubspecVersion(
   );
 }
 
-String _replaceVersionReference(
+String _replaceVersionReferences(
   String content, {
   required String path,
   required String packageName,
   required String currentVersion,
   required String nextVersion,
+  required VersionReferenceCount count,
 }) {
   final matches = _versionReferenceMatches(
     content,
     path: path,
     packageName: packageName,
+    count: count,
   );
   var updated = content;
+  // Replace backwards so that the earlier offsets stay valid.
   for (final match in matches.reversed) {
     final foundVersion = match.group(2)!;
     if (foundVersion != currentVersion) {
       throw ReleaseToolException(
-        '$path references $packageName ^$foundVersion, expected ^$currentVersion.',
+        '$path references $packageName ^$foundVersion, expected '
+        '^$currentVersion.',
       );
     }
-    final start = match.start + match.group(1)!.length;
+    final versionStart = match.start + match.group(1)!.length;
     updated = updated.replaceRange(
-      start,
-      start + foundVersion.length,
+      versionStart,
+      versionStart + foundVersion.length,
       nextVersion,
     );
   }
   return updated;
 }
 
-void _readVersionReference(
+void _readVersionReferences(
   String content, {
   required String path,
   required String packageName,
   required String expectedVersion,
+  required VersionReferenceCount count,
 }) {
-  for (final match in _versionReferenceMatches(
+  final matches = _versionReferenceMatches(
     content,
     path: path,
     packageName: packageName,
-  )) {
+    count: count,
+  );
+  for (final match in matches) {
     final foundVersion = match.group(2)!;
     if (foundVersion != expectedVersion) {
       throw ReleaseToolException(
-        '$path references $packageName ^$foundVersion, expected ^$expectedVersion.',
+        '$path references $packageName ^$foundVersion, expected '
+        '^$expectedVersion.',
       );
     }
   }
@@ -281,6 +701,7 @@ List<RegExpMatch> _versionReferenceMatches(
   String content, {
   required String path,
   required String packageName,
+  required VersionReferenceCount count,
 }) {
   final pattern = RegExp(
     '^([ \\t]*${RegExp.escape(packageName)}:[ \\t]*\\^)'
@@ -288,12 +709,76 @@ List<RegExpMatch> _versionReferenceMatches(
     multiLine: true,
   );
   final matches = pattern.allMatches(content).toList();
-  if (matches.length != _expectedReferenceCount) {
+  count._check(matches.length, path: path, packageName: packageName);
+  return matches;
+}
+
+String _replaceExampleLockVersion(
+  String content, {
+  required String path,
+  required String packageName,
+  required String currentVersion,
+  required String nextVersion,
+}) {
+  final match = _exampleLockVersionMatch(
+    content,
+    path: path,
+    packageName: packageName,
+  );
+  final foundVersion = match.group(2)!;
+  if (foundVersion != currentVersion) {
     throw ReleaseToolException(
-      '$path must contain exactly $_expectedReferenceCount dependency references for $packageName.',
+      '$path has $packageName version $foundVersion, expected $currentVersion.',
     );
   }
-  return matches;
+  final versionStart = match.start + match.group(1)!.length;
+  return content.replaceRange(
+    versionStart,
+    versionStart + foundVersion.length,
+    nextVersion,
+  );
+}
+
+void _readExampleLockVersion(
+  String content, {
+  required String path,
+  required String packageName,
+  required String expectedVersion,
+}) {
+  final match = _exampleLockVersionMatch(
+    content,
+    path: path,
+    packageName: packageName,
+  );
+  final foundVersion = match.group(2)!;
+  if (foundVersion != expectedVersion) {
+    throw ReleaseToolException(
+      '$path has $packageName version $foundVersion, expected '
+      '$expectedVersion.',
+    );
+  }
+}
+
+RegExpMatch _exampleLockVersionMatch(
+  String content, {
+  required String path,
+  required String packageName,
+}) {
+  final pattern = RegExp(
+    '^(  ${RegExp.escape(packageName)}:\\r?\\n'
+    r'(?:    [^\r\n]*(?:\r?\n|$))*?'
+    r'    source: path\r?\n'
+    r'    version: ")([^"]+)"[ \t]*$',
+    multiLine: true,
+  );
+  final matches = pattern.allMatches(content).toList();
+  if (matches.length != 1) {
+    throw ReleaseToolException(
+      '$path must contain exactly one $packageName package entry '
+      'with a version.',
+    );
+  }
+  return matches.single;
 }
 
 String _addChangelogRelease(
@@ -309,6 +794,18 @@ String _addChangelogRelease(
     throw ReleaseToolException(
       'CHANGELOG.md already contains a heading for $nextVersion.',
     );
+  }
+
+  final headings = _entryHeading.allMatches(changelog).toList();
+  for (final heading in headings) {
+    final version = heading.group(1)!;
+    if (_semanticVersionPattern.hasMatch(version) &&
+        compareReleaseVersions(nextVersion, version) <= 0) {
+      throw ReleaseToolException(
+        'Version $nextVersion must be greater than CHANGELOG.md version '
+        '$version.',
+      );
+    }
   }
 
   final unreleasedPattern = RegExp(
@@ -328,7 +825,128 @@ String _addChangelogRelease(
       '## [Unreleased]$newline$newline'
       '## [$nextVersion] - $date$newline$newline';
   final match = unreleasedMatches.single;
-  return changelog.replaceRange(match.start, match.end, replacement);
+  final next = _ReleaseVersion(nextVersion);
+  final prereleases = <RegExpMatch>[];
+  if (next.prerelease.isEmpty) {
+    // 直近の安定版より後のプレリリースはすべてこの版に入る。列の途中で影響度が
+    // 上がってコアが変わった場合（2.1.0-beta.1 のあとに破壊的変更が入り 3.0.0
+    // になるなど）でも、先行ベータの内容を取りこぼさない。
+    String? lastStable;
+    for (final heading in headings) {
+      final version = heading.group(1)!;
+      if (!_semanticVersionPattern.hasMatch(version)) continue;
+      if (_ReleaseVersion(version).prerelease.isNotEmpty) continue;
+      final newer =
+          lastStable == null || compareReleaseVersions(version, lastStable) > 0;
+      if (newer) lastStable = version;
+    }
+    for (final heading in headings) {
+      final version = heading.group(1)!;
+      if (!_semanticVersionPattern.hasMatch(version)) continue;
+      if (_ReleaseVersion(version).prerelease.isEmpty) continue;
+      if (!_datedHeadingSuffix.hasMatch(heading.group(0)!)) continue;
+      if (lastStable != null &&
+          compareReleaseVersions(version, lastStable) <= 0) {
+        continue;
+      }
+      prereleases.add(heading);
+    }
+  }
+  if (prereleases.isEmpty) {
+    return changelog.replaceRange(match.start, match.end, replacement);
+  }
+
+  int bodyEnd(RegExpMatch heading) {
+    final index = headings.indexOf(heading);
+    return index + 1 < headings.length
+        ? headings[index + 1].start
+        : changelog.length;
+  }
+
+  // Break precedence ties by file order, with older entries first.
+  prereleases.sort((a, b) {
+    final order = compareReleaseVersions(a.group(1)!, b.group(1)!);
+    return order == 0 ? b.start.compareTo(a.start) : order;
+  });
+  final unreleased = headings.singleWhere(
+    (heading) => heading.start == match.start,
+  );
+  final sources = <String>[
+    for (final heading in prereleases)
+      changelog.substring(heading.end, bodyEnd(heading)),
+    changelog.substring(unreleased.end, bodyEnd(unreleased)),
+  ];
+  final merged = _mergeReleaseBodies(sources, newline);
+  final pointer = _promotionPointerTemplate.replaceAll(
+    '{version}',
+    nextVersion,
+  );
+  var updated = changelog;
+  // Apply replacements backwards so the original offsets remain valid.
+  final replaced = <RegExpMatch>[...prereleases, unreleased]
+    ..sort((a, b) => b.start.compareTo(a.start));
+  for (final heading in replaced) {
+    if (heading == unreleased) {
+      updated = updated.replaceRange(
+        heading.start,
+        bodyEnd(heading),
+        '$replacement$merged$newline$newline',
+      );
+    } else {
+      updated = updated.replaceRange(
+        heading.end,
+        bodyEnd(heading),
+        '$newline$newline$pointer$newline$newline',
+      );
+    }
+  }
+  return updated;
+}
+
+String _mergeReleaseBodies(List<String> sources, String newline) {
+  final seen = <String>{};
+  final preamble = _ReleaseLines(seen);
+  final categories = <String, _ReleaseLines>{};
+  final categoryPattern = RegExp(r'^###[ \t]+(.+?)\s*$');
+  for (final source in sources) {
+    var lines = preamble;
+    for (final line in source.trim().split(RegExp(r'\r?\n'))) {
+      final category = categoryPattern.firstMatch(line);
+      if (category != null) {
+        lines = categories.putIfAbsent(
+          category.group(1)!,
+          () => _ReleaseLines(seen),
+        );
+      } else {
+        lines.add(line);
+      }
+    }
+  }
+  final sections = <String>[];
+  final introduction = preamble.render(newline);
+  if (introduction.isNotEmpty) sections.add(introduction);
+  final names = <String>{..._categoryOrder, ...categories.keys};
+  for (final name in names) {
+    final lines = categories[name];
+    if (lines == null) continue;
+    sections.add(
+      '### $name$newline$newline${lines.render(newline)}'.trimRight(),
+    );
+  }
+  return sections.join('$newline$newline');
+}
+
+final class _ReleaseLines {
+  _ReleaseLines(this._seen);
+
+  final _lines = <String>[];
+  final Set<String> _seen;
+
+  void add(String line) {
+    if (line.trim().isEmpty || _seen.add(line.trim())) _lines.add(line);
+  }
+
+  String render(String newline) => _lines.join(newline).trim();
 }
 
 String _formatDate(DateTime date) {

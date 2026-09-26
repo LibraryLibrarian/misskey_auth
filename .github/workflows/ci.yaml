@@ -20,11 +20,17 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    # dorny/paths-filter は PR 時に変更ファイル一覧を REST API から取得するため、
+    # ワークフロー既定の contents: read に加えて pull-requests: read が必要になる
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       package: ${{ steps.filter.outputs.package }}
       android: ${{ steps.filter.outputs.android }}
       ios: ${{ steps.filter.outputs.ios }}
       publish: ${{ steps.filter.outputs.publish }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -40,6 +46,7 @@ jobs:
               - 'example/lib/**'
               - 'example/test/**'
               - 'example/pubspec.yaml'
+              - 'example/build.yaml'
               - '.github/workflows/**'
             # ネイティブビルド固有のリスク（ツールチェーン / プラグイン結合）がある変更のみを対象にする。
             # Dart レベルの破壊は package ジョブの dart analyze が example/lib まで検出するため含めない
@@ -60,10 +67,16 @@ jobs:
               - 'pubspec.yaml'
               - 'lib/**'
               - 'README.md'
+              - 'README.*.md'
               - 'CHANGELOG.md'
               - 'LICENSE'
               - '.pubignore'
               - '.gitignore'
+              - '.github/workflows/**'
+            # ドキュメントサイトは main への push で公開される。client_id ページと中継ページも
+            # このビルドの成果物として配信されるため、壊れたビルドを main へ持ち込まない
+            docs:
+              - 'docs/**'
               - '.github/workflows/**'
 
   package:
@@ -99,6 +112,25 @@ jobs:
       - name: Resolve (max)
         if: matrix.resolution == 'max'
         run: flutter pub upgrade
+      # example の slang 生成物は git 管理外のため、analyze / test の前に生成する
+      - name: Generate example code
+        working-directory: example
+        run: flutter pub get && dart run build_runner build
+      # 翻訳キーの過不足を検出する。基準言語（en）にあって他言語にないキーと、
+      # コードから参照されていないキーがあれば失敗させる
+      - name: Check example translations
+        if: matrix.format
+        working-directory: example
+        run: |
+          out="$RUNNER_TEMP/slang"
+          mkdir -p "$out"
+          dart run slang analyze --full --outdir="$out"
+          for f in "$out/_missing_translations.json" "$out/_unused_translations.json"; do
+            if ! jq -e '[del(."@@info")[] | length] | all(. == 0)' "$f" > /dev/null; then
+              cat "$f"
+              exit 1
+            fi
+          done
       # dart format の整形結果は SDK バージョンで変わりうるため、最新 SDK の1本のみを正とする
       - name: Format check
         if: matrix.format
@@ -132,7 +164,7 @@ jobs:
         with: { distribution: 'temurin', java-version: '17', cache: 'gradle' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
-      - run: cd example && flutter pub get && flutter build apk
+      - run: cd example && flutter pub get && dart run build_runner build && flutter build apk
       - uses: actions/upload-artifact@v4
         with:
           name: example-android-apk
@@ -151,7 +183,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
-      - run: cd example && flutter pub get && flutter build ios --debug --simulator
+      - run: cd example && flutter pub get && dart run build_runner build && flutter build ios --debug --simulator
 
   # 公開不能な状態は持ち込んだ PR の時点で検出する（40 秒程度で完了するため常時実行に見合う）。
   # リリース経路（main 向け PR / main への push）では paths に関わらず必ず実行する
@@ -183,9 +215,132 @@ jobs:
             exit 1
           fi
 
+  # docs.yml は main への push でしか動かないため、ビルドの失敗（onBrokenLinks: 'throw' を含む）は
+  # PR の時点で検出する。リリース経路では paths に関わらず必ず実行する
+  docs-build:
+    needs: changes
+    if: >-
+      needs.changes.outputs.docs == 'true' ||
+      github.base_ref == 'main' ||
+      github.ref == 'refs/heads/main' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: docs/.node-version
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+  # 公開済みバージョンとの公開API差分を報告する。CHANGELOG で宣言した影響度と
+  # 実際のAPI差分の食い違いは、これまでリリース後にしか分からなかった。
+  #
+  # 報告のみで、gate の needs には入れない。破壊的変更の有無からバージョンを
+  # 機械的に決めるのは誤検知の余地があり、判断は人間に残す。
+  api-diff:
+    name: API diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dart_apitool
+        run: dart pub global activate dart_apitool 0.23.2
+
+      - name: Diff the public API against the published version
+        run: |
+          set -euo pipefail
+
+          name="$(sed -n 's/^name:[[:space:]]*\([^[:space:]#]*\).*$/\1/p' pubspec.yaml)"
+          if [ "$(printf '%s\n' "$name" | grep -c .)" != "1" ]; then
+            echo "::error::pubspec.yaml must declare exactly one top-level name."
+            exit 1
+          fi
+
+          # 比較できなかった理由をサマリに残して正常終了する
+          skip() {
+            {
+              echo "## API diff"
+              echo
+              echo "$1"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+
+          # pub.dev は未知のパッケージに 404 と XML 本文を返す。本文を読む前に
+          # HTTP ステータスで分岐し、未公開と通信障害を区別する。
+          payload="$RUNNER_TEMP/pub-api.json"
+          http="$(curl -sS -o "$payload" -w '%{http_code}' \
+            "https://pub.dev/api/packages/$name" || true)"
+          case "${http:-000}" in
+            200) ;;
+            404) skip "\`$name\` is not published yet. Nothing to diff against." ;;
+            *)   skip "Could not reach pub.dev (HTTP ${http:-000}). Skipped the comparison." ;;
+          esac
+
+          published="$(python3 -c \
+            'import json,sys; print(json.load(sys.stdin).get("latest",{}).get("version",""))' \
+            < "$payload" 2>/dev/null || true)"
+          if [ -z "$published" ]; then
+            skip "pub.dev returned an unexpected payload for \`$name\`. Skipped the comparison."
+          fi
+
+          report="$RUNNER_TEMP/api-diff.md"
+          log="$RUNNER_TEMP/api-diff.log"
+
+          # 破壊的変更があっても CI は落とさない
+          set +e
+          dart pub global run dart_apitool:main diff \
+            --old "pub://$name/$published" \
+            --new . \
+            --no-set-exit-on-version-check-failure \
+            --report-format markdown \
+            --report-file-path "$report" 2>&1 | tee "$log"
+          status="${PIPESTATUS[0]}"
+          set -e
+
+          {
+            echo "## API diff"
+            echo
+            echo "Compared against \`pub://$name/$published\`."
+            echo "This job is advisory: it is not a required check, so it never blocks the merge."
+            echo
+            if [ "$status" != "0" ]; then
+              echo "> dart_apitool exited with $status. See the job log."
+              echo
+            fi
+            if [ -f "$report" ]; then
+              sed -e '/^# API Changes Report$/d' \
+                  -e '/^## ℹ️ API-Tool Info$/,/^$/d' \
+                  -e '/^## Report$/d' "$report"
+              echo
+            fi
+            # バージョン判定は標準出力側にしか出ない。ツールが途中で失敗すると節ごと
+            # 存在しないため、抽出できなくても失敗させない。
+            if [ -f "$log" ]; then
+              { sed -n '/^### Version Check$/,$p' "$log" \
+                  | sed '/^Markdown report generated at /d' \
+                  | grep -vE '^(IO|MSG|SLVR|FINE|WARN|ERR) +:'; } || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   gate:
     name: all checks passed
-    needs: [changes, package, example-android, example-ios, publish-dry-run]
+    needs: [changes, package, example-android, example-ios, publish-dry-run, docs-build]
     if: always()
     runs-on: ubuntu-latest
     steps:

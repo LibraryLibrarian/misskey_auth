@@ -1,0 +1,71 @@
+{
+  "nav": {
+    "serverInfo": "サーバー情報",
+    "accounts": "アカウント一覧",
+    "licenses": "オープンソースライセンス"
+  },
+  "common": {
+    "callbackScheme": "コールバックスキーム",
+    "host": "ホスト",
+    "customScopes": "カスタムスコープ（カンマ区切り）",
+    "example": "例: $value"
+  },
+  "oauth": {
+    "title": "OAuth認証設定",
+    "clientId": "クライアントID (URL)",
+    "redirectUri": "リダイレクトURI",
+    "redirectUriHelper": "client_idページの登録URLと完全一致（カスタムスキーム可）",
+    "submit": "OAuthで認証",
+    "success": "認証に成功しました！",
+    "failed": "認証エラー: $error"
+  },
+  "miauth": {
+    "title": "MiAuth認証設定",
+    "appName": "アプリ名",
+    "iconUrl": "アイコンURL（任意）",
+    "submit": "MiAuthで認証",
+    "success": "MiAuth に成功しました！",
+    "failed": "MiAuth エラー: $error"
+  },
+  "serverInfo": {
+    "checkTitle": "サーバー情報の確認",
+    "check": "サーバー情報を確認",
+    "oauthNotSupported": "OAuth認証はサポートされていません（MiAuth認証を使用してください）",
+    "title": "サーバー情報",
+    "authorizationEndpoint": "認可エンドポイント",
+    "tokenEndpoint": "トークンエンドポイント",
+    "scopesSupported": "サポートされているスコープ（タップでコピー）",
+    "copied": "コピーしました: $scope"
+  },
+  "accounts": {
+    "title": "ログイン済みアカウント",
+    "reload": "再読込",
+    "loadFailed": "アカウント情報を取得できませんでした",
+    "empty": "ログイン済みのアカウントはありません",
+    "savedAt": "保存: $date",
+    "delete": "このアカウントを削除",
+    "activeChanged": "アクティブなアカウントを変更: $account"
+  },
+  "validation": {
+    "hostRequired": "ホストを入力してください",
+    "callbackSchemeRequired": "コールバックスキームを入力してください"
+  },
+  "errors": {
+    "userCancelled": "認証がキャンセルされました",
+    "callbackScheme": "コールバックスキームの設定が正しくありません（AndroidManifest/Info.plist を確認してください）",
+    "authorizationLaunch": "認証画面を起動できませんでした",
+    "network": "ネットワークエラーが発生しました",
+    "responseParse": "サーバー応答の解析に失敗しました",
+    "secureStorage": "セキュアストレージの操作に失敗しました",
+    "invalidAuthConfig": "認証設定が無効です",
+    "serverInfo": "サーバー情報の取得に失敗しました",
+    "oauthNotSupported": "このサーバーはOAuth認証に対応していません（MiAuthをご利用ください）",
+    "stateMismatch": "セキュリティ検証に失敗しました（state不一致）",
+    "authorizationCodeMissing": "認可コードを取得できませんでした",
+    "authorizationServer": "認可サーバーでエラーが発生しました",
+    "tokenExchange": "トークン交換に失敗しました",
+    "miAuthDenied": "MiAuth がキャンセル/拒否されました",
+    "miAuthCheckFailed": "MiAuth の検証に失敗しました",
+    "miAuthSessionInvalid": "MiAuth のセッションが無効または期限切れです"
+  }
+}

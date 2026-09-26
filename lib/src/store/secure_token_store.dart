@@ -11,21 +11,35 @@ import 'token_store.dart';
 /// - iOS/Android のキーチェーン/Keystore に保存（平文ファイルは使用しない）
 /// - 内部インデックス（`_indexKey`）でアカウント一覧を管理
 /// - アクティブアカウントは `_activeKey` に JSON として永続化
+///
+/// 書き込み系の操作（[upsert]/[delete]/[clearAll]/[setActive]）は isolate 内で
+/// 1つずつ実行し、1操作ごとの整合性を保つ。次の点は保証しない
+/// - 読み取り系の操作が、実行中の書き込みの途中状態を読まないこと
+/// - 複数の操作を組み合わせた処理（保存してからアクティブにする等）の不可分性
+/// - 別の isolate やプロセスからの同時書き込み
 class SecureTokenStore implements TokenStore {
   final FlutterSecureStorage storage;
 
   static const String _indexKey = 'misskey_accounts_index';
   static const String _activeKey = 'misskey_active_account';
 
+  /// 最後に予約された書き込み操作の完了
+  ///
+  /// 既定の保存領域はインスタンス間で共有されるため、静的に持つ
+  static Future<void> _lastWrite = Future<void>.value();
+
   const SecureTokenStore({FlutterSecureStorage? storage})
     : storage = storage ?? const FlutterSecureStorage();
 
   @override
   /// トークンを保存または更新
-  Future<void> upsert(AccountKey key, StoredToken token) async {
-    final Map<String, dynamic> value = token.toJson();
-    await storage.write(key: key.storageKey(), value: jsonEncode(value));
-    await _addToIndex(key);
+  Future<void> upsert(AccountKey key, StoredToken token) {
+    return _serialized(() async {
+      // 途中で失敗しても、どこからも辿れないトークンが残らない順序で書く
+      await _addToIndex(key);
+      final Map<String, dynamic> value = token.toJson();
+      await storage.write(key: key.storageKey(), value: jsonEncode(value));
+    });
   }
 
   @override
@@ -61,35 +75,45 @@ class SecureTokenStore implements TokenStore {
 
   @override
   /// 指定アカウントのトークンを削除する。アクティブ一致時は解除する
-  Future<void> delete(AccountKey key) async {
-    await storage.delete(key: key.storageKey());
-    await _removeFromIndex(key);
-    final active = await getActive();
-    if (active != null && active == key) {
-      await setActive(null);
-    }
+  Future<void> delete(AccountKey key) {
+    return _serialized(() async {
+      await storage.delete(key: key.storageKey());
+      await _removeFromIndex(key);
+      final active = await getActive();
+      if (active != null && active == key) {
+        await storage.delete(key: _activeKey);
+      }
+    });
   }
 
   @override
   /// すべてのトークンと関連メタ情報（インデックス/アクティブ）を削除
-  Future<void> clearAll() async {
-    final keys = await _readIndex();
-    for (final k in keys) {
-      await storage.delete(key: k.storageKey());
-    }
-    await storage.delete(key: _indexKey);
-    await storage.delete(key: _activeKey);
+  ///
+  /// 削除対象はインデックスに載っているアカウントのみ。Android では `readAll`
+  /// が1件の復号失敗で保存領域全体を消去し得る（`resetOnError` 既定値）ため、
+  /// 保存領域の列挙は行わない
+  Future<void> clearAll() {
+    return _serialized(() async {
+      final keys = await _readIndex();
+      for (final k in keys) {
+        await storage.delete(key: k.storageKey());
+      }
+      await storage.delete(key: _indexKey);
+      await storage.delete(key: _activeKey);
+    });
   }
 
   @override
   /// アクティブアカウントを設定する。`null` で解除
-  Future<void> setActive(AccountKey? key) async {
-    if (key == null) {
-      await storage.delete(key: _activeKey);
-      return;
-    }
-    final json = jsonEncode(key.toJson());
-    await storage.write(key: _activeKey, value: json);
+  Future<void> setActive(AccountKey? key) {
+    return _serialized(() async {
+      if (key == null) {
+        await storage.delete(key: _activeKey);
+        return;
+      }
+      final json = jsonEncode(key.toJson());
+      await storage.write(key: _activeKey, value: json);
+    });
   }
 
   @override
@@ -99,6 +123,16 @@ class SecureTokenStore implements TokenStore {
     if (raw == null) return null;
     final map = jsonDecode(raw) as Map<String, dynamic>;
     return AccountKey.fromJson(map);
+  }
+
+  /// 書き込み操作を、先に予約された操作の完了後に実行する
+  ///
+  /// 再入はできないため、[action] の中から書き込み系の公開メソッドを呼ばないこと。
+  /// 先の操作が失敗しても後続の操作は実行する
+  static Future<T> _serialized<T>(Future<T> Function() action) {
+    final result = _lastWrite.then((_) => action());
+    _lastWrite = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
   }
 
   /// インデックスにアカウントを追加（重複は無視）

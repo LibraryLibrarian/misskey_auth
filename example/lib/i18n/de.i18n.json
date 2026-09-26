@@ -1,0 +1,71 @@
+{
+  "nav": {
+    "serverInfo": "Serverinfo",
+    "accounts": "Konten",
+    "licenses": "Open-Source-Lizenzen"
+  },
+  "common": {
+    "callbackScheme": "Callback-Schema",
+    "host": "Host",
+    "customScopes": "Benutzerdefinierte Scopes (durch Kommas getrennt)",
+    "example": "z. B. $value"
+  },
+  "oauth": {
+    "title": "OAuth-Einstellungen",
+    "clientId": "Client-ID (URL)",
+    "redirectUri": "Redirect-URI",
+    "redirectUriHelper": "Muss exakt mit der auf der client_id-Seite eingetragenen URL übereinstimmen (benutzerdefiniertes Schema erlaubt)",
+    "submit": "Mit OAuth anmelden",
+    "success": "Anmeldung erfolgreich!",
+    "failed": "Authentifizierungsfehler: $error"
+  },
+  "miauth": {
+    "title": "MiAuth-Einstellungen",
+    "appName": "App-Name",
+    "iconUrl": "Symbol-URL (optional)",
+    "submit": "Mit MiAuth anmelden",
+    "success": "Anmeldung mit MiAuth erfolgreich!",
+    "failed": "MiAuth-Fehler: $error"
+  },
+  "serverInfo": {
+    "checkTitle": "Serverinformationen prüfen",
+    "check": "Serverinformationen prüfen",
+    "oauthNotSupported": "Dieser Server unterstützt OAuth nicht (verwenden Sie stattdessen MiAuth)",
+    "title": "Serverinformationen",
+    "authorizationEndpoint": "Autorisierungs-Endpunkt",
+    "tokenEndpoint": "Token-Endpunkt",
+    "scopesSupported": "Unterstützte Scopes (zum Kopieren tippen)",
+    "copied": "Kopiert: $scope"
+  },
+  "accounts": {
+    "title": "Angemeldete Konten",
+    "reload": "Neu laden",
+    "loadFailed": "Kontoinformationen konnten nicht abgerufen werden",
+    "empty": "Keine angemeldeten Konten",
+    "savedAt": "Gespeichert: $date",
+    "delete": "Dieses Konto entfernen",
+    "activeChanged": "Aktives Konto geändert: $account"
+  },
+  "validation": {
+    "hostRequired": "Geben Sie einen Host ein",
+    "callbackSchemeRequired": "Geben Sie ein Callback-Schema ein"
+  },
+  "errors": {
+    "userCancelled": "Die Authentifizierung wurde abgebrochen",
+    "callbackScheme": "Das Callback-Schema ist nicht korrekt konfiguriert (prüfen Sie AndroidManifest.xml / Info.plist)",
+    "authorizationLaunch": "Der Authentifizierungsbildschirm konnte nicht geöffnet werden",
+    "network": "Ein Netzwerkfehler ist aufgetreten",
+    "responseParse": "Die Serverantwort konnte nicht ausgewertet werden",
+    "secureStorage": "Der Zugriff auf den sicheren Speicher ist fehlgeschlagen",
+    "invalidAuthConfig": "Die Authentifizierungseinstellungen sind ungültig",
+    "serverInfo": "Serverinformationen konnten nicht abgerufen werden",
+    "oauthNotSupported": "Dieser Server unterstützt OAuth nicht (verwenden Sie stattdessen MiAuth)",
+    "stateMismatch": "Sicherheitsprüfung fehlgeschlagen (state stimmt nicht überein)",
+    "authorizationCodeMissing": "Der Autorisierungscode konnte nicht abgerufen werden",
+    "authorizationServer": "Der Autorisierungsserver hat einen Fehler zurückgegeben",
+    "tokenExchange": "Der Token-Austausch ist fehlgeschlagen",
+    "miAuthDenied": "MiAuth wurde abgebrochen oder abgelehnt",
+    "miAuthCheckFailed": "Die MiAuth-Prüfung ist fehlgeschlagen",
+    "miAuthSessionInvalid": "Die MiAuth-Sitzung ist ungültig oder abgelaufen"
+  }
+}

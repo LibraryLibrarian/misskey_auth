@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'src/release_config.dart';
 import 'src/release_project.dart';
 
 void main(List<String> arguments) {
@@ -13,7 +14,7 @@ void main(List<String> arguments) {
   }
 
   try {
-    verifyRelease(Directory.current, arguments.single);
+    verifyRelease(Directory.current, arguments.single, config: releaseConfig);
     stdout.writeln('Release version ${arguments.single} is consistent.');
   } on ReleaseToolException catch (error) {
     stderr.writeln('Release verification failed: ${error.message}');

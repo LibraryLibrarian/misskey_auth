@@ -1,13 +1,12 @@
 import 'dart:math';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../models/miauth_models.dart';
 import '../exceptions/misskey_auth_exception.dart';
-import '../net/retry.dart';
+import '../net/response.dart';
 
 /// Misskey の MiAuth 認証を扱うクライアント
 class MisskeyMiAuthClient {
@@ -52,13 +51,14 @@ class MisskeyMiAuthClient {
   }
 
   /// MiAuth 認証を開始し、成功すればアクセストークンを返す
+  ///
+  /// トークンを受け取る check API は、失敗しても自動で再送しない。
+  /// Misskey は取得済みのセッションに `ok: false` を返すため、通信が途中で
+  /// 失敗した場合は新しいセッションで最初からやり直すこと
   Future<MiAuthTokenResponse> authenticate(MisskeyMiAuthConfig config) async {
     try {
       // 1. セッション ID を生成
       final sessionId = generateSessionId();
-      if (kDebugMode) {
-        print('MiAuth セッション: $sessionId');
-      }
 
       // 2. 認証 URL を構築
       final permissions = config.permissions.join(',');
@@ -76,10 +76,6 @@ class MisskeyMiAuthClient {
         path: '/miauth/$sessionId',
         queryParameters: query,
       );
-
-      if (kDebugMode) {
-        print('MiAuth URL: $authUri');
-      }
 
       // 3. ブラウザで認証ページを開く
       late final String result;
@@ -109,57 +105,58 @@ class MisskeyMiAuthClient {
         throw AuthorizationLaunchException(details: e.toString());
       }
 
-      if (kDebugMode) {
-        print('MiAuth コールバック URL: $result');
+      // 4. callback が今回のセッションに対するものかを確認
+      // Misskey は callback に必ず session を付ける
+      final sessions = Uri.tryParse(result)?.queryParametersAll['session'];
+      if (sessions == null ||
+          sessions.length != 1 ||
+          sessions.single != sessionId) {
+        throw const MiAuthSessionInvalidException(
+          details: 'The callback session does not match.',
+        );
       }
 
-      // 4. 許可後にチェック API を叩いてトークンを取得
+      // 5. 許可後にチェック API を叩いてトークンを取得
       final checkUrl = Uri(
         scheme: 'https',
         host: config.host,
         path: '/api/miauth/$sessionId/check',
       );
 
-      final response = await retry(
-        () => _dio.post(
-          checkUrl.toString(),
-          options: Options(contentType: 'application/json'),
-          data: <String, dynamic>{},
-        ),
-        const RetryPolicy(maxAttempts: 3),
+      // トークンは最初の check でしか返らない。サーバー側で取得済みの可能性があるため再送しない
+      final response = await _dio.post(
+        checkUrl.toString(),
+        options: Options(contentType: 'application/json'),
+        data: <String, dynamic>{},
       );
 
       if (response.statusCode != 200) {
-        final status = response.statusCode;
-        String details = 'status=$status';
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          final err = data['error'] ?? data['message'];
-          if (err != null) {
-            details = '$details, $err';
-          }
-        }
-        // セッション不正や期限切れなどをある程度推定
-        if (status == 404 || status == 410) {
-          throw MiAuthSessionInvalidException(details: details);
-        }
-        throw MiAuthCheckFailedException(details: details);
+        throw _checkError(response.statusCode, response.data);
       }
 
-      final body = response.data as Map<String, dynamic>;
-      final check = MiAuthCheckResponse.fromJson(body);
-
-      if (!check.ok || check.token == null || check.token!.isEmpty) {
+      final check = MiAuthCheckResponse.fromJson(jsonObjectOf(response.data));
+      // Misskey は未知・取得済みのセッションにも ok:false を返すため、
+      // 拒否以外の原因も含む
+      if (!check.ok) {
         throw const MiAuthDeniedException();
       }
+      final token = check.token;
+      if (token == null || token.isEmpty) {
+        throw const ResponseParseException(
+          details: 'MiAuth check returned ok without a token',
+        );
+      }
 
-      // 5. 成功応答（保存は呼び出し側で TokenStore が担当）
-      if (kDebugMode) print('MiAuth 成功');
-      return MiAuthTokenResponse(token: check.token!, user: check.user);
+      // 6. 成功応答（保存は呼び出し側で TokenStore が担当）
+      return MiAuthTokenResponse(token: token, user: check.user);
     } on MisskeyAuthException {
       rethrow;
     } on DioException catch (e) {
-      throw NetworkException(details: e.message, originalException: e);
+      final response = e.response;
+      if (e.type == DioExceptionType.badResponse && response != null) {
+        throw _checkError(response.statusCode, response.data);
+      }
+      throw transportExceptionOf(e);
     } on PlatformException catch (e) {
       final code = (e.code).toLowerCase();
       if (code.contains('cancel')) {
@@ -172,12 +169,20 @@ class MisskeyMiAuthClient {
     } on FormatException catch (e) {
       throw ResponseParseException(details: e.message, originalException: e);
     } catch (e) {
-      if (kDebugMode) {
-        print('MiAuth エラー: $e');
-      }
       throw MisskeyAuthException('MiAuthでエラーが発生しました', details: e.toString());
     }
   }
 
-  // ストレージ操作は廃止
+  /// チェック API のエラー応答を例外に変換
+  MisskeyAuthException _checkError(int? status, Object? data) {
+    final summary = errorSummaryOf(data);
+    final details = summary == null
+        ? 'status=$status'
+        : 'status=$status, $summary';
+    // セッション不正や期限切れなどをある程度推定
+    if (status == 404 || status == 410) {
+      return MiAuthSessionInvalidException(details: details);
+    }
+    return MiAuthCheckFailedException(details: details);
+  }
 }

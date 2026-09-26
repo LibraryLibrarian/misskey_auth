@@ -1,13 +1,65 @@
-# Example app files that shouldn't be published
-example/.dart_tool/
-example/build/
-example/.flutter-plugins
-example/.flutter-plugins-dependencies
+# pub.dev へ公開するアーカイブから除外するもの。
+#
+# 注意: .pubignore を置くと pub は同じディレクトリの .gitignore を参照しなく
+# なるため、ビルド生成物や作業用ディレクトリもここで明示的に除外する必要がある。
+#
+# 利用者に届けるのは lib/ と pubspec.yaml、README、CHANGELOG、LICENSE、
+# そして pub.dev の Example タブが読む example/lib と example/pubspec.yaml。
 
-# IDE files
-.vscode/
+# 利用者が使わない開発用ファイル
+/test/
+/tool/
+/doc/
+# ドキュメントサイト（client_id ページと中継ページを含む）
+/docs/
+/.github/
+
+# ルート直下の android/ ios/ は flutter create が生成した雛形で、
+# このパッケージ自身のプラットフォーム実装ではない（pubspec に plugin 宣言なし）
+/android/
+/ios/
+
+# README はデモGIFを raw.githubusercontent.com の絶対URLで参照するため、
+# アーカイブに実体を含める必要がない
+/assets/
+
+# example はソースだけを残す
+/example/android/
+/example/ios/
+/example/test/
+/example/.idea/
+
+# ビルド生成物・作業ディレクトリ（.gitignore と同等の内容を維持する）。
+# example/ 配下にも同名のものが生成されるため、先頭に / を付けず任意階層に
+# 一致させる。
+.dart_tool/
+build/
+coverage/
+/pubspec.lock
+**/doc/api/
+.flutter-plugins
+.flutter-plugins-dependencies
+migrate_working_dir/
+custom_lint.log
+
+# ツールチェーン・エディタ
+.fvm/
+.fvmrc
+.metadata
 .idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.atom/
+.buildlog/
+.history
+.svn/
 
-# OS files
+# その他
 .DS_Store
 Thumbs.db
+*.class
+*.log
+*.pyc
+*.swp

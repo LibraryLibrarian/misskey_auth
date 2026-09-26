@@ -1,3 +1,5 @@
+import 'json_fields.dart';
+
 /// MiAuth 認証の設定を表すクラス
 class MisskeyMiAuthConfig {
   /// Misskey サーバーのホスト（例: misskey.io）
@@ -38,11 +40,12 @@ class MiAuthCheckResponse {
 
   const MiAuthCheckResponse({required this.ok, this.token, this.user});
 
+  /// `ok` の欠落・型違いなどがあれば [FormatException]
   factory MiAuthCheckResponse.fromJson(Map<String, dynamic> json) {
     return MiAuthCheckResponse(
-      ok: json['ok'] == true,
-      token: json['token'] as String?,
-      user: json['user'] as Map<String, dynamic>?,
+      ok: requireField<bool>(json, 'ok'),
+      token: optionalField<String>(json, 'token'),
+      user: optionalField<Map<String, dynamic>>(json, 'user'),
     );
   }
 }

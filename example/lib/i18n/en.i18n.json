@@ -1,0 +1,71 @@
+{
+  "nav": {
+    "serverInfo": "Server info",
+    "accounts": "Accounts",
+    "licenses": "Open source licenses"
+  },
+  "common": {
+    "callbackScheme": "Callback scheme",
+    "host": "Host",
+    "customScopes": "Custom scopes (comma-separated)",
+    "example": "e.g. $value"
+  },
+  "oauth": {
+    "title": "OAuth settings",
+    "clientId": "Client ID (URL)",
+    "redirectUri": "Redirect URI",
+    "redirectUriHelper": "Must exactly match the URL listed on the client_id page (a custom scheme is allowed)",
+    "submit": "Sign in with OAuth",
+    "success": "Signed in successfully!",
+    "failed": "Authentication error: $error"
+  },
+  "miauth": {
+    "title": "MiAuth settings",
+    "appName": "App name",
+    "iconUrl": "Icon URL (optional)",
+    "submit": "Sign in with MiAuth",
+    "success": "Signed in with MiAuth!",
+    "failed": "MiAuth error: $error"
+  },
+  "serverInfo": {
+    "checkTitle": "Check server info",
+    "check": "Check server info",
+    "oauthNotSupported": "This server does not support OAuth (use MiAuth instead)",
+    "title": "Server info",
+    "authorizationEndpoint": "Authorization endpoint",
+    "tokenEndpoint": "Token endpoint",
+    "scopesSupported": "Supported scopes (tap to copy)",
+    "copied": "Copied: $scope"
+  },
+  "accounts": {
+    "title": "Signed-in accounts",
+    "reload": "Reload",
+    "loadFailed": "Could not load account information",
+    "empty": "No signed-in accounts",
+    "savedAt": "Saved: $date",
+    "delete": "Remove this account",
+    "activeChanged": "Active account changed: $account"
+  },
+  "validation": {
+    "hostRequired": "Enter a host",
+    "callbackSchemeRequired": "Enter a callback scheme"
+  },
+  "errors": {
+    "userCancelled": "Authentication was cancelled",
+    "callbackScheme": "The callback scheme is not configured correctly (check AndroidManifest.xml / Info.plist)",
+    "authorizationLaunch": "Could not open the authentication screen",
+    "network": "A network error occurred",
+    "responseParse": "Could not parse the server response",
+    "secureStorage": "Secure storage operation failed",
+    "invalidAuthConfig": "The authentication settings are invalid",
+    "serverInfo": "Could not fetch server info",
+    "oauthNotSupported": "This server does not support OAuth (use MiAuth instead)",
+    "stateMismatch": "Security check failed (state mismatch)",
+    "authorizationCodeMissing": "Could not get the authorization code",
+    "authorizationServer": "The authorization server returned an error",
+    "tokenExchange": "Token exchange failed",
+    "miAuthDenied": "MiAuth was cancelled or denied",
+    "miAuthCheckFailed": "MiAuth verification failed",
+    "miAuthSessionInvalid": "The MiAuth session is invalid or has expired"
+  }
+}
