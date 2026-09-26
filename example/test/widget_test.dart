@@ -30,6 +30,18 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('opens the license page from the AppBar', (tester) async {
+    LocaleSettings.setLocaleSync(AppLocale.en);
+    await tester.pumpWidget(_app());
+    await tester.tap(find.byTooltip('Open source licenses'));
+    // LicensePage はライセンスを非同期で読み込むため、
+    // pumpAndSettle ではなく一定時間だけ進める
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(LicensePage), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final locale in AppLocale.values) {
     testWidgets('renders every tab without overflow in ${locale.languageTag}', (
       tester,
@@ -46,7 +58,13 @@ void main() {
         Icons.info_outline,
         Icons.people,
       ]) {
-        await tester.tap(find.byIcon(icon));
+        // AppBar のライセンスボタンも info_outline のため、タブの中に限定する
+        await tester.tap(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.byIcon(icon),
+          ),
+        );
         // アカウント一覧はセキュアストレージの応答を待ち続けるため、
         // pumpAndSettle ではなく一定時間だけ進める
         await tester.pump(const Duration(seconds: 1));

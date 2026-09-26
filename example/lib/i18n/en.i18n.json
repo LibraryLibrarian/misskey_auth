@@ -1,7 +1,8 @@
 {
   "nav": {
     "serverInfo": "Server info",
-    "accounts": "Accounts"
+    "accounts": "Accounts",
+    "licenses": "Open source licenses"
   },
   "common": {
     "callbackScheme": "Callback scheme",
