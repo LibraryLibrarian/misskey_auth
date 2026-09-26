@@ -34,6 +34,8 @@ void main() {
     LocaleSettings.setLocaleSync(AppLocale.en);
     await tester.pumpWidget(_app());
     await tester.tap(find.byTooltip('Open source licenses'));
+    // LicensePage はライセンスを非同期で読み込むため、
+    // pumpAndSettle ではなく一定時間だけ進める
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.byType(LicensePage), findsOneWidget);
