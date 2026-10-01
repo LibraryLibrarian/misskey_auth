@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:misskey_auth/misskey_auth.dart';
 
 /// 応答を関数で差し替える Dio アダプタ
 class StubAdapter implements HttpClientAdapter {
@@ -49,4 +50,76 @@ void mockWebAuth(String Function(Uri launchUrl) callback) {
 void resetWebAuth() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_webAuthChannel, null);
+}
+
+/// メモリ上の [TokenStore]（失敗・割り込みの注入用）
+class MemoryTokenStore implements TokenStore {
+  final Map<AccountKey, StoredToken> tokens = {};
+  final List<AccountKey> index = [];
+  AccountKey? active;
+
+  /// 呼ばれた操作の記録（例: `read:user1`）
+  final List<String> calls = [];
+
+  /// 読み出しで例外を投げるアカウント
+  final Set<AccountKey> throwOnRead = {};
+
+  /// 削除で例外を投げるアカウント
+  final Set<AccountKey> throwOnDelete = {};
+
+  bool throwOnList = false;
+
+  /// トークンを保存した状態にする
+  void seed(AccountKey key, String accessToken) {
+    tokens[key] = StoredToken(accessToken: accessToken, tokenType: 'MiAuth');
+    if (!index.contains(key)) index.add(key);
+  }
+
+  @override
+  Future<void> upsert(AccountKey key, StoredToken token) async {
+    calls.add('upsert:${key.accountId}');
+    tokens[key] = token;
+    if (!index.contains(key)) index.add(key);
+  }
+
+  @override
+  Future<StoredToken?> read(AccountKey key) async {
+    calls.add('read:${key.accountId}');
+    if (throwOnRead.contains(key)) {
+      throw const FormatException('corrupted');
+    }
+    return tokens[key];
+  }
+
+  @override
+  Future<List<AccountEntry>> list() async {
+    calls.add('list');
+    if (throwOnList) throw PlatformException(code: 'StorageError');
+    return [for (final key in index) AccountEntry(key)];
+  }
+
+  @override
+  Future<void> delete(AccountKey key) async {
+    calls.add('delete:${key.accountId}');
+    if (throwOnDelete.contains(key)) {
+      throw PlatformException(code: 'StorageError');
+    }
+    tokens.remove(key);
+    index.remove(key);
+    if (active == key) active = null;
+  }
+
+  @override
+  Future<void> clearAll() async {
+    calls.add('clearAll');
+    tokens.clear();
+    index.clear();
+    active = null;
+  }
+
+  @override
+  Future<void> setActive(AccountKey? key) async => active = key;
+
+  @override
+  Future<AccountKey?> getActive() async => active;
 }

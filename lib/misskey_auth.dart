@@ -2,6 +2,7 @@
 export 'src/models/oauth_models.dart';
 export 'src/models/miauth_models.dart';
 export 'src/models/token_revocation_models.dart';
+export 'src/models/sign_out_models.dart';
 
 // API
 export 'src/api/misskey_oauth_client.dart';
