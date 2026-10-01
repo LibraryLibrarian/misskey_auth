@@ -96,6 +96,7 @@ Remarques :
 
 - `keychain-access-groups` nécessite la signature de l’application par votre équipe Apple Developer et un provisioning profile. Dans Xcode, ouvrez `macos/Runner.xcworkspace` et sélectionnez votre équipe dans Signing & Capabilities de la cible Runner. Sans équipe, Xcode ne peut pas signer l’application avec cet entitlement.
 - Avec un compte Apple Developer gratuit, le provisioning profile de développement ne permet de lancer l’application que sur le Mac qui l’a compilée.
+- Si `keychain-access-groups` est absent, l’enregistrement d’un jeton échoue avec une `PlatformException` de code `-34018`.
 
 ### Enregistrer des jetons sans `keychain-access-groups`
 

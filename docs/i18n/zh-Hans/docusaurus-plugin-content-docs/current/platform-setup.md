@@ -96,6 +96,7 @@ macOS 无需注册 scheme。`flutter_web_auth_2` 会使用 `ASWebAuthenticationS
 
 - `keychain-access-groups` 需要使用 Apple Developer 团队签名并准备 provisioning profile。在 Xcode 中打开 `macos/Runner.xcworkspace`，并在 Runner target 的 Signing & Capabilities 中选择团队。未选择团队时，Xcode 无法使用此 entitlement 对应用签名。
 - 使用免费的 Apple Developer 账户时，开发用 provisioning profile 仅允许在构建该应用的 Mac 上启动应用。
+- 如果缺少 `keychain-access-groups`，保存令牌会因 `PlatformException` 而失败，错误代码为 `-34018`。
 
 ### 不使用 `keychain-access-groups` 保存令牌
 

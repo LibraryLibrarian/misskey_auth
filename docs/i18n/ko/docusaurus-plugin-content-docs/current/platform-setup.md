@@ -96,6 +96,7 @@ macOS에서는 스킴 등록이 필요하지 않습니다. `flutter_web_auth_2`�
 
 - `keychain-access-groups`를 사용하려면 Apple Developer 팀으로 서명하고 provisioning profile을 준비해야 합니다. Xcode에서 `macos/Runner.xcworkspace`를 열고 Runner target의 Signing & Capabilities에서 팀을 선택하세요. 팀을 선택하지 않으면 Xcode가 이 entitlement를 포함해 서명할 수 없습니다.
 - 무료 Apple Developer 계정의 경우 개발용 provisioning profile로는 앱을 빌드한 Mac에서만 실행할 수 있습니다.
+- `keychain-access-groups`가 없으면 토큰 저장이 코드 `-34018`의 `PlatformException`으로 실패합니다.
 
 ### `keychain-access-groups` 없이 토큰 저장하기
 
