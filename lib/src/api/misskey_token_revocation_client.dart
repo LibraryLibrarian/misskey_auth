@@ -60,6 +60,9 @@ class MisskeyTokenRevocationClient {
     if (timeout != null && timeout <= Duration.zero) {
       return _timedOut(timeout);
     }
+    // サーバーやインターセプターの文言がトークンを含んでも、結果に載せない
+    String redact(String text) =>
+        accessToken.isEmpty ? text : text.replaceAll(accessToken, '***');
     final cancelToken = CancelToken();
     final timer = timeout == null
         ? null
@@ -78,12 +81,12 @@ class MisskeyTokenRevocationClient {
         ),
         cancelToken: cancelToken,
       );
-      return _classify(response.statusCode, response.data);
+      return _classify(response.statusCode, response.data, redact);
     } on DioException catch (e) {
       final response = e.response;
       // インターセプターがエラー応答として reject した場合
       if (e.type == DioExceptionType.badResponse && response != null) {
-        return _classify(response.statusCode, response.data);
+        return _classify(response.statusCode, response.data, redact);
       }
       // キャンセルするのは期限のタイマーだけ
       if (e.type == DioExceptionType.cancel && timeout != null) {
@@ -95,12 +98,14 @@ class MisskeyTokenRevocationClient {
         return TokenRevocationResult(
           status: TokenRevocationStatus.failed,
           statusCode: response?.statusCode,
-          error: ResponseParseException(details: cause.message),
+          error: ResponseParseException(details: redact(cause.message)),
         );
       }
       return TokenRevocationResult(
         status: TokenRevocationStatus.failed,
-        error: NetworkException(details: e.message ?? 'type=${e.type.name}'),
+        error: NetworkException(
+          details: redact(e.message ?? 'type=${e.type.name}'),
+        ),
       );
     } catch (e) {
       // インターセプターなどが投げた想定外の例外
@@ -117,7 +122,11 @@ class MisskeyTokenRevocationClient {
   }
 
   /// 応答をステータスとエラーコードで分類する
-  TokenRevocationResult _classify(int? status, Object? data) {
+  TokenRevocationResult _classify(
+    int? status,
+    Object? data,
+    String Function(String) redact,
+  ) {
     if (status == 204) {
       return TokenRevocationResult(
         status: TokenRevocationStatus.revoked,
@@ -132,7 +141,7 @@ class MisskeyTokenRevocationClient {
     }
     final error = body?['error'];
     final code = error is Map ? error['code'] : null;
-    final errorCode = code is String ? code : null;
+    final errorCode = code is String ? redact(code) : null;
 
     // トークンが存在しない: 失効済み、またはアカウント削除済み
     if (status == 401 && errorCode == 'AUTHENTICATION_FAILED') {
@@ -155,7 +164,7 @@ class MisskeyTokenRevocationClient {
       error: TokenRevocationException(
         details: summary == null
             ? 'status=$status'
-            : 'status=$status, $summary',
+            : 'status=$status, ${redact(summary)}',
       ),
     );
   }

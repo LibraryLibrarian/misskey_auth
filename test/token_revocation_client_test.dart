@@ -213,9 +213,22 @@ void main() {
         ),
       ),
       await revokeWith((_) => textBody('{', 500, 'application/json')),
+      // サーバーやインターセプターがトークンを文言に含めた場合
+      await revokeWith(
+        (_) => jsonBody({
+          'error': {'message': 'Invalid token: $_token', 'code': _token},
+        }, 400),
+      ),
+      await revokeWith(
+        (options) => throw DioException.connectionError(
+          requestOptions: options,
+          reason: 'refused for $_token',
+        ),
+      ),
     ];
     for (final result in results) {
       expect(result.toString(), isNot(contains(_token)));
+      expect(result.errorCode ?? '', isNot(contains(_token)));
       expect(result.error.toString(), isNot(contains(_token)));
       expect(result.error!.details ?? '', isNot(contains(_token)));
       expect(result.error!.originalException, isNull);
