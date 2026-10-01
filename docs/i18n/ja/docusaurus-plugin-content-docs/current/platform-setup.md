@@ -96,6 +96,7 @@ macOS ではスキームの登録は不要です。`flutter_web_auth_2` は認�
 
 - `keychain-access-groups` を使うには、Apple Developer のチームで署名し、provisioning profile を用意する必要があります。Xcode で `macos/Runner.xcworkspace` を開き、Runner ターゲットの Signing & Capabilities でチームを選んでください。チームを選ばないと、Xcode はこの entitlement を付けて署名できません。
 - 無料の Apple Developer アカウントの場合、開発用の provisioning profile ではビルドした Mac でしかアプリを起動できません。
+- `keychain-access-groups` がない場合、トークンの保存は code が `-34018` の `PlatformException` で失敗します。
 
 ### `keychain-access-groups` を使わずにトークンを保存する
 
