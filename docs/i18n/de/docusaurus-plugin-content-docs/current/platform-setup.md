@@ -96,7 +96,7 @@ Hinweise:
 
 - `keychain-access-groups` erfordert die Signierung mit Ihrem Apple-Developer-Team und ein provisioning profile. Öffnen Sie in Xcode `macos/Runner.xcworkspace` und wählen Sie das Team unter Signing & Capabilities des Runner-Targets aus. Ohne Team kann Xcode die App nicht mit diesem Entitlement signieren.
 - Bei einem kostenlosen Apple-Developer-Konto kann die App mit dem provisioning profile für die Entwicklung nur auf dem Mac gestartet werden, auf dem sie erstellt wurde.
-- Fehlt `keychain-access-groups`, schlägt das Speichern eines Token mit einer `PlatformException` mit dem Code `-34018` fehl.
+- Fehlt `keychain-access-groups`, schlägt das Speichern eines Tokens mit einer `PlatformException` mit dem Code `-34018` fehl.
 
 ### Token ohne `keychain-access-groups` speichern
 
