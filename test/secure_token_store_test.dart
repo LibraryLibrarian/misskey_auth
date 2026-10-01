@@ -54,6 +54,29 @@ void main() {
     final failing = SecureTokenStore(storage: FailingStorage());
     await expectLater(failing.read(key), throwsA(isA<PlatformException>()));
   });
+  test('lists accounts whose token cannot be read', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'misskey_token::example.test::user1': 'not json',
+      'misskey_token::example.test::user2':
+          '{"accessToken":"synthetic","tokenType":"MiAuth","user":{"name":42}}',
+      'misskey_accounts_index': '[{"host":"example.test","accountId":"user1"},{"host":"example.test","accountId":"user2"}]',
+    });
+    final entries = await store.list();
+    expect(entries.map((e) => e.key), [key, other]);
+    expect(entries.map((e) => e.userName), [null, null]);
+  });
+  test('lists accounts when the native read fails', () async {
+    final failing = SecureTokenStore(
+      storage: ControlledStorage(
+        before: (operation, k) async {
+          if (operation == 'read' && k == key.storageKey()) {
+            throw PlatformException(code: 'StorageError');
+          }
+        },
+      ),
+    );
+    expect((await failing.list()).single.key, key);
+  });
 
   group('write operations', () {
     const token = StoredToken(accessToken: 'synthetic', tokenType: 'MiAuth');
