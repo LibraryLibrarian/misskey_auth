@@ -64,6 +64,14 @@ Each exception has:
 | `MiAuthSessionInvalidException` | The callback is for a different session, or the check API returned 404 or 410 |
 | `MiAuthCheckFailedException` | The check API returned another error status |
 
+### Token Revocation
+
+| Exception | Returned when |
+|---|---|
+| `TokenRevocationException` | The server answered the revocation request with an error status. `details` contains the HTTP status and the error from the server |
+
+Revocation never throws. `signOut`, `signOutAll`, and `MisskeyTokenRevocationClient.revoke` return the cause in `TokenRevocationResult.error`, which can also be a `NetworkException` or a `ResponseParseException`. These exceptions carry no `originalException`, so that the token in the request is not exposed. See [Signing Out](./token-storage.md#signing-out).
+
 ### Not Thrown by the Current Version
 
 `InvalidAuthConfigException`, `SecureStorageException`, and `MiAuthNotSupportedException` are defined but not thrown by the current version.
@@ -74,10 +82,13 @@ Each exception has:
 
 `loginWithOAuth` and `loginWithMiAuth` save the token first and then make the account active. If only the second step fails, the token stays saved but the account is not active.
 
+`signOut` and `signOutAll` do not throw when a stored token cannot be read; they delete it without revocation. They do throw when deleting the token fails.
+
 ## Retries
 
 - Fetching the OAuth server information and calling `/api/i` are retried up to three attempts in total, on timeouts, connection errors, other transport errors, and HTTP 429, 500, 502, 503, and 504.
 - The token exchange and the MiAuth check API are not retried. An authorization code and a MiAuth session can be used only once, and the server may have completed the request even if the response was lost. Start the authentication again from the beginning.
+- Token revocation is not retried. See [Timeout and Retries](./token-storage.md#timeout-and-retries).
 
 ## When Login Fails After Authentication
 

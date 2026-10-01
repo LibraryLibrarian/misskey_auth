@@ -19,6 +19,7 @@ A Flutter library for authenticating with [Misskey](https://misskey-hub.net/) se
 - Callbacks to the app through a custom URL scheme
 - Secure token storage using `flutter_secure_storage`
 - Token storage for multiple accounts and switching the active account
+- Revoking the token on the server when signing out (Misskey 2026.9.0 and later)
 - `MisskeyAuthManager`, a high-level API that runs the flows and saves tokens
 - iOS, Android, and macOS
 
