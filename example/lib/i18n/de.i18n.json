@@ -44,6 +44,8 @@
     "empty": "Keine angemeldeten Konten",
     "savedAt": "Gespeichert: $date",
     "delete": "Dieses Konto entfernen",
+    "revokeUnsupported": "Von diesem Gerät entfernt. Dieser Server unterstützt das Widerrufen von Tokens nicht, daher bleibt das Token auf dem Server gültig",
+    "revokeFailed": "Von diesem Gerät entfernt, aber das Token konnte auf dem Server nicht widerrufen werden",
     "activeChanged": "Aktives Konto geändert: $account"
   },
   "validation": {
