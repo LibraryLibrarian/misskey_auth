@@ -78,7 +78,7 @@ Si le jeton n’est pas stocké ou ne peut pas être lu, par exemple parce que l
 | `isInvalidated` | `true` pour `revoked` et `alreadyInvalid` |
 | `statusCode` | Le statut HTTP, ou `null` si aucune réponse n’a été reçue |
 | `errorCode` | Le code d’erreur Misskey, comme `RATE_LIMIT_EXCEEDED`, le cas échéant |
-| `error` | La cause pour `unsupported` et `failed` : `TokenRevocationException` pour une réponse d’erreur, `NetworkException` pour une erreur réseau ou un délai dépassé, `ResponseParseException` pour une réponse illisible |
+| `error` | La cause pour `unsupported` et `failed` : en général `TokenRevocationException` pour une réponse d’erreur ou inattendue, et `NetworkException` pour une erreur réseau ou un délai dépassé |
 
 `alreadyInvalid` signifie que le serveur n’a pas reconnu le jeton : il avait déjà été révoqué, ou le compte a été supprimé. Ce résultat est traité comme `revoked`.
 
@@ -95,7 +95,7 @@ await auth.signOut(key, timeout: const Duration(seconds: 5));
 await auth.signOutAll(timeout: const Duration(seconds: 5));
 ```
 
-`signOutAll` révoque tous les comptes en parallèle, et son `timeout` s’applique à l’ensemble de l’opération. Une requête qui dépasse le délai est signalée comme `failed`. Le serveur peut néanmoins avoir révoqué le jeton ; une nouvelle déconnexion signale alors `alreadyInvalid`.
+`signOutAll` révoque tous les comptes en parallèle, et toutes les requêtes partagent un même délai compté à partir de l’appel. La lecture et la suppression des jetons enregistrés ne sont pas interrompues par ce délai. Une requête qui dépasse le délai est signalée comme `failed`. Le serveur peut néanmoins avoir révoqué le jeton : si le jeton a été conservé, par exemple avec `revokeOrKeep`, une nouvelle révocation signale `alreadyInvalid`.
 
 ### Révocation sans le gestionnaire
 

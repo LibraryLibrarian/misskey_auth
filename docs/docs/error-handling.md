@@ -68,7 +68,7 @@ Each exception has:
 
 | Exception | Returned when |
 |---|---|
-| `TokenRevocationException` | The server answered the revocation request with an error status. `details` contains the HTTP status and the error from the server |
+| `TokenRevocationException` | The server answered the revocation request with an error status or another unexpected response. `details` contains the HTTP status and, if any, the error from the server |
 
 Revocation never throws. `signOut`, `signOutAll`, and `MisskeyTokenRevocationClient.revoke` return the cause in `TokenRevocationResult.error`, which can also be a `NetworkException` or a `ResponseParseException`. These exceptions carry no `originalException`, so that the token in the request is not exposed. See [Signing Out](./token-storage.md#signing-out).
 

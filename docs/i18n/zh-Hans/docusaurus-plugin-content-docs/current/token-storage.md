@@ -78,7 +78,7 @@ if (revocation == null) {
 | `isInvalidated` | 结果为 `revoked` 和 `alreadyInvalid` 时为 `true` |
 | `statusCode` | HTTP 状态；如果未收到响应，则为 `null` |
 | `errorCode` | Misskey 错误代码（如果有），例如 `RATE_LIMIT_EXCEEDED` |
-| `error` | `unsupported` 和 `failed` 的原因：错误响应为 `TokenRevocationException`，网络错误或超时为 `NetworkException`，无法读取的响应为 `ResponseParseException` |
+| `error` | `unsupported` 和 `failed` 的原因：通常错误响应或意外响应为 `TokenRevocationException`，网络错误或超时为 `NetworkException` |
 
 `alreadyInvalid` 表示服务器无法识别该令牌：令牌已被撤销，或账号已被删除。它与 `revoked` 同等对待。
 
@@ -95,7 +95,7 @@ await auth.signOut(key, timeout: const Duration(seconds: 5));
 await auth.signOutAll(timeout: const Duration(seconds: 5));
 ```
 
-`signOutAll` 会并行撤销所有账号，其 `timeout` 适用于整个操作。超时的请求会报告为 `failed`。服务器可能仍已撤销该令牌；此时再次退出登录会报告 `alreadyInvalid`。
+`signOutAll` 会并行撤销所有账号，所有请求共享一个从调用时开始计算的期限。读取和删除已保存的令牌不会因超时而中断。超时的请求会报告为 `failed`。服务器可能仍已撤销该令牌：如果令牌被保留（例如使用 `revokeOrKeep`），再次撤销会报告 `alreadyInvalid`。
 
 ### 不通过管理器撤销
 

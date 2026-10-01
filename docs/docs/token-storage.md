@@ -78,7 +78,7 @@ If the token is not stored or cannot be read, for example because the stored dat
 | `isInvalidated` | `true` for `revoked` and `alreadyInvalid` |
 | `statusCode` | The HTTP status, or `null` if no response was received |
 | `errorCode` | The Misskey error code, such as `RATE_LIMIT_EXCEEDED`, if any |
-| `error` | The cause for `unsupported` and `failed`: `TokenRevocationException` for an error response, `NetworkException` for a network error or timeout, `ResponseParseException` for an unreadable response |
+| `error` | The cause for `unsupported` and `failed`: usually `TokenRevocationException` for an error or unexpected response, and `NetworkException` for a network error or timeout |
 
 `alreadyInvalid` means that the server did not recognize the token: it was already revoked, or the account was deleted. It is treated like `revoked`.
 
@@ -95,7 +95,7 @@ await auth.signOut(key, timeout: const Duration(seconds: 5));
 await auth.signOutAll(timeout: const Duration(seconds: 5));
 ```
 
-`signOutAll` revokes all accounts in parallel, and its `timeout` applies to the whole operation. A request that runs out of time is reported as `failed`. The server may still have revoked the token; signing out again then reports `alreadyInvalid`.
+`signOutAll` revokes all accounts in parallel, and all requests share one deadline counted from the call. Reading and deleting stored tokens is not cut off by the timeout. A request that runs out of time is reported as `failed`. The server may still have revoked the token: if the token was kept, for example by `revokeOrKeep`, revoking it again reports `alreadyInvalid`.
 
 ### Revoking Without the Manager
 

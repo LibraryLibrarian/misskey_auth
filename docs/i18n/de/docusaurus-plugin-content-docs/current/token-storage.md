@@ -78,7 +78,7 @@ Wenn das Token nicht gespeichert ist oder nicht gelesen werden kann, zum Beispie
 | `isInvalidated` | `true` bei `revoked` und `alreadyInvalid` |
 | `statusCode` | Der HTTP-Status oder `null`, wenn keine Antwort empfangen wurde |
 | `errorCode` | Der Misskey-Fehlercode, etwa `RATE_LIMIT_EXCEEDED`, falls vorhanden |
-| `error` | Die Ursache bei `unsupported` und `failed`: `TokenRevocationException` bei einer Fehlerantwort, `NetworkException` bei einem Netzwerkfehler oder Timeout, `ResponseParseException` bei einer nicht lesbaren Antwort |
+| `error` | Die Ursache bei `unsupported` und `failed`: in der Regel `TokenRevocationException` bei einer Fehlerantwort oder einer unerwarteten Antwort und `NetworkException` bei einem Netzwerkfehler oder Timeout |
 
 `alreadyInvalid` bedeutet, dass der Server das Token nicht erkannt hat: Es wurde bereits widerrufen, oder das Konto wurde gelöscht. Dieses Ergebnis wird wie `revoked` behandelt.
 
@@ -95,7 +95,7 @@ await auth.signOut(key, timeout: const Duration(seconds: 5));
 await auth.signOutAll(timeout: const Duration(seconds: 5));
 ```
 
-`signOutAll` widerruft alle Konten parallel, und sein `timeout` gilt für den gesamten Vorgang. Eine Anfrage, deren Zeit abläuft, wird als `failed` gemeldet. Der Server hat das Token möglicherweise trotzdem widerrufen; eine erneute Abmeldung meldet dann `alreadyInvalid`.
+`signOutAll` widerruft alle Konten parallel, und alle Anfragen teilen sich eine Frist, die ab dem Aufruf zählt. Das Lesen und Löschen gespeicherter Token wird durch das Timeout nicht abgebrochen. Eine Anfrage, deren Zeit abläuft, wird als `failed` gemeldet. Der Server hat das Token möglicherweise trotzdem widerrufen: Wurde das Token behalten, etwa mit `revokeOrKeep`, meldet ein erneuter Widerruf `alreadyInvalid`.
 
 ### Widerruf ohne den Manager
 

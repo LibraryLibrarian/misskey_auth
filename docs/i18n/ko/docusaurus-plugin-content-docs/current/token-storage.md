@@ -78,7 +78,7 @@ if (revocation == null) {
 | `isInvalidated` | `revoked`와 `alreadyInvalid`일 때 `true` |
 | `statusCode` | HTTP 상태. 응답을 받지 못했으면 `null` |
 | `errorCode` | `RATE_LIMIT_EXCEEDED`와 같은 Misskey 오류 코드(있는 경우) |
-| `error` | `unsupported`와 `failed`의 원인. 오류 응답이면 `TokenRevocationException`, 네트워크 오류나 시간 초과면 `NetworkException`, 읽을 수 없는 응답이면 `ResponseParseException` |
+| `error` | `unsupported`와 `failed`의 원인. 일반적으로 오류 응답이나 예상치 못한 응답이면 `TokenRevocationException`, 네트워크 오류나 시간 초과면 `NetworkException` |
 
 `alreadyInvalid`는 서버가 토큰을 인식하지 못했다는 뜻입니다. 토큰이 이미 폐기되었거나 계정이 삭제된 경우입니다. `revoked`와 같이 취급됩니다.
 
@@ -95,7 +95,7 @@ await auth.signOut(key, timeout: const Duration(seconds: 5));
 await auth.signOutAll(timeout: const Duration(seconds: 5));
 ```
 
-`signOutAll`은 모든 계정을 병렬로 폐기하며, `timeout`은 작업 전체에 적용됩니다. 시간이 초과된 요청은 `failed`로 보고됩니다. 그래도 서버에서는 토큰이 폐기되었을 수 있으며, 이 경우 다시 로그아웃하면 `alreadyInvalid`가 보고됩니다.
+`signOutAll`은 모든 계정을 병렬로 폐기하며, 모든 요청이 호출 시점부터 계산한 하나의 기한을 공유합니다. 저장된 토큰을 읽고 삭제하는 작업은 시간 초과로 중단되지 않습니다. 시간이 초과된 요청은 `failed`로 보고됩니다. 그래도 서버에서는 토큰이 폐기되었을 수 있습니다. `revokeOrKeep` 등으로 토큰이 남아 있다면 다시 폐기할 때 `alreadyInvalid`가 보고됩니다.
 
 ### 매니저 없이 폐기하기
 

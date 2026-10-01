@@ -68,7 +68,7 @@ Jede Ausnahme hat die folgenden Eigenschaften.
 
 | Ausnahme | Rückgabebedingung |
 |---|---|
-| `TokenRevocationException` | Der Server hat die Widerrufsanfrage mit einem Fehlerstatus beantwortet. `details` enthält den HTTP-Status und den vom Server gemeldeten Fehler. |
+| `TokenRevocationException` | Der Server hat die Widerrufsanfrage mit einem Fehlerstatus oder einer anderen unerwarteten Antwort beantwortet. `details` enthält den HTTP-Status und gegebenenfalls den vom Server gemeldeten Fehler. |
 
 Der Widerruf löst nie eine Ausnahme aus. `signOut`, `signOutAll` und `MisskeyTokenRevocationClient.revoke` geben die Ursache in `TokenRevocationResult.error` zurück. Dabei kann es sich auch um eine `NetworkException` oder eine `ResponseParseException` handeln. Diese Ausnahmen enthalten keine `originalException`, damit das Token in der Anfrage nicht offengelegt wird. Siehe [Abmelden](./token-storage.md#signing-out).
 

@@ -68,7 +68,7 @@ try {
 
 | 异常 | 返回条件 |
 |---|---|
-| `TokenRevocationException` | 服务器对撤销请求返回了错误状态。`details` 中包含 HTTP 状态和服务器返回的错误 |
+| `TokenRevocationException` | 服务器对撤销请求返回了错误状态或其他意外响应。`details` 中包含 HTTP 状态以及服务器返回的错误（如有） |
 
 撤销绝不会抛出异常。`signOut`、`signOutAll` 和 `MisskeyTokenRevocationClient.revoke` 会在 `TokenRevocationResult.error` 中返回原因，该原因也可能是 `NetworkException` 或 `ResponseParseException`。这些异常不包含 `originalException`，以免暴露请求中的令牌。请参阅[退出登录](./token-storage.md#signing-out)。
 

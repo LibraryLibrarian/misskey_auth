@@ -68,7 +68,7 @@ try {
 
 | 예외 | 반환 조건 |
 |---|---|
-| `TokenRevocationException` | 서버가 폐기 요청에 오류 상태로 응답했습니다. `details`에는 HTTP 상태와 서버 오류가 포함됩니다. |
+| `TokenRevocationException` | 서버가 폐기 요청에 오류 상태 또는 그 밖의 예상치 못한 응답을 반환했습니다. `details`에는 HTTP 상태와, 있는 경우 서버 오류가 포함됩니다. |
 
 폐기는 예외를 발생시키지 않습니다. `signOut`, `signOutAll`, `MisskeyTokenRevocationClient.revoke`는 원인을 `TokenRevocationResult.error`로 반환하며, 이 값은 `NetworkException`이나 `ResponseParseException`일 수도 있습니다. 요청에 포함된 토큰이 노출되지 않도록 이러한 예외에는 `originalException`이 없습니다. [로그아웃](./token-storage.md#signing-out)을 참조하세요.
 

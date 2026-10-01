@@ -68,7 +68,7 @@ try {
 
 | 例外 | 返される条件 |
 |---|---|
-| `TokenRevocationException` | サーバーが失効のリクエストにエラーステータスで応答した。`details` に HTTP ステータスとサーバーからのエラーが入る |
+| `TokenRevocationException` | サーバーが失効のリクエストにエラーステータス、またはその他の想定外の応答を返した。`details` に HTTP ステータスと、ある場合はサーバーからのエラーが入る |
 
 失効の処理は例外を投げません。`signOut`、`signOutAll`、`MisskeyTokenRevocationClient.revoke` は、原因を `TokenRevocationResult.error` で返します。この値は `NetworkException` や `ResponseParseException` の場合もあります。リクエストに含まれるトークンが露出しないよう、これらの例外は `originalException` を持ちません。[サインアウト](./token-storage.md#signing-out)を参照してください。
 

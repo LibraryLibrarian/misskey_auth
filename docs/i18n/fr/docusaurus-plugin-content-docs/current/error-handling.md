@@ -68,7 +68,7 @@ Chaque exception possède les propriétés suivantes :
 
 | Exception | Condition de renvoi |
 |---|---|
-| `TokenRevocationException` | Le serveur a répondu à la requête de révocation par un statut d’erreur. `details` contient le statut HTTP et l’erreur renvoyée par le serveur |
+| `TokenRevocationException` | Le serveur a répondu à la requête de révocation par un statut d’erreur ou une autre réponse inattendue. `details` contient le statut HTTP et, le cas échéant, l’erreur renvoyée par le serveur |
 
 La révocation ne lève jamais d’exception. `signOut`, `signOutAll` et `MisskeyTokenRevocationClient.revoke` renvoient la cause dans `TokenRevocationResult.error`, qui peut aussi être une `NetworkException` ou une `ResponseParseException`. Ces exceptions ne contiennent pas d’`originalException`, afin de ne pas exposer le jeton présent dans la requête. Consultez [Déconnexion](./token-storage.md#signing-out).
 

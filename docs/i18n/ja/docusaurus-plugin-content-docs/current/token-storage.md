@@ -78,7 +78,7 @@ if (revocation == null) {
 | `isInvalidated` | `revoked` と `alreadyInvalid` のとき `true` |
 | `statusCode` | HTTP ステータス。応答を受け取れなかった場合は `null` |
 | `errorCode` | Misskey のエラーコード（例: `RATE_LIMIT_EXCEEDED`）。ある場合のみ |
-| `error` | `unsupported` と `failed` の原因。エラー応答の場合は `TokenRevocationException`、ネットワークエラーやタイムアウトの場合は `NetworkException`、読み取れない応答の場合は `ResponseParseException` |
+| `error` | `unsupported` と `failed` の原因。通常、エラー応答や想定外の応答の場合は `TokenRevocationException`、ネットワークエラーやタイムアウトの場合は `NetworkException` |
 
 `alreadyInvalid` は、サーバーがトークンを認識しなかったことを意味します。トークンがすでに失効しているか、アカウントが削除されています。`revoked` と同じように扱われます。
 
@@ -95,7 +95,7 @@ await auth.signOut(key, timeout: const Duration(seconds: 5));
 await auth.signOutAll(timeout: const Duration(seconds: 5));
 ```
 
-`signOutAll` はすべてのアカウントを並行して失効させ、`timeout` は処理全体に適用されます。時間切れになったリクエストは `failed` として報告されます。それでもサーバー側ではトークンが失効している可能性があり、その場合は再度サインアウトすると `alreadyInvalid` が報告されます。
+`signOutAll` はすべてのアカウントを並行して失効させ、すべてのリクエストが呼び出し時点から数えた1つの期限を共有します。保存されたトークンの読み書きは、タイムアウトで打ち切られません。時間切れになったリクエストは `failed` として報告されます。それでもサーバー側ではトークンが失効している可能性があります。`revokeOrKeep` などでトークンが残っている場合は、再度失効させると `alreadyInvalid` が報告されます。
 
 ### マネージャーを使わない失効
 
