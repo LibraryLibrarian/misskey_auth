@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - macOS 12.0 or later is now supported. Authentication opens in `ASWebAuthenticationSession`, the same system sheet as on iOS, and the callback returns to the app without registering the URL scheme in `Info.plist`. The app needs the `com.apple.security.network.client` and `keychain-access-groups` entitlements; see [Platform Setup](https://librarylibrarian.github.io/misskey_auth/platform-setup#macos).
+- `MisskeyTokenRevocationClient` revokes an access token on the server through `/api/i/revoke-token`, available for app tokens from Misskey 2026.9.0. It works for MiAuth and OAuth tokens regardless of their permissions, and it does not touch stored tokens, so it can be used with your own storage. `revoke` never throws; it returns a `TokenRevocationResult` whose `status` is `revoked`, `alreadyInvalid` (the server no longer recognizes the token), `unsupported` (servers before 2026.9.0), or `failed`. The request is not retried, and an optional `timeout` limits the whole request.
 
 ### Fixed
 - `SecureTokenStore.list` no longer throws when a stored token cannot be read or is corrupted. The account is listed without `userName` and `createdAt`, so it can still be signed out. Errors reading the account index itself are still thrown.

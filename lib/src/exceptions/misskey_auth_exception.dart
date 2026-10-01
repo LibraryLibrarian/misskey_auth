@@ -124,6 +124,14 @@ class MiAuthSessionInvalidException extends MisskeyAuthException {
     : super('MiAuth session is invalid or expired.');
 }
 
+/// トークンの失効を求めたサーバーがエラー応答を返したことを表す
+///
+/// `TokenRevocationResult.error` として返すだけで、投げない
+class TokenRevocationException extends MisskeyAuthException {
+  const TokenRevocationException({super.details})
+    : super('The server did not revoke the token.');
+}
+
 /// サーバーが MiAuth に対応していない可能性がある場合の例外（必要に応じて使用）
 class MiAuthNotSupportedException extends MisskeyAuthException {
   const MiAuthNotSupportedException({super.details, super.originalException})

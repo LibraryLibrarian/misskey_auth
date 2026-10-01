@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -7,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 応答を関数で差し替える Dio アダプタ
 class StubAdapter implements HttpClientAdapter {
   StubAdapter(this.respond);
-  final ResponseBody Function(RequestOptions) respond;
+  final FutureOr<ResponseBody> Function(RequestOptions) respond;
 
   @override
   Future<ResponseBody> fetch(
