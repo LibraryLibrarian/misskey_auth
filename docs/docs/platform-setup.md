@@ -7,7 +7,7 @@ title: Platform Setup
 
 Authentication runs in the external browser. When it finishes, the browser opens a URL with your app's custom scheme, and the OS hands that URL back to the app. You register the scheme in the app; the library does not add it to your Manifest or `Info.plist`.
 
-Use the same scheme string on iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly.
+Use the same scheme string on iOS (`CFBundleURLSchemes`) and Android (`<data android:scheme="...">`). They must match exactly. macOS needs no registration; see [macOS](#macos).
 
 ## iOS
 
@@ -74,3 +74,48 @@ The library reports this as `UserCancelledException`. If it happens even though 
 1. The callback did not reach the app. Check that `CallbackActivity` has a matching `<intent-filter>`.
 2. A PWA or another app intercepted the link.
 3. The `redirect_uri` did not exactly match a `<link rel="redirect_uri">` on the client_id page, so Misskey did not redirect back.
+
+## macOS
+
+macOS needs no scheme registration. `flutter_web_auth_2` opens the authentication page in `ASWebAuthenticationSession`, which receives the callback URL directly, so you do not add `CFBundleURLTypes` to `macos/Runner/Info.plist`.
+
+Add the following entitlements to both `macos/Runner/DebugProfile.entitlements` and `macos/Runner/Release.entitlements`:
+
+```xml
+<!-- Requests from the sandboxed app to the Misskey server -->
+<key>com.apple.security.network.client</key>
+<true/>
+<!-- The keychain that SecureTokenStore uses by default -->
+<key>keychain-access-groups</key>
+<array/>
+```
+
+A complete configuration is in [`example/macos/Runner/`](https://github.com/LibraryLibrarian/misskey_auth/tree/main/example/macos/Runner).
+
+Notes:
+
+- `keychain-access-groups` requires the app to be signed by your Apple Developer team with a provisioning profile. In Xcode, open `macos/Runner.xcworkspace` and select your team under Signing & Capabilities of the Runner target. Without a team, Xcode cannot sign the app with this entitlement.
+- With a free Apple Developer account, the development provisioning profile only lets the app launch on the Mac that built it.
+- If `keychain-access-groups` is missing, saving a token fails with a `PlatformException` with code `-34018`.
+
+### Storing Tokens Without `keychain-access-groups`
+
+If you do not want the entitlement, pass a `FlutterSecureStorage` that does not use the data protection keychain. `mOptions` applies only on macOS, so the same code works on the other platforms:
+
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:misskey_auth/misskey_auth.dart';
+
+final auth = MisskeyAuthManager(
+  miauth: MisskeyMiAuthClient(),
+  oauth: MisskeyOAuthClient(),
+  store: const SecureTokenStore(
+    storage: FlutterSecureStorage(
+      mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+    ),
+  ),
+);
+```
+
+- Tokens saved with one setting cannot be read with the other. If you switch after release, users must sign in again.
+- This setting only changes where tokens are stored. Distributing the app still requires signing and notarization as usual.

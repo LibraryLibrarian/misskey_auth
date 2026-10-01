@@ -129,7 +129,7 @@ MiAuth 会随令牌一起返回用户信息，因此 `MisskeyAuthManager` 会使
 
 ## 在同一个应用中支持两种方式
 
-- 在 `Info.plist` 和 `AndroidManifest.xml` 中注册一个 scheme（例如 `yourscheme`），即可供 OAuth 和 MiAuth 共用。
+- 在 `Info.plist` 和 `AndroidManifest.xml` 中注册一个 scheme（例如 `yourscheme`），即可供 OAuth 和 MiAuth 共用。macOS 无需注册。
 - MiAuth 仅回调到 scheme（`yourscheme://`）。MiAuth 不需要类似 `yourscheme://oauth/callback` 的路径。
 - 在 Android 上，请保留[平台配置](./platform-setup.md#android)中的仅指定 scheme 的 intent-filter。通过 host 或 path 限定的过滤器会阻止 MiAuth 回调到达应用。
 

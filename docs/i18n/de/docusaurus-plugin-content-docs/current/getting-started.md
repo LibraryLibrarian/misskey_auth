@@ -18,13 +18,14 @@ misskey_auth ist eine Flutter-Bibliothek für die Authentifizierung bei [Misskey
 - Sichere Token-Speicherung mit `flutter_secure_storage`
 - Speicherung von Token für mehrere Konten und Wechsel des aktiven Kontos
 - High-Level-API `MisskeyAuthManager` zur Authentifizierung und Token-Speicherung
-- iOS und Android
+- iOS, Android und macOS
 
 ## Voraussetzungen
 
 - Flutter 3.47.1 oder höher, Dart 3.13.1 oder höher und niedriger als 4.0
 - Android API 24 oder höher, compileSdk 37 oder höher
 - iOS 15 oder höher
+- macOS 12.0 oder höher
 
 Wenn Sie von einer früheren Version aktualisieren, lesen Sie zuerst die [Hinweise zum Upgrade](./upgrading.md). Unter Android ist eine erneute Anmeldung erforderlich.
 
@@ -90,7 +91,7 @@ print(current?.accessToken);
 ## Weiterführende Seiten
 
 - [client_id-Seite](./client-id-page.md): die von Misskey für OAuth benötigte Seite
-- [Plattformkonfiguration](./platform-setup.md): Konfiguration für iOS und Android
+- [Plattformkonfiguration](./platform-setup.md): Konfiguration für iOS, Android und macOS
 - [OAuth und MiAuth](./oauth-and-miauth.md): Unterschiede zwischen den beiden Verfahren sowie Beispiele mit und ohne Token-Speicherung
 - [Token-Speicherung](./token-storage.md): mehrere Konten, `TokenStore` und `SecureTokenStore`
 - [Fehlerbehandlung](./error-handling.md): von der Bibliothek ausgelöste Ausnahmen

@@ -129,7 +129,7 @@ MiAuth returns user information together with the token, and the manager uses it
 
 ## Supporting Both Methods in One App
 
-- Register one scheme, such as `yourscheme`, in `Info.plist` and `AndroidManifest.xml`. OAuth and MiAuth can share it.
+- Register one scheme, such as `yourscheme`, in `Info.plist` and `AndroidManifest.xml`. OAuth and MiAuth can share it. macOS needs no registration.
 - MiAuth calls back to the scheme only (`yourscheme://`). You do not need a path such as `yourscheme://oauth/callback` for MiAuth.
 - On Android, keep the scheme-only intent-filter from [Platform Setup](./platform-setup.md#android). A filter restricted by host or path stops MiAuth callbacks from reaching the app.
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- macOS 12.0 or later is now supported. Authentication opens in `ASWebAuthenticationSession`, the same system sheet as on iOS, and the callback returns to the app without registering the URL scheme in `Info.plist`. The app needs the `com.apple.security.network.client` and `keychain-access-groups` entitlements; see [Platform Setup](https://librarylibrarian.github.io/misskey_auth/platform-setup#macos).
+
 ## [0.2.0-beta.2] - 2026-09-26
 
 ### Changed

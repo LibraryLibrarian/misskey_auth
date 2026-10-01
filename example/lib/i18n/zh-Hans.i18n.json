@@ -52,7 +52,7 @@
   },
   "errors": {
     "userCancelled": "身份验证已取消",
-    "callbackScheme": "回调 scheme 配置不正确（请检查 AndroidManifest.xml / Info.plist）",
+    "callbackScheme": "回调 scheme 配置不正确（Android 请检查 AndroidManifest.xml，iOS 请检查 Info.plist）",
     "authorizationLaunch": "无法打开身份验证页面",
     "network": "发生网络错误",
     "responseParse": "无法解析服务器响应",

@@ -8,7 +8,7 @@ import 'token_store.dart';
 
 /// `FlutterSecureStorage` を用いた `TokenStore` の実装
 ///
-/// - iOS/Android のキーチェーン/Keystore に保存（平文ファイルは使用しない）
+/// - iOS/macOS のキーチェーン、Android の Keystore に保存（平文ファイルは使用しない）
 /// - 内部インデックス（`_indexKey`）でアカウント一覧を管理
 /// - アクティブアカウントは `_activeKey` に JSON として永続化
 ///

@@ -129,7 +129,7 @@ MiAuth はトークンと一緒にユーザー情報を返すため、`MisskeyAu
 
 ## 1つのアプリで両方式に対応する
 
-- `Info.plist` と `AndroidManifest.xml` に `yourscheme` のようなスキームを1つ登録すれば、OAuth と MiAuth で共有できます。
+- `Info.plist` と `AndroidManifest.xml` に `yourscheme` のようなスキームを1つ登録すれば、OAuth と MiAuth で共有できます。macOS では登録は不要です。
 - MiAuth はスキームのみ（`yourscheme://`）に戻ります。MiAuth のために `yourscheme://oauth/callback` のようなパスを用意する必要はありません。
 - Android では、[プラットフォーム設定](./platform-setup.md#android)のスキームのみの intent-filter を残してください。host や path で制限した filter では、MiAuth のコールバックがアプリに届きません。
 

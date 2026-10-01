@@ -29,6 +29,7 @@ jobs:
       package: ${{ steps.filter.outputs.package }}
       android: ${{ steps.filter.outputs.android }}
       ios: ${{ steps.filter.outputs.ios }}
+      macos: ${{ steps.filter.outputs.macos }}
       publish: ${{ steps.filter.outputs.publish }}
       docs: ${{ steps.filter.outputs.docs }}
     steps:
@@ -57,6 +58,11 @@ jobs:
               - '.github/workflows/**'
             ios:
               - 'example/ios/**'
+              - 'example/pubspec.yaml'
+              - 'pubspec.yaml'
+              - '.github/workflows/**'
+            macos:
+              - 'example/macos/**'
               - 'example/pubspec.yaml'
               - 'pubspec.yaml'
               - '.github/workflows/**'
@@ -184,6 +190,24 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '3.47.x', cache: true }
       - run: cd example && flutter pub get && dart run build_runner build && flutter build ios --debug --simulator
+
+  example-macos:
+    needs: changes
+    if: >-
+      needs.changes.outputs.macos == 'true' ||
+      github.base_ref == 'main' ||
+      github.ref == 'refs/heads/main' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.47.x', cache: true }
+      # ランナーには署名証明書がないため、署名を省いてビルドできることだけを確認する。
+      # keychain-access-groups はチームでの開発署名が前提のため、キーチェーンの実動作はここでは検証できない
+      - run: cd example && flutter pub get && dart run build_runner build && flutter build macos --debug
+        env:
+          FLUTTER_XCODE_CODE_SIGNING_ALLOWED: 'NO'
 
   # 公開不能な状態は持ち込んだ PR の時点で検出する（40 秒程度で完了するため常時実行に見合う）。
   # リリース経路（main 向け PR / main への push）では paths に関わらず必ず実行する
@@ -340,7 +364,7 @@ jobs:
 
   gate:
     name: all checks passed
-    needs: [changes, package, example-android, example-ios, publish-dry-run, docs-build]
+    needs: [changes, package, example-android, example-ios, example-macos, publish-dry-run, docs-build]
     if: always()
     runs-on: ubuntu-latest
     steps:

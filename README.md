@@ -20,13 +20,14 @@ A Flutter library for authenticating with [Misskey](https://misskey-hub.net/) se
 - Secure token storage using `flutter_secure_storage`
 - Token storage for multiple accounts and switching the active account
 - `MisskeyAuthManager`, a high-level API that runs the flows and saves tokens
-- iOS and Android
+- iOS, Android, and macOS
 
 ## Requirements
 
 - Flutter 3.47.1 or later, and Dart 3.13.1 or later (before Dart 4)
 - Android API 24 or later, with compileSdk 37 or later
 - iOS 15 or later
+- macOS 12.0 or later
 
 If you are upgrading from an earlier version, read [Upgrading](https://librarylibrarian.github.io/misskey_auth/upgrading) first. On Android, users must sign in again.
 
@@ -74,7 +75,7 @@ final current = await auth.currentToken();
 Before this code works, you need two things:
 
 1. **A client_id page (OAuth only).** Publish an HTTPS page that lists your `redirect_uri` in `<link rel="redirect_uri">`. See [client_id Page](https://librarylibrarian.github.io/misskey_auth/client-id-page).
-2. **A custom URL scheme registered in your app.** Add `yourscheme` to `Info.plist` on iOS and to `CallbackActivity` of `flutter_web_auth_2` on Android. See [Platform Setup](https://librarylibrarian.github.io/misskey_auth/platform-setup).
+2. **A custom URL scheme registered in your app.** Add `yourscheme` to `Info.plist` on iOS and to `CallbackActivity` of `flutter_web_auth_2` on Android. macOS needs no registration, but it needs entitlements for network access and the keychain. See [Platform Setup](https://librarylibrarian.github.io/misskey_auth/platform-setup).
 
 ## Documentation
 

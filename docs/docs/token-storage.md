@@ -88,7 +88,7 @@ abstract class TokenStore {
 
 ## `SecureTokenStore`
 
-`SecureTokenStore` saves tokens with `flutter_secure_storage`: the Keychain on iOS and the Keystore on Android. To change the storage options, pass your own `FlutterSecureStorage`. misskey_auth does not re-export it, so add `flutter_secure_storage` to your dependencies and import it:
+`SecureTokenStore` saves tokens with `flutter_secure_storage`: the Keychain on iOS and macOS, and the Keystore on Android. To change the storage options, pass your own `FlutterSecureStorage`. misskey_auth does not re-export it, so add `flutter_secure_storage` to your dependencies and import it:
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

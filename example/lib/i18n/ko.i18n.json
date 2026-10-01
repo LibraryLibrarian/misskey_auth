@@ -52,7 +52,7 @@
   },
   "errors": {
     "userCancelled": "인증이 취소되었습니다",
-    "callbackScheme": "콜백 스킴 설정이 올바르지 않습니다(AndroidManifest.xml / Info.plist를 확인하세요)",
+    "callbackScheme": "콜백 스킴 설정이 올바르지 않습니다(Android는 AndroidManifest.xml, iOS는 Info.plist를 확인하세요)",
     "authorizationLaunch": "인증 화면을 열지 못했습니다",
     "network": "네트워크 오류가 발생했습니다",
     "responseParse": "서버 응답을 해석하지 못했습니다",
