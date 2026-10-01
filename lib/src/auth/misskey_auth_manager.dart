@@ -210,12 +210,15 @@ class MisskeyAuthManager {
   /// 保存済みのすべてのアカウントをサインアウトする
   ///
   /// 各アカウントの扱いは [signOut] と同じ。失効は全アカウントで並列に試み、
-  /// [timeout] は全体の期限として扱う。結果は [listAccounts] の順に返す。
+  /// [timeout] は呼び出しの時点から数えた、すべての失効に共通の期限として扱う
+  /// （端末上の読み書きは打ち切らない）。結果は [listAccounts] の順に返す。
   /// 端末上の削除はすべて試み、失敗したものがあれば最初の例外を最後に投げる
   Future<List<SignOutResult>> signOutAll({
     SignOutMode mode = SignOutMode.revokeAndDelete,
     Duration? timeout,
   }) async {
+    // 期限はアカウント一覧の読み出しも含め、呼び出しの時点から数える
+    final remaining = _remainingOf(timeout);
     final entries = await store.list();
     if (mode == SignOutMode.localOnly) {
       await store.clearAll();
@@ -228,7 +231,6 @@ class MisskeyAuthManager {
           ),
       ];
     }
-    final remaining = _remainingOf(timeout);
     final attempts = await Future.wait([
       for (final entry in entries) _revokeStored(entry.key, remaining),
     ]);

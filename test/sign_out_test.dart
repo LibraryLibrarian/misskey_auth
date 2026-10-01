@@ -258,6 +258,21 @@ void main() {
       expect(results.every((r) => r.deleted), isTrue);
     });
 
+    test('counts the deadline from the call, including list', () async {
+      seedAll();
+      store.beforeList = () =>
+          Future<void>.delayed(const Duration(milliseconds: 150));
+      final results = await auth.signOutAll(
+        timeout: const Duration(milliseconds: 100),
+      );
+      // 一覧を読む間に期限が過ぎたため、失効は送らない
+      expect(requests, isEmpty);
+      expect(results.map((r) => r.revocation!.status).toSet(), {
+        TokenRevocationStatus.failed,
+      });
+      expect(results.every((r) => r.deleted), isTrue);
+    });
+
     test('localOnly clears the store without reading or revoking', () async {
       seedAll();
       final results = await auth.signOutAll(mode: SignOutMode.localOnly);

@@ -69,6 +69,9 @@ class MemoryTokenStore implements TokenStore {
 
   bool throwOnList = false;
 
+  /// [list] の直前に呼ぶ（読み出しの遅延の再現用）
+  Future<void> Function()? beforeList;
+
   /// トークンを保存した状態にする
   void seed(AccountKey key, String accessToken) {
     tokens[key] = StoredToken(accessToken: accessToken, tokenType: 'MiAuth');
@@ -93,6 +96,7 @@ class MemoryTokenStore implements TokenStore {
 
   @override
   Future<List<AccountEntry>> list() async {
+    await beforeList?.call();
     calls.add('list');
     if (throwOnList) throw PlatformException(code: 'StorageError');
     return [for (final key in index) AccountEntry(key)];
