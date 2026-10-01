@@ -164,10 +164,12 @@ class MisskeyTokenRevocationClient {
     }
     final error = body?['error'];
     final code = error is Map ? error['code'] : null;
-    final errorCode = code is String ? redact(code) : null;
+    // 分類は元のコードで行い、結果に載せる値だけ伏せる
+    final rawCode = code is String ? code : null;
+    final errorCode = rawCode == null ? null : redact(rawCode);
 
     // トークンが存在しない: 失効済み、またはアカウント削除済み
-    if (status == 401 && errorCode == 'AUTHENTICATION_FAILED') {
+    if (status == 401 && rawCode == 'AUTHENTICATION_FAILED') {
       return TokenRevocationResult(
         status: TokenRevocationStatus.alreadyInvalid,
         statusCode: status,
@@ -176,7 +178,7 @@ class MisskeyTokenRevocationClient {
     }
     // 2026.9.0 未満はアプリのトークンからの呼び出しを ACCESS_DENIED で拒否する
     final unsupported =
-        (status == 400 && errorCode == 'ACCESS_DENIED') || status == 404;
+        (status == 400 && rawCode == 'ACCESS_DENIED') || status == 404;
     final summary = body == null ? null : errorSummaryOf(body);
     return TokenRevocationResult(
       status: unsupported

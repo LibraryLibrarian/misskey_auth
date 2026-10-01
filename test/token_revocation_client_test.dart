@@ -159,6 +159,16 @@ void main() {
     }
   });
 
+  test('classifies by the error code even for a short token', () async {
+    // トークンを伏せる処理がエラーコードの判定に影響しない
+    Future<TokenRevocationResult> revokeShort(ResponseBody body) =>
+        clientWith((_) => body).revoke(host: 'example.test', accessToken: 'A');
+    final invalid = await revokeShort(apiError(401, 'AUTHENTICATION_FAILED'));
+    expect(invalid.status, TokenRevocationStatus.alreadyInvalid);
+    final unsupported = await revokeShort(apiError(400, 'ACCESS_DENIED'));
+    expect(unsupported.status, TokenRevocationStatus.unsupported);
+  });
+
   test('does not retry after a server error', () async {
     final result = await revokeWith(
       (_) => apiError(503, 'SERVICE_UNAVAILABLE'),
