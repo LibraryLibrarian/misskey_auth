@@ -180,12 +180,18 @@ void main() {
     expect(result.error!.originalException, isNull);
   });
 
-  test('reports a malformed JSON body as a parse failure', () async {
-    final result = await revokeWith(
+  test('classifies a malformed JSON body by status', () async {
+    final failed = await revokeWith(
       (_) => textBody('{not json', 500, 'application/json'),
     );
-    expect(result.status, TokenRevocationStatus.failed);
-    expect(result.error, isA<ResponseParseException>());
+    expect(failed.status, TokenRevocationStatus.failed);
+    expect(failed.statusCode, 500);
+    expect(failed.error, isA<TokenRevocationException>());
+    final unsupported = await revokeWith(
+      (_) => textBody('{not json', 404, 'application/json'),
+    );
+    expect(unsupported.status, TokenRevocationStatus.unsupported);
+    expect(unsupported.statusCode, 404);
   });
 
   test('reports an exception from an interceptor as a failure', () async {

@@ -89,7 +89,8 @@ class MisskeyTokenRevocationClient {
     String Function(String) redact,
   ) async {
     try {
-      final response = await _dio.post<Object?>(
+      // 型を String にして Dio に JSON を解釈させない。不正な JSON でもステータスで分類する
+      final response = await _dio.post<String>(
         'https://$host/api/i/revoke-token',
         data: <String, dynamic>{'i': accessToken, 'token': accessToken},
         options: Options(
