@@ -19,6 +19,7 @@
 - 通过自定义 URL scheme 回调到应用
 - 使用 `flutter_secure_storage` 安全保存令牌
 - 保存多个账户的令牌并切换当前账户
+- 退出登录时在服务器上撤销令牌（Misskey 2026.9.0 及更高版本）
 - `MisskeyAuthManager`：高层 API，负责执行身份验证流程并保存令牌
 - iOS、Android 和 macOS
 

@@ -23,15 +23,101 @@ final active = await auth.getActive();
 await auth.clearActive();
 
 // Abmelden
-await auth.signOut(key);  // Token für ein Konto löschen
-await auth.signOutAll();  // Token für alle Konten löschen
+await auth.signOut(key);  // Token für ein Konto widerrufen und löschen
+await auth.signOutAll();  // Token für alle Konten widerrufen und löschen
 ```
 
-Beim Abmelden wird nur das Token auf dem Gerät gelöscht. Das Token auf dem Server wird dadurch nicht widerrufen.
+## Abmelden {#signing-out}
 
-## Timeouts
+Beim Abmelden wird das Token auf dem Server widerrufen und anschließend vom Gerät gelöscht. Der Widerruf erfordert Misskey 2026.9.0 oder höher; ab dieser Version kann sich ein App-Token über `/api/i/revoke-token` selbst widerrufen. Das funktioniert für MiAuth- und OAuth-Token, unabhängig von ihren Berechtigungen.
 
-`MisskeyAuthManager.defaultInstance()` verwendet die Standard-Timeouts (Verbindung: 10 Sekunden, Senden und Empfangen jeweils 20 Sekunden). Wenn Sie diese ändern möchten, erstellen Sie `MisskeyAuthManager` selbst. Die Timeouts von `MisskeyAuthManager` gelten nur für die von ihm selbst ausgeführte Anfrage an `/api/i`. Übergeben Sie die Timeouts daher auch an die einzelnen Clients.
+```dart
+final result = await auth.signOut(key);
+final revocation = result.revocation;
+if (revocation == null) {
+  // Widerruf wurde nicht versucht. Siehe result.skipReason.
+} else if (revocation.isInvalidated) {
+  // revoked oder alreadyInvalid: Das Token kann auf dem Server nicht mehr verwendet werden.
+} else if (revocation.status == TokenRevocationStatus.unsupported) {
+  // Der Server ist älter als 2026.9.0. Das Token bleibt dort gültig.
+} else {
+  // failed: Netzwerkfehler, Timeout oder unerwartete Antwort.
+}
+```
+
+### Modi
+
+Mit `mode` legen Sie fest, was mit dem Token auf dem Gerät geschieht:
+
+| `SignOutMode` | Widerruf | Löschen vom Gerät |
+|---|---|---|
+| `revokeAndDelete` (Standard) | Ja | Immer, unabhängig vom Ergebnis des Widerrufs |
+| `revokeOrKeep` | Ja | Nur wenn das Ergebnis `revoked` oder `alreadyInvalid` ist |
+| `localOnly` | Nein | Immer |
+
+Mit `revokeOrKeep` bleibt ein Token, das nicht widerrufen werden konnte, gespeichert, sodass der Benutzer es später erneut versuchen kann. Ein Server, der den Widerruf nicht unterstützt, gibt immer `unsupported` zurück, und bei einem Konto, das der Server aus einem anderen Grund ablehnt, etwa einem gesperrten Konto, kann der Widerruf jedes Mal fehlschlagen. Um solche Konten vom Gerät zu entfernen, melden Sie sie erneut mit `SignOutMode.localOnly` ab.
+
+Wenn das Token nicht gespeichert ist oder nicht gelesen werden kann, zum Beispiel weil die gespeicherten Daten beschädigt sind, wird es in jedem Modus ohne Widerruf gelöscht.
+
+### Ergebnisse
+
+`signOut` gibt ein `SignOutResult` zurück, `signOutAll` eines pro Konto in der Reihenfolge von `listAccounts`:
+
+| Feld | Bedeutung |
+|---|---|
+| `key` | Das Konto |
+| `revocation` | Das `TokenRevocationResult` oder `null`, wenn kein Widerruf versucht wurde |
+| `skipReason` | Der Grund, warum kein Widerruf versucht wurde: `localOnly`, `noStoredToken` oder `unreadableToken`. `null`, wenn er versucht wurde |
+| `deleted` | Ob das Token vom Gerät gelöscht wurde |
+
+`TokenRevocationResult` hat die folgenden Felder:
+
+| Feld | Bedeutung |
+|---|---|
+| `status` | `revoked`, `alreadyInvalid`, `unsupported` oder `failed` |
+| `isInvalidated` | `true` bei `revoked` und `alreadyInvalid` |
+| `statusCode` | Der HTTP-Status oder `null`, wenn keine Antwort empfangen wurde |
+| `errorCode` | Der Misskey-Fehlercode, etwa `RATE_LIMIT_EXCEEDED`, falls vorhanden |
+| `error` | Die Ursache bei `unsupported` und `failed`: `TokenRevocationException` bei einer Fehlerantwort, `NetworkException` bei einem Netzwerkfehler oder Timeout, `ResponseParseException` bei einer nicht lesbaren Antwort |
+
+`alreadyInvalid` bedeutet, dass der Server das Token nicht erkannt hat: Es wurde bereits widerrufen, oder das Konto wurde gelöscht. Dieses Ergebnis wird wie `revoked` behandelt.
+
+Fehlschläge beim Widerruf werden im Ergebnis gemeldet und nie als Ausnahme ausgelöst. Fehler beim Löschen des Tokens auf dem Gerät werden wie bisher ausgelöst; `signOutAll` versucht zunächst, alle Konten zu löschen, und löst dann den ersten Fehler aus.
+
+`deleted` ist in zwei Fällen `false`: `revokeOrKeep` hat das Token behalten, oder während des Widerrufs wurde ein neues Token für dasselbe Konto gespeichert, zum Beispiel weil sich der Benutzer erneut angemeldet hat. Das neue Token wird nicht gelöscht, da es nie widerrufen wurde.
+
+### Timeout und Wiederholungsversuche {#timeout-and-retries}
+
+Der Widerruf wird nicht erneut versucht. Ohne `timeout` wartet eine Anfrage, auf die keine Antwort kommt, bis die Timeouts der Anfrage ablaufen (siehe [Timeouts](#timeouts)). Übergeben Sie `timeout`, um die Wartezeit zu begrenzen:
+
+```dart
+await auth.signOut(key, timeout: const Duration(seconds: 5));
+await auth.signOutAll(timeout: const Duration(seconds: 5));
+```
+
+`signOutAll` widerruft alle Konten parallel, und sein `timeout` gilt für den gesamten Vorgang. Eine Anfrage, deren Zeit abläuft, wird als `failed` gemeldet. Der Server hat das Token möglicherweise trotzdem widerrufen; eine erneute Abmeldung meldet dann `alreadyInvalid`.
+
+### Widerruf ohne den Manager
+
+Wenn Sie Token selbst speichern, verwenden Sie `MisskeyTokenRevocationClient` direkt. Der Client widerruft das Token auf dem Server und greift auf keinen Speicher zu:
+
+```dart
+final revocation = MisskeyTokenRevocationClient();
+final result = await revocation.revoke(
+  host: 'misskey.io',
+  accessToken: token,
+  timeout: const Duration(seconds: 5),
+);
+if (result.isInvalidated) {
+  // Token aus Ihrem eigenen Speicher löschen
+}
+```
+
+`revoke` löst nie eine Ausnahme aus und gibt dasselbe `TokenRevocationResult` zurück. Der Client sendet das Token im Anfragetext. Wenn Sie ein eigenes `Dio` übergeben, können dessen Interceptors das Token sehen. Protokollieren Sie daher keine Anfragetexte.
+
+## Timeouts {#timeouts}
+
+`MisskeyAuthManager.defaultInstance()` verwendet die Standard-Timeouts (Verbindung: 10 Sekunden, Senden und Empfangen jeweils 20 Sekunden). Wenn Sie diese ändern möchten, erstellen Sie `MisskeyAuthManager` selbst. Die Timeouts von `MisskeyAuthManager` gelten für die von ihm selbst ausgeführten Anfragen, also für `/api/i` und den Widerruf von Token. Übergeben Sie die Timeouts daher auch an die einzelnen Clients.
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -43,7 +129,7 @@ final auth = MisskeyAuthManager(
 );
 ```
 
-Alle Konstruktoren akzeptieren `connectTimeout`, `sendTimeout` und `receiveTimeout`. Sie akzeptieren auch `dio`. Die Clients wenden die Timeout-Argumente auch auf das übergebene `Dio` an. `MisskeyAuthManager` ignoriert die Timeout-Argumente jedoch, wenn `dio` übergeben wird. Legen Sie die Timeouts in diesem Fall direkt in `Dio` fest.
+Alle Konstruktoren akzeptieren `connectTimeout`, `sendTimeout` und `receiveTimeout`. Sie akzeptieren auch `dio`. `MisskeyOAuthClient` und `MisskeyMiAuthClient` wenden die Timeout-Argumente auch auf das übergebene `Dio` an. `MisskeyTokenRevocationClient` wendet sie nur auf seine eigenen Anfragen an und lässt das übergebene `Dio` unverändert. `MisskeyAuthManager` ignoriert die Timeout-Argumente, wenn `dio` übergeben wird. Legen Sie die Timeouts in diesem Fall direkt in `Dio` fest. Wenn Sie einen anderen Client für den Widerruf verwenden möchten, übergeben Sie ihn als `revocation`.
 
 ## Modelle
 

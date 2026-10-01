@@ -64,6 +64,14 @@ try {
 | `MiAuthSessionInvalidException` | 콜백이 다른 세션에 대한 것이거나 확인 API가 404 또는 410을 반환했습니다. |
 | `MiAuthCheckFailedException` | 확인 API가 그 밖의 오류 상태를 반환했습니다. |
 
+### 토큰 폐기
+
+| 예외 | 반환 조건 |
+|---|---|
+| `TokenRevocationException` | 서버가 폐기 요청에 오류 상태로 응답했습니다. `details`에는 HTTP 상태와 서버 오류가 포함됩니다. |
+
+폐기는 예외를 발생시키지 않습니다. `signOut`, `signOutAll`, `MisskeyTokenRevocationClient.revoke`는 원인을 `TokenRevocationResult.error`로 반환하며, 이 값은 `NetworkException`이나 `ResponseParseException`일 수도 있습니다. 요청에 포함된 토큰이 노출되지 않도록 이러한 예외에는 `originalException`이 없습니다. [로그아웃](./token-storage.md#signing-out)을 참조하세요.
+
 ### 현재 버전에서 발생하지 않는 예외
 
 `InvalidAuthConfigException`, `SecureStorageException`, `MiAuthNotSupportedException`은 정의되어 있지만 현재 버전에서는 발생하지 않습니다.
@@ -74,10 +82,13 @@ try {
 
 `loginWithOAuth`와 `loginWithMiAuth`는 토큰을 저장한 다음 계정을 활성화합니다. 계정을 활성화하는 단계만 실패하면 토큰은 저장된 채로 남고 계정은 활성화되지 않습니다.
 
+`signOut`과 `signOutAll`은 저장된 토큰을 읽을 수 없어도 예외를 발생시키지 않고, 폐기하지 않은 채 삭제합니다. 토큰 삭제에 실패하면 예외를 발생시킵니다.
+
 ## 재시도
 
 - OAuth 서버 정보 조회와 `/api/i` 호출은 시간 초과, 연결 오류, 기타 전송 오류, HTTP 429·500·502·503·504에서 최대 총 세 번 시도합니다.
 - 토큰 교환과 MiAuth 확인 API는 재시도하지 않습니다. 인가 코드와 MiAuth 세션은 한 번만 사용할 수 있으며, 응답을 받지 못했더라도 서버에서 요청 처리가 완료되었을 수 있습니다. 처음부터 인증을 다시 시작하세요.
+- 토큰 폐기는 재시도하지 않습니다. [시간 초과와 재시도](./token-storage.md#timeout-and-retries)를 참조하세요.
 
 ## 인증 후 로그인에 실패하는 경우
 

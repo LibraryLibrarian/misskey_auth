@@ -23,15 +23,101 @@ final active = await auth.getActive();
 await auth.clearActive();
 
 // Déconnexion
-await auth.signOut(key);  // Supprime le jeton d’un compte
-await auth.signOutAll();  // Supprime les jetons de tous les comptes
+await auth.signOut(key);  // Révoque et supprime le jeton d’un compte
+await auth.signOutAll();  // Révoque et supprime les jetons de tous les comptes
 ```
 
-La déconnexion supprime uniquement le jeton de l’appareil. Elle ne révoque pas le jeton sur le serveur.
+## Déconnexion {#signing-out}
 
-## Délais d’expiration
+La déconnexion révoque le jeton sur le serveur, puis le supprime de l’appareil. La révocation nécessite Misskey 2026.9.0 ou version ultérieure, qui permet à un jeton d’application de se révoquer lui-même via `/api/i/revoke-token`. Elle fonctionne pour les jetons MiAuth et OAuth, quelles que soient leurs autorisations.
 
-`MisskeyAuthManager.defaultInstance()` utilise les délais par défaut : 10 secondes pour la connexion, et 20 secondes pour l’envoi et la réception. Pour les modifier, construisez vous-même `MisskeyAuthManager`. Ses délais ne s’appliquent qu’à sa propre requête `/api/i` ; transmettez-les donc également à chaque client :
+```dart
+final result = await auth.signOut(key);
+final revocation = result.revocation;
+if (revocation == null) {
+  // La révocation n’a pas été tentée. Consultez result.skipReason.
+} else if (revocation.isInvalidated) {
+  // revoked ou alreadyInvalid : le jeton n’est plus utilisable sur le serveur.
+} else if (revocation.status == TokenRevocationStatus.unsupported) {
+  // Le serveur est antérieur à 2026.9.0. Le jeton y reste valide.
+} else {
+  // failed : erreur réseau, délai dépassé ou réponse inattendue.
+}
+```
+
+### Modes
+
+Transmettez `mode` pour choisir ce qu’il advient du jeton sur l’appareil :
+
+| `SignOutMode` | Révocation | Suppression de l’appareil |
+|---|---|---|
+| `revokeAndDelete` (par défaut) | Oui | Toujours, quel que soit le résultat de la révocation |
+| `revokeOrKeep` | Oui | Uniquement si le résultat est `revoked` ou `alreadyInvalid` |
+| `localOnly` | Non | Toujours |
+
+Avec `revokeOrKeep`, un jeton qui n’a pas pu être révoqué reste enregistré, afin que l’utilisateur puisse réessayer plus tard. Un serveur qui ne prend pas en charge la révocation renvoie toujours `unsupported`, et un compte que le serveur refuse pour une autre raison, par exemple un compte suspendu, peut échouer à chaque fois. Pour retirer ces comptes de l’appareil, déconnectez-les à nouveau avec `SignOutMode.localOnly`.
+
+Si le jeton n’est pas stocké ou ne peut pas être lu, par exemple parce que les données stockées sont corrompues, il est supprimé sans révocation, quel que soit le mode.
+
+### Résultats
+
+`signOut` renvoie un `SignOutResult`, et `signOutAll` en renvoie un pour chaque compte, dans l’ordre de `listAccounts` :
+
+| Champ | Signification |
+|---|---|
+| `key` | Le compte |
+| `revocation` | Le `TokenRevocationResult`, ou `null` si la révocation n’a pas été tentée |
+| `skipReason` | La raison pour laquelle la révocation n’a pas été tentée : `localOnly`, `noStoredToken` ou `unreadableToken`. `null` si elle a été tentée |
+| `deleted` | Indique si le jeton a été supprimé de l’appareil |
+
+`TokenRevocationResult` contient :
+
+| Champ | Signification |
+|---|---|
+| `status` | `revoked`, `alreadyInvalid`, `unsupported` ou `failed` |
+| `isInvalidated` | `true` pour `revoked` et `alreadyInvalid` |
+| `statusCode` | Le statut HTTP, ou `null` si aucune réponse n’a été reçue |
+| `errorCode` | Le code d’erreur Misskey, comme `RATE_LIMIT_EXCEEDED`, le cas échéant |
+| `error` | La cause pour `unsupported` et `failed` : `TokenRevocationException` pour une réponse d’erreur, `NetworkException` pour une erreur réseau ou un délai dépassé, `ResponseParseException` pour une réponse illisible |
+
+`alreadyInvalid` signifie que le serveur n’a pas reconnu le jeton : il avait déjà été révoqué, ou le compte a été supprimé. Ce résultat est traité comme `revoked`.
+
+Les échecs de révocation sont signalés dans le résultat et ne sont jamais levés. Les erreurs survenant lors de la suppression du jeton sur l’appareil sont levées comme auparavant ; `signOutAll` tente d’abord de supprimer tous les comptes, puis lève la première erreur.
+
+`deleted` vaut `false` dans deux cas : `revokeOrKeep` a conservé le jeton, ou un nouveau jeton a été enregistré pour le même compte pendant la révocation, par exemple parce que l’utilisateur s’est reconnecté. Le nouveau jeton n’est pas supprimé, car il n’a jamais été révoqué.
+
+### Délai d’expiration et nouvelles tentatives {#timeout-and-retries}
+
+La révocation ne fait pas de nouvelle tentative. Sans `timeout`, une requête qui ne répond pas attend l’expiration des délais de la requête (consultez [Délais d’expiration](#timeouts)). Transmettez `timeout` pour limiter cette attente :
+
+```dart
+await auth.signOut(key, timeout: const Duration(seconds: 5));
+await auth.signOutAll(timeout: const Duration(seconds: 5));
+```
+
+`signOutAll` révoque tous les comptes en parallèle, et son `timeout` s’applique à l’ensemble de l’opération. Une requête qui dépasse le délai est signalée comme `failed`. Le serveur peut néanmoins avoir révoqué le jeton ; une nouvelle déconnexion signale alors `alreadyInvalid`.
+
+### Révocation sans le gestionnaire
+
+Si vous stockez vous-même les jetons, utilisez directement `MisskeyTokenRevocationClient`. Il révoque le jeton sur le serveur sans toucher à aucun stockage :
+
+```dart
+final revocation = MisskeyTokenRevocationClient();
+final result = await revocation.revoke(
+  host: 'misskey.io',
+  accessToken: token,
+  timeout: const Duration(seconds: 5),
+);
+if (result.isInvalidated) {
+  // Supprimez le jeton de votre propre stockage.
+}
+```
+
+`revoke` ne lève jamais d’exception et renvoie le même `TokenRevocationResult`. Le client envoie le jeton dans le corps de la requête. Si vous transmettez votre propre `Dio`, ses intercepteurs peuvent voir le jeton ; ne journalisez donc pas le corps des requêtes.
+
+## Délais d’expiration {#timeouts}
+
+`MisskeyAuthManager.defaultInstance()` utilise les délais par défaut : 10 secondes pour la connexion, et 20 secondes pour l’envoi et la réception. Pour les modifier, construisez vous-même `MisskeyAuthManager`. Ses délais s’appliquent à ses propres requêtes, `/api/i` et la révocation des jetons ; transmettez-les donc également à chaque client :
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -43,7 +129,7 @@ final auth = MisskeyAuthManager(
 );
 ```
 
-Les constructeurs acceptent `connectTimeout`, `sendTimeout` et `receiveTimeout`. Ils acceptent également un `dio`. Les clients appliquent aussi les arguments de délai à un `Dio` que vous leur transmettez, mais `MisskeyAuthManager` les ignore si `dio` est fourni ; configurez directement ce `Dio`.
+Les constructeurs acceptent `connectTimeout`, `sendTimeout` et `receiveTimeout`. Ils acceptent également un `dio`. `MisskeyOAuthClient` et `MisskeyMiAuthClient` appliquent aussi les arguments de délai à un `Dio` que vous leur transmettez. `MisskeyTokenRevocationClient` ne les applique qu’à ses propres requêtes et laisse ce `Dio` inchangé. `MisskeyAuthManager` les ignore si `dio` est fourni ; configurez directement ce `Dio`. Pour utiliser un autre client de révocation, transmettez-le via `revocation`.
 
 ## Modèles
 

@@ -19,6 +19,7 @@
 - 사용자 지정 URL 스킴을 통한 앱 콜백
 - `flutter_secure_storage`를 사용한 안전한 토큰 저장
 - 여러 계정의 토큰 저장 및 활성 계정 전환
+- 로그아웃 시 서버에서 토큰 폐기(Misskey 2026.9.0 이상)
 - 인증 흐름 실행과 토큰 저장을 중개하는 고수준 API `MisskeyAuthManager`
 - iOS, Android 및 macOS
 

@@ -23,15 +23,101 @@ final active = await auth.getActive();
 await auth.clearActive();
 
 // 退出登录
-await auth.signOut(key);  // 删除一个账号的令牌
-await auth.signOutAll();  // 删除所有账号的令牌
+await auth.signOut(key);  // 撤销并删除一个账号的令牌
+await auth.signOutAll();  // 撤销并删除所有账号的令牌
 ```
 
-退出登录只会删除设备上的令牌，不会在服务器上撤销令牌。
+## 退出登录 {#signing-out}
 
-## 超时
+退出登录时，会先在服务器上撤销令牌，然后将其从设备上删除。撤销需要 Misskey 2026.9.0 或更高版本，该版本允许应用令牌通过 `/api/i/revoke-token` 撤销自身。无论权限如何，MiAuth 令牌和 OAuth 令牌都可以撤销。
 
-`MisskeyAuthManager.defaultInstance()` 使用默认超时：连接为 10 秒，发送和接收各为 20 秒。如需更改，请自行构建 `MisskeyAuthManager`。`MisskeyAuthManager` 的超时仅适用于它自身对 `/api/i` 的请求，因此也要将超时传递给每个客户端：
+```dart
+final result = await auth.signOut(key);
+final revocation = result.revocation;
+if (revocation == null) {
+  // 未尝试撤销。请参阅 result.skipReason。
+} else if (revocation.isInvalidated) {
+  // revoked 或 alreadyInvalid：该令牌已无法在服务器上使用。
+} else if (revocation.status == TokenRevocationStatus.unsupported) {
+  // 服务器版本低于 2026.9.0。令牌在服务器上仍然有效。
+} else {
+  // failed：网络错误、超时或意外的响应。
+}
+```
+
+### 模式
+
+传入 `mode` 可选择如何处理设备上的令牌：
+
+| `SignOutMode` | 撤销 | 从设备删除 |
+|---|---|---|
+| `revokeAndDelete`（默认） | 是 | 始终删除，无论撤销结果如何 |
+| `revokeOrKeep` | 是 | 仅当结果为 `revoked` 或 `alreadyInvalid` 时 |
+| `localOnly` | 否 | 始终删除 |
+
+使用 `revokeOrKeep` 时，无法撤销的令牌会保留在存储中，以便用户稍后重试。不支持撤销的服务器始终返回 `unsupported`；因其他原因被服务器拒绝的账号（例如已被冻结的账号）可能每次都会失败。要从设备上移除此类账号，请使用 `SignOutMode.localOnly` 再次退出登录。
+
+如果令牌未保存或无法读取（例如存储的数据已损坏），则无论使用哪种模式，都会直接删除，不进行撤销。
+
+### 结果
+
+`signOut` 返回一个 `SignOutResult`，`signOutAll` 按 `listAccounts` 的顺序为每个账号返回一个 `SignOutResult`：
+
+| 字段 | 含义 |
+|---|---|
+| `key` | 对应的账号 |
+| `revocation` | `TokenRevocationResult`；如果未尝试撤销，则为 `null` |
+| `skipReason` | 未尝试撤销的原因：`localOnly`、`noStoredToken` 或 `unreadableToken`。如果已尝试撤销，则为 `null` |
+| `deleted` | 令牌是否已从设备上删除 |
+
+`TokenRevocationResult` 包含以下字段：
+
+| 字段 | 含义 |
+|---|---|
+| `status` | `revoked`、`alreadyInvalid`、`unsupported` 或 `failed` |
+| `isInvalidated` | 结果为 `revoked` 和 `alreadyInvalid` 时为 `true` |
+| `statusCode` | HTTP 状态；如果未收到响应，则为 `null` |
+| `errorCode` | Misskey 错误代码（如果有），例如 `RATE_LIMIT_EXCEEDED` |
+| `error` | `unsupported` 和 `failed` 的原因：错误响应为 `TokenRevocationException`，网络错误或超时为 `NetworkException`，无法读取的响应为 `ResponseParseException` |
+
+`alreadyInvalid` 表示服务器无法识别该令牌：令牌已被撤销，或账号已被删除。它与 `revoked` 同等对待。
+
+撤销失败会在结果中报告，绝不会抛出异常。删除设备上的令牌时发生的错误仍会像以前一样抛出；`signOutAll` 会先尝试删除所有账号，然后抛出第一个错误。
+
+`deleted` 在两种情况下为 `false`：`revokeOrKeep` 保留了令牌；或者在撤销过程中，同一账号保存了新令牌，例如用户再次登录。新令牌从未被撤销，因此不会被删除。
+
+### 超时与重试 {#timeout-and-retries}
+
+撤销不会重试。如果未指定 `timeout`，无响应的请求会一直等待，直到达到请求超时（请参阅[超时](#timeouts)）。传入 `timeout` 可限制等待时间：
+
+```dart
+await auth.signOut(key, timeout: const Duration(seconds: 5));
+await auth.signOutAll(timeout: const Duration(seconds: 5));
+```
+
+`signOutAll` 会并行撤销所有账号，其 `timeout` 适用于整个操作。超时的请求会报告为 `failed`。服务器可能仍已撤销该令牌；此时再次退出登录会报告 `alreadyInvalid`。
+
+### 不通过管理器撤销
+
+如果自行存储令牌，请直接使用 `MisskeyTokenRevocationClient`。它只在服务器上撤销令牌，不会操作任何存储：
+
+```dart
+final revocation = MisskeyTokenRevocationClient();
+final result = await revocation.revoke(
+  host: 'misskey.io',
+  accessToken: token,
+  timeout: const Duration(seconds: 5),
+);
+if (result.isInvalidated) {
+  // 从自己的存储中删除该令牌。
+}
+```
+
+`revoke` 绝不会抛出异常，并返回相同的 `TokenRevocationResult`。客户端会在请求体中发送令牌。如果传入自己的 `Dio`，其拦截器可以看到令牌，因此请勿记录请求体。
+
+## 超时 {#timeouts}
+
+`MisskeyAuthManager.defaultInstance()` 使用默认超时：连接为 10 秒，发送和接收各为 20 秒。如需更改，请自行构建 `MisskeyAuthManager`。`MisskeyAuthManager` 的超时适用于它自身的请求，即 `/api/i` 和令牌撤销，因此也要将超时传递给每个客户端：
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -43,7 +129,7 @@ final auth = MisskeyAuthManager(
 );
 ```
 
-各构造函数都接受 `connectTimeout`、`sendTimeout` 和 `receiveTimeout`。它们也接受 `dio`。客户端会将超时参数应用于传入的 `Dio`，但如果传入了 `dio`，`MisskeyAuthManager` 会忽略这些参数；此时请直接配置该 `Dio`。
+各构造函数都接受 `connectTimeout`、`sendTimeout` 和 `receiveTimeout`。它们也接受 `dio`。`MisskeyOAuthClient` 和 `MisskeyMiAuthClient` 会将超时参数应用于传入的 `Dio`。`MisskeyTokenRevocationClient` 仅将这些参数应用于自身的请求，不会修改传入的 `Dio`。如果传入了 `dio`，`MisskeyAuthManager` 会忽略这些参数；此时请直接配置该 `Dio`。如需使用其他撤销客户端，请通过 `revocation` 传入。
 
 ## 模型
 
