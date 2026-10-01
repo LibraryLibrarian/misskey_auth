@@ -63,10 +63,31 @@ class MisskeyTokenRevocationClient {
     // サーバーやインターセプターの文言がトークンを含んでも、結果に載せない
     String redact(String text) =>
         accessToken.isEmpty ? text : text.replaceAll(accessToken, '***');
+
     final cancelToken = CancelToken();
-    final timer = timeout == null
-        ? null
-        : Timer(timeout, () => cancelToken.cancel());
+    final request = _send(host, accessToken, cancelToken, redact);
+    if (timeout == null) return request;
+
+    // キャンセル後にインターセプターが完了しない場合も、期限で結果を返す
+    final expired = Completer<TokenRevocationResult>();
+    final timer = Timer(timeout, () {
+      cancelToken.cancel();
+      expired.complete(_timedOut(timeout));
+    });
+    try {
+      return await Future.any([request, expired.future]);
+    } finally {
+      timer.cancel();
+    }
+  }
+
+  /// 失効のリクエストを送り、結果に変換する。例外は投げない
+  Future<TokenRevocationResult> _send(
+    String host,
+    String accessToken,
+    CancelToken cancelToken,
+    String Function(String) redact,
+  ) async {
     try {
       final response = await _dio.post<Object?>(
         'https://$host/api/i/revoke-token',
@@ -88,9 +109,12 @@ class MisskeyTokenRevocationClient {
       if (e.type == DioExceptionType.badResponse && response != null) {
         return _classify(response.statusCode, response.data, redact);
       }
-      // キャンセルするのは期限のタイマーだけ
-      if (e.type == DioExceptionType.cancel && timeout != null) {
-        return _timedOut(timeout);
+      // キャンセルするのは期限のタイマーだけ（結果は revoke 側で返す）
+      if (e.type == DioExceptionType.cancel) {
+        return const TokenRevocationResult(
+          status: TokenRevocationStatus.failed,
+          error: NetworkException(details: 'The request was cancelled'),
+        );
       }
       // DioException は送信データ（トークン）を持つため、原因に含めない
       final cause = e.error;
@@ -116,8 +140,6 @@ class MisskeyTokenRevocationClient {
           details: e.runtimeType.toString(),
         ),
       );
-    } finally {
-      timer?.cancel();
     }
   }
 

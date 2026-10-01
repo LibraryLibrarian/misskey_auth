@@ -248,6 +248,27 @@ void main() {
       expect(result.error, isA<NetworkException>());
     });
 
+    test('returns even if an interceptor never handles the cancel', () async {
+      final dio = Dio()
+        ..interceptors.add(
+          // エラーを受け取っても handler を呼ばない
+          InterceptorsWrapper(onError: (_, _) {}),
+        )
+        ..httpClientAdapter = StubAdapter(
+          (_) => Completer<ResponseBody>().future,
+        );
+      addTearDown(() => dio.close(force: true));
+      final result = await MisskeyTokenRevocationClient(dio: dio)
+          .revoke(
+            host: 'example.test',
+            accessToken: _token,
+            timeout: const Duration(milliseconds: 50),
+          )
+          .timeout(const Duration(seconds: 5));
+      expect(result.status, TokenRevocationStatus.failed);
+      expect(result.error, isA<NetworkException>());
+    });
+
     test('does not send a request when no time is left', () async {
       final result = await revokeWith(
         (_) => ResponseBody.fromString('', 204),
