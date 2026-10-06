@@ -19,6 +19,7 @@ Eine Flutter-Bibliothek zur Authentifizierung bei [Misskey](https://misskey-hub.
 - Callback zur App über ein benutzerdefiniertes URL-Schema
 - Sichere Token-Speicherung mit `flutter_secure_storage`
 - Token-Speicherung für mehrere Konten und Wechsel des aktiven Kontos
+- Widerruf des Tokens auf dem Server beim Abmelden (Misskey 2026.9.0 und höher)
 - `MisskeyAuthManager`, eine High-Level-API, die Authentifizierungsabläufe ausführt und Tokens speichert
 - iOS, Android und macOS
 

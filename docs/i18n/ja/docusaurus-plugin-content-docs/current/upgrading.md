@@ -15,6 +15,34 @@ title: 更新時の注意
 
 安定版の `flutter_web_auth_2` が Kotlin Android プラグインを適用する間は、`android.builtInKotlin=false` と `android.newDsl=false` を維持してください。プラグインの適用は残し、JVM ターゲットの設定を `android.kotlinOptions` から `kotlin.compilerOptions` へ変更します。将来の Flutter では、依存プラグイン側の内蔵 Kotlin 対応が必要になる可能性があります。
 
+## 0.2.0-beta.2 からの更新
+
+### サインアウト時にトークンを失効
+
+`signOut` と `signOutAll` は、端末からトークンを削除する前に、サーバー側でトークンを失効させるようになりました。ネットワークリクエストを行うため、リクエストのタイムアウトに達するまで時間がかかることがあります。失効に失敗した場合や、サーバーが失効に対応していない場合も、端末からはトークンが削除されます。
+
+- 以前の動作を維持するには、`mode: SignOutMode.localOnly` を渡してください。
+- 待ち時間を制限するには、`timeout` を渡してください。
+- Misskey 2026.9.0 より前のサーバーは失効に対応していません。そうしたサーバーのトークンは、従来どおりサーバー側で有効なままです。
+
+[サインアウト](./token-storage.md#signing-out)を参照してください。
+
+### 新しい戻り値の型
+
+`signOut` は `Future<SignOutResult>` を、`signOutAll` は `Future<List<SignOutResult>>` を返すようになりました。await するだけのコードは変更不要です。`MisskeyAuthManager` を実装またはモックするクラスは、シグネチャを更新する必要があります。
+
+```dart
+Future<SignOutResult> signOut(
+  AccountKey key, {
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+Future<List<SignOutResult>> signOutAll({
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+```
+
 ## 0.2.0-beta.1 への更新
 
 ### Android では再度のサインインが必要

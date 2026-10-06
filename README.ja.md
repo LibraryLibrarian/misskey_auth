@@ -19,6 +19,7 @@
 - カスタム URL スキームによるアプリへのコールバック
 - `flutter_secure_storage` を使用した安全なトークン保存
 - 複数アカウントのトークン保存と、アクティブなアカウントの切り替え
+- サインアウト時のサーバー側でのトークン失効（Misskey 2026.9.0 以降）
 - 認証の実行とトークンの保存を仲介する高レベル API `MisskeyAuthManager`
 - iOS、Android、macOS
 

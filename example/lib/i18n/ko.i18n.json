@@ -44,6 +44,8 @@
     "empty": "로그인한 계정이 없습니다",
     "savedAt": "저장됨: $date",
     "delete": "이 계정 삭제",
+    "revokeUnsupported": "이 기기에서 삭제했습니다. 이 서버는 토큰 폐기를 지원하지 않으므로 서버의 토큰은 계속 유효합니다",
+    "revokeFailed": "이 기기에서 삭제했지만 서버의 토큰을 폐기하지 못했습니다",
     "activeChanged": "활성 계정을 변경했습니다: $account"
   },
   "validation": {

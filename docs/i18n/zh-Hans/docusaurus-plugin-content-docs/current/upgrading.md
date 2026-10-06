@@ -15,6 +15,34 @@ title: 升级说明
 
 在稳定版 `flutter_web_auth_2` 仍应用 Kotlin Android 插件期间，请保留 `android.builtInKotlin=false` 和 `android.newDsl=false`。保留该插件，但将 `android.kotlinOptions` 替换为 `kotlin.compilerOptions` 来配置其 JVM 目标。未来的 Flutter 版本可能要求依赖项支持内置 Kotlin。
 
+## 从 0.2.0-beta.2 升级
+
+### 退出登录会撤销令牌
+
+`signOut` 和 `signOutAll` 现在会先在服务器上撤销令牌，再将其从设备上删除。它们会发出网络请求，因此耗时可能长达请求超时时间。即使撤销失败或服务器不支持撤销，令牌仍会从设备上删除。
+
+- 如需保留以前的行为，请传入 `mode: SignOutMode.localOnly`。
+- 如需限制等待时间，请传入 `timeout`。
+- Misskey 2026.9.0 之前的服务器不支持撤销。与以前一样，这些服务器上的令牌仍然有效。
+
+请参阅[退出登录](./token-storage.md#signing-out)。
+
+### 新的返回类型
+
+`signOut` 现在返回 `Future<SignOutResult>`，`signOutAll` 返回 `Future<List<SignOutResult>>`。仅对它们使用 await 的代码无需更改。实现或模拟 `MisskeyAuthManager` 的类必须更新方法签名：
+
+```dart
+Future<SignOutResult> signOut(
+  AccountKey key, {
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+Future<List<SignOutResult>> signOutAll({
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+```
+
 ## 升级到 0.2.0-beta.1
 
 ### Android 用户必须重新登录

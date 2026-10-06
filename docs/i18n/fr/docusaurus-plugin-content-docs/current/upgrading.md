@@ -15,6 +15,34 @@ title: Mise à niveau
 
 Conservez `android.builtInKotlin=false` et `android.newDsl=false` tant que la version stable de `flutter_web_auth_2` applique le plugin Kotlin Android. Gardez ce plugin, mais remplacez `android.kotlinOptions` par `kotlin.compilerOptions` pour configurer sa cible JVM. Les futures versions de Flutter pourraient exiger la prise en charge de Kotlin intégré par les dépendances.
 
+## Mise à niveau depuis 0.2.0-beta.2
+
+### La déconnexion révoque le jeton
+
+`signOut` et `signOutAll` révoquent désormais le jeton sur le serveur avant de le supprimer de l’appareil. Comme ils effectuent une requête réseau, ils peuvent durer jusqu’à l’expiration des délais de la requête. Le jeton est tout de même supprimé de l’appareil si la révocation échoue ou si le serveur ne la prend pas en charge.
+
+- Pour conserver le comportement précédent, transmettez `mode: SignOutMode.localOnly`.
+- Pour limiter l’attente, transmettez `timeout`.
+- Les serveurs antérieurs à Misskey 2026.9.0 ne prennent pas en charge la révocation. Leurs jetons restent valides sur le serveur, comme auparavant.
+
+Consultez [Déconnexion](./token-storage.md#signing-out).
+
+### Nouveaux types de retour
+
+`signOut` renvoie désormais `Future<SignOutResult>`, et `signOutAll` renvoie `Future<List<SignOutResult>>`. Le code qui se contente de les attendre avec `await` n’a pas besoin d’être modifié. Les classes qui implémentent ou simulent `MisskeyAuthManager` doivent mettre à jour les signatures :
+
+```dart
+Future<SignOutResult> signOut(
+  AccountKey key, {
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+Future<List<SignOutResult>> signOutAll({
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+```
+
 ## Mise à niveau vers 0.2.0-beta.1
 
 ### Les utilisateurs Android doivent se reconnecter

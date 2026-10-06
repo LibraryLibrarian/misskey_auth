@@ -19,6 +19,7 @@ Une bibliothèque Flutter pour l'authentification auprès des serveurs [Misskey]
 - Retour vers l'application via un schéma d'URL personnalisé
 - Stockage sécurisé des jetons avec `flutter_secure_storage`
 - Stockage des jetons de plusieurs comptes et changement du compte actif
+- Révocation du jeton sur le serveur lors de la déconnexion (Misskey 2026.9.0 et ultérieures)
 - `MisskeyAuthManager`, une API de haut niveau qui exécute les flux d'authentification et enregistre les jetons
 - iOS, Android et macOS
 

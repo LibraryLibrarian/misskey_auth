@@ -23,15 +23,103 @@ final active = await auth.getActive();
 await auth.clearActive();
 
 // サインアウト
-await auth.signOut(key);  // 1つのアカウントのトークンを削除
-await auth.signOutAll();  // すべてのアカウントのトークンを削除
+await auth.signOut(key);  // 1つのアカウントのトークンを失効させて削除
+await auth.signOutAll();  // すべてのアカウントのトークンを失効させて削除
 ```
 
-サインアウトは端末上のトークンを削除するだけです。サーバー側でトークンを失効させることはありません。
+## サインアウト {#signing-out}
 
-## タイムアウト
+サインアウトすると、サーバー側でトークンを失効させてから、端末上のトークンを削除します。失効には Misskey 2026.9.0 以降が必要です。このバージョンから、アプリのトークンが `/api/i/revoke-token` で自分自身を失効させられるようになりました。MiAuth と OAuth のどちらのトークンでも、権限に関係なく失効させられます。
 
-`MisskeyAuthManager.defaultInstance()` は既定のタイムアウト（接続 10 秒、送信と受信は各 20 秒）を使います。変更する場合は `MisskeyAuthManager` を自分で組み立てます。`MisskeyAuthManager` のタイムアウトは、それ自身が行う `/api/i` のリクエストにだけ適用されるため、各クライアントにも渡してください。
+```dart
+final result = await auth.signOut(key);
+final revocation = result.revocation;
+if (revocation == null) {
+  // 失効を試みなかった。result.skipReason を参照
+} else if (revocation.isInvalidated) {
+  // revoked または alreadyInvalid: サーバー側ではトークンをもう使えない
+} else if (revocation.status == TokenRevocationStatus.unsupported) {
+  // サーバーが 2026.9.0 より古い。サーバー側ではトークンが有効なまま
+} else {
+  // failed: ネットワークエラー、タイムアウト、または想定外の応答
+}
+```
+
+### モード
+
+`mode` を渡すと、端末上のトークンをどう扱うかを選べます。
+
+| `SignOutMode` | 失効 | 端末からの削除 |
+|---|---|---|
+| `revokeAndDelete`（既定） | する | 常に削除（失効の結果を問わない） |
+| `revokeOrKeep` | する | 結果が `revoked` または `alreadyInvalid` の場合のみ |
+| `localOnly` | しない | 常に削除 |
+
+`revokeOrKeep` では、失効できなかったトークンが保存されたまま残るため、ユーザーは後で再試行できます。失効に対応していないサーバーは常に `unsupported` を返します。また、凍結されたアカウントなど、別の理由でサーバーに拒否されるアカウントは毎回失敗する可能性があります。こうしたアカウントを端末から削除するには、`SignOutMode.localOnly` で再度サインアウトしてください。
+
+トークンが保存されていない場合や、保存データの破損などにより読み取れない場合は、どのモードでも失効を行わずに削除します。
+
+### 結果
+
+`signOut` は `SignOutResult` を返します。`signOutAll` はアカウントごとの `SignOutResult` を `listAccounts` の順で返します。
+
+| フィールド | 意味 |
+|---|---|
+| `key` | 対象のアカウント |
+| `revocation` | `TokenRevocationResult`。失効を試みなかった場合は `null` |
+| `skipReason` | 失効を試みなかった理由（`localOnly`、`noStoredToken`、`unreadableToken` のいずれか）。試みた場合は `null` |
+| `deleted` | 端末からトークンを削除したかどうか |
+
+`TokenRevocationResult` は次のフィールドを持ちます。
+
+| フィールド | 意味 |
+|---|---|
+| `status` | `revoked`、`alreadyInvalid`、`unsupported`、`failed` のいずれか |
+| `isInvalidated` | `revoked` と `alreadyInvalid` のとき `true` |
+| `statusCode` | HTTP ステータス。応答を受け取れなかった場合は `null` |
+| `errorCode` | Misskey のエラーコード（例: `RATE_LIMIT_EXCEEDED`）。ある場合のみ |
+| `error` | `unsupported` と `failed` の原因。通常、エラー応答や想定外の応答の場合は `TokenRevocationException`、ネットワークエラーやタイムアウトの場合は `NetworkException` |
+
+`alreadyInvalid` は、サーバーがトークンを認識しなかったことを意味します。トークンがすでに失効しているか、アカウントが削除されています。`revoked` と同じように扱われます。
+
+失効の失敗は結果として報告され、例外として投げられることはありません。端末上のトークンの削除で起きたエラーは、従来どおり投げられます。`signOutAll` は、まずすべてのアカウントの削除を試み、その後で最初のエラーを投げます。
+
+`deleted` が `false` になるのは2つの場合です。`revokeOrKeep` によってトークンが残された場合と、失効の処理中に同じアカウントへ新しいトークンが保存された場合（例: ユーザーが再度サインインした）です。新しいトークンは失効させていないため、削除しません。
+
+### タイムアウトと再試行 {#timeout-and-retries}
+
+失効は再試行しません。`timeout` を指定しない場合、応答のないリクエストはリクエストのタイムアウトまで待ちます（[タイムアウト](#timeouts)を参照）。待ち時間を制限するには `timeout` を渡します。
+
+```dart
+await auth.signOut(key, timeout: const Duration(seconds: 5));
+await auth.signOutAll(timeout: const Duration(seconds: 5));
+```
+
+`signOutAll` はすべてのアカウントを並行して失効させ、すべてのリクエストが呼び出し時点から数えた1つの期限を共有します。保存されたトークンの読み書きは、タイムアウトで打ち切られません。時間切れになったリクエストは `failed` として報告されます。それでもサーバー側ではトークンが失効している可能性があります。`revokeOrKeep` などでトークンが残っている場合は、再度失効させると `alreadyInvalid` が報告されます。
+
+### マネージャーを使わない失効
+
+トークンを自分で保存している場合は、`MisskeyTokenRevocationClient` を直接使います。このクラスはサーバー側でトークンを失効させるだけで、保存領域には一切触れません。
+
+```dart
+final revocation = MisskeyTokenRevocationClient();
+final result = await revocation.revoke(
+  host: 'misskey.io',
+  accessToken: token,
+  timeout: const Duration(seconds: 5),
+);
+if (result.isInvalidated) {
+  // 自分の保存領域からトークンを削除する
+}
+```
+
+`revoke` は例外を投げず、同じ `TokenRevocationResult` を返します。クライアントはトークンをリクエストボディに入れて送信します。独自の `Dio` を渡した場合は、そのインターセプターからトークンが見えるため、リクエストボディをログに出力しないでください。
+
+MiAuth または OAuth でアプリに発行されたトークンを渡してください。Misskey の Web クライアントが使うセッショントークンはアプリのトークンではありません。サーバーは失効させずに 204 を返すため、トークンは有効なままでも結果は `revoked` になります。
+
+## タイムアウト {#timeouts}
+
+`MisskeyAuthManager.defaultInstance()` は既定のタイムアウト（接続 10 秒、送信と受信は各 20 秒）を使います。変更する場合は `MisskeyAuthManager` を自分で組み立てます。`MisskeyAuthManager` のタイムアウトは、それ自身が行うリクエスト（`/api/i` とトークンの失効）に適用されるため、各クライアントにも渡してください。
 
 ```dart
 const timeout = Duration(seconds: 30);
@@ -43,7 +131,7 @@ final auth = MisskeyAuthManager(
 );
 ```
 
-各コンストラクタは `connectTimeout`、`sendTimeout`、`receiveTimeout` を受け取ります。`dio` も受け取ります。クライアントは渡された `Dio` にもタイムアウトの引数を適用しますが、`MisskeyAuthManager` は `dio` を渡された場合にタイムアウトの引数を無視します。その場合は `Dio` 側で直接設定してください。
+各コンストラクタは `connectTimeout`、`sendTimeout`、`receiveTimeout` を受け取ります。`dio` も受け取ります。`MisskeyOAuthClient` と `MisskeyMiAuthClient` は、渡された `Dio` にもタイムアウトの引数を適用します。`MisskeyTokenRevocationClient` はタイムアウトの引数を自身のリクエストにだけ適用し、渡された `Dio` は変更しません。`MisskeyAuthManager` は `dio` を渡された場合にタイムアウトの引数を無視します。その場合は `Dio` 側で直接設定してください。別の失効クライアントを使う場合は、`revocation` に渡します。
 
 ## モデル
 

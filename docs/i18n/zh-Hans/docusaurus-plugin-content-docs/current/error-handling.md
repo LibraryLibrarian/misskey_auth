@@ -64,6 +64,14 @@ try {
 | `MiAuthSessionInvalidException` | 回调属于另一个会话，或检查 API 返回了 404 或 410 |
 | `MiAuthCheckFailedException` | 检查 API 返回了其他错误状态 |
 
+### 令牌撤销
+
+| 异常 | 返回条件 |
+|---|---|
+| `TokenRevocationException` | 服务器对撤销请求返回了错误状态或其他意外响应。`details` 中包含 HTTP 状态以及服务器返回的错误（如有） |
+
+撤销绝不会抛出异常。`signOut`、`signOutAll` 和 `MisskeyTokenRevocationClient.revoke` 会在 `TokenRevocationResult.error` 中返回原因，该原因也可能是 `NetworkException` 或 `ResponseParseException`。这些异常不包含 `originalException`，以免暴露请求中的令牌。请参阅[退出登录](./token-storage.md#signing-out)。
+
 ### 当前版本不会抛出的异常
 
 `InvalidAuthConfigException`、`SecureStorageException` 和 `MiAuthNotSupportedException` 已定义，但当前版本不会抛出。
@@ -74,10 +82,13 @@ try {
 
 `loginWithOAuth` 和 `loginWithMiAuth` 会先保存令牌，再将账号设为活动账号。如果仅将账号设为活动账号这一步失败，令牌仍会保存，但账号不会成为活动账号。
 
+无法读取已存储的令牌时，`signOut` 和 `signOutAll` 不会抛出异常，而是不经撤销直接将其删除。删除令牌失败时，它们会抛出异常。
+
 ## 重试
 
 - 获取 OAuth 服务器信息和调用 `/api/i` 时，如果发生超时、连接错误、其他传输错误，或 HTTP 429、500、502、503、504 状态，会重试，总计最多尝试三次。
 - 令牌交换和 MiAuth 检查 API 不会重试。授权码和 MiAuth 会话都只能使用一次，即使响应丢失，服务器也可能已完成请求。请从头重新进行身份验证。
+- 令牌撤销不会重试。请参阅[超时与重试](./token-storage.md#timeout-and-retries)。
 
 ## 身份验证后登录失败时
 

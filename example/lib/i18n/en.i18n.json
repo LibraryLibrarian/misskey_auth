@@ -44,6 +44,8 @@
     "empty": "No signed-in accounts",
     "savedAt": "Saved: $date",
     "delete": "Remove this account",
+    "revokeUnsupported": "Removed from this device. This server does not support token revocation, so the token stays valid on the server",
+    "revokeFailed": "Removed from this device, but the token could not be revoked on the server",
     "activeChanged": "Active account changed: $account"
   },
   "validation": {

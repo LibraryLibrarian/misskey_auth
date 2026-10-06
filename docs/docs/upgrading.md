@@ -15,6 +15,34 @@ title: Upgrading
 
 Keep `android.builtInKotlin=false` and `android.newDsl=false` while the stable `flutter_web_auth_2` release still applies the Kotlin Android plugin. Retain that plugin, but replace `android.kotlinOptions` with `kotlin.compilerOptions` to configure its JVM target. Future Flutter versions may require built-in Kotlin support from dependencies.
 
+## Upgrading from 0.2.0-beta.2
+
+### Signing Out Revokes the Token
+
+`signOut` and `signOutAll` now revoke the token on the server before deleting it from the device. They make a network request, so they can take as long as the request timeouts. The token is still deleted from the device when revocation fails or the server does not support it.
+
+- To keep the previous behavior, pass `mode: SignOutMode.localOnly`.
+- To limit the wait, pass `timeout`.
+- Servers before Misskey 2026.9.0 do not support revocation. Their tokens stay valid on the server, as before.
+
+See [Signing Out](./token-storage.md#signing-out).
+
+### New Return Types
+
+`signOut` now returns `Future<SignOutResult>`, and `signOutAll` returns `Future<List<SignOutResult>>`. Code that only awaits them does not need changes. Classes that implement or mock `MisskeyAuthManager` must update the signatures:
+
+```dart
+Future<SignOutResult> signOut(
+  AccountKey key, {
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+Future<List<SignOutResult>> signOutAll({
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+```
+
 ## Upgrading to 0.2.0-beta.1
 
 ### Android Users Must Sign In Again
