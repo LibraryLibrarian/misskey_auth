@@ -115,6 +115,8 @@ if (result.isInvalidated) {
 
 `revoke` は例外を投げず、同じ `TokenRevocationResult` を返します。クライアントはトークンをリクエストボディに入れて送信します。独自の `Dio` を渡した場合は、そのインターセプターからトークンが見えるため、リクエストボディをログに出力しないでください。
 
+MiAuth または OAuth でアプリに発行されたトークンを渡してください。Misskey の Web クライアントが使うセッショントークンはアプリのトークンではありません。サーバーは失効させずに 204 を返すため、トークンは有効なままでも結果は `revoked` になります。
+
 ## タイムアウト {#timeouts}
 
 `MisskeyAuthManager.defaultInstance()` は既定のタイムアウト（接続 10 秒、送信と受信は各 20 秒）を使います。変更する場合は `MisskeyAuthManager` を自分で組み立てます。`MisskeyAuthManager` のタイムアウトは、それ自身が行うリクエスト（`/api/i` とトークンの失効）に適用されるため、各クライアントにも渡してください。

@@ -11,6 +11,10 @@ import '../net/response.dart';
 /// Misskey 2026.9.0 以降の `/api/i/revoke-token` を使い、渡したトークン自身を
 /// 失効させる。MiAuth と OAuth のどちらのトークンにも使え、権限は問わない。
 /// 端末に保存したトークンは扱わない（`MisskeyAuthManager.signOut` を参照）
+///
+/// MiAuth / OAuth でアプリに発行されたトークンを渡すこと。Web クライアントの
+/// セッショントークンは、サーバーが失効させずに 204 を返すため、有効なまま
+/// [TokenRevocationStatus.revoked] になる
 class MisskeyTokenRevocationClient {
   final Dio _dio;
   final Duration? _connectTimeout;

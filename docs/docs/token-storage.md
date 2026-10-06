@@ -115,6 +115,8 @@ if (result.isInvalidated) {
 
 `revoke` never throws and returns the same `TokenRevocationResult`. The client sends the token in the request body. If you pass your own `Dio`, its interceptors can see the token, so do not log request bodies.
 
+Pass a token issued to an app through MiAuth or OAuth. The session token that the Misskey web client uses is not an app token: the server answers 204 without revoking it, so the result is `revoked` even though the token stays valid.
+
 ## Timeouts
 
 `MisskeyAuthManager.defaultInstance()` uses the default timeouts: 10 seconds to connect, and 20 seconds each to send and receive. To change them, build the manager yourself. The timeouts of the manager apply to its own requests, `/api/i` and token revocation, so pass them to each client as well:

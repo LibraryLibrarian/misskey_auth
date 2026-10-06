@@ -115,6 +115,8 @@ if (result.isInvalidated) {
 
 `revoke` ne lève jamais d’exception et renvoie le même `TokenRevocationResult`. Le client envoie le jeton dans le corps de la requête. Si vous transmettez votre propre `Dio`, ses intercepteurs peuvent voir le jeton ; ne journalisez donc pas le corps des requêtes.
 
+Transmettez un jeton délivré à une application via MiAuth ou OAuth. Le jeton de session qu’utilise le client web de Misskey n’est pas un jeton d’application : le serveur répond 204 sans le révoquer, si bien que le résultat est `revoked` alors que le jeton reste valide.
+
 ## Délais d’expiration {#timeouts}
 
 `MisskeyAuthManager.defaultInstance()` utilise les délais par défaut : 10 secondes pour la connexion, et 20 secondes pour l’envoi et la réception. Pour les modifier, construisez vous-même `MisskeyAuthManager`. Ses délais s’appliquent à ses propres requêtes, `/api/i` et la révocation des jetons ; transmettez-les donc également à chaque client :

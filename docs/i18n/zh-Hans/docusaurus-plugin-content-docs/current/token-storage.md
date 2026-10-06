@@ -115,6 +115,8 @@ if (result.isInvalidated) {
 
 `revoke` 绝不会抛出异常，并返回相同的 `TokenRevocationResult`。客户端会在请求体中发送令牌。如果传入自己的 `Dio`，其拦截器可以看到令牌，因此请勿记录请求体。
 
+请传入通过 MiAuth 或 OAuth 颁发给应用的令牌。Misskey 网页客户端使用的会话令牌不是应用令牌：服务器不会撤销它，但仍返回 204，因此即使令牌依然有效，结果也会是 `revoked`。
+
 ## 超时 {#timeouts}
 
 `MisskeyAuthManager.defaultInstance()` 使用默认超时：连接为 10 秒，发送和接收各为 20 秒。如需更改，请自行构建 `MisskeyAuthManager`。`MisskeyAuthManager` 的超时适用于它自身的请求，即 `/api/i` 和令牌撤销，因此也要将超时传递给每个客户端：

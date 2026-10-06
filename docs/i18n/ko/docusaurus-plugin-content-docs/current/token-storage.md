@@ -115,6 +115,8 @@ if (result.isInvalidated) {
 
 `revoke`는 예외를 발생시키지 않으며 같은 `TokenRevocationResult`를 반환합니다. 클라이언트는 토큰을 요청 본문에 담아 전송합니다. 직접 만든 `Dio`를 전달하면 해당 인터셉터가 토큰을 볼 수 있으므로 요청 본문을 로그에 기록하지 마세요.
 
+MiAuth 또는 OAuth로 앱에 발급된 토큰을 전달하세요. Misskey 웹 클라이언트가 사용하는 세션 토큰은 앱 토큰이 아닙니다. 서버는 이를 폐기하지 않고 204를 반환하므로, 토큰이 계속 유효한데도 결과는 `revoked`가 됩니다.
+
 ## 시간 초과 {#timeouts}
 
 `MisskeyAuthManager.defaultInstance()`는 기본 시간 초과(연결 10초, 전송 및 수신 각각 20초)를 사용합니다. 변경하려면 `MisskeyAuthManager`를 직접 구성하세요. `MisskeyAuthManager`의 시간 초과는 자체 요청인 `/api/i`와 토큰 폐기에 적용되므로 각 클라이언트에도 전달해야 합니다.

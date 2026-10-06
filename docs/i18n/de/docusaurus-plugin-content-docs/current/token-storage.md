@@ -115,6 +115,8 @@ if (result.isInvalidated) {
 
 `revoke` löst nie eine Ausnahme aus und gibt dasselbe `TokenRevocationResult` zurück. Der Client sendet das Token im Anfragetext. Wenn Sie ein eigenes `Dio` übergeben, können dessen Interceptors das Token sehen. Protokollieren Sie daher keine Anfragetexte.
 
+Übergeben Sie ein Token, das einer App über MiAuth oder OAuth ausgestellt wurde. Das Sitzungstoken, das der Misskey-Webclient verwendet, ist kein App-Token: Der Server antwortet mit 204, ohne es zu widerrufen, daher lautet das Ergebnis `revoked`, obwohl das Token gültig bleibt.
+
 ## Timeouts {#timeouts}
 
 `MisskeyAuthManager.defaultInstance()` verwendet die Standard-Timeouts (Verbindung: 10 Sekunden, Senden und Empfangen jeweils 20 Sekunden). Wenn Sie diese ändern möchten, erstellen Sie `MisskeyAuthManager` selbst. Die Timeouts von `MisskeyAuthManager` gelten für die von ihm selbst ausgeführten Anfragen, also für `/api/i` und den Widerruf von Token. Übergeben Sie die Timeouts daher auch an die einzelnen Clients.
