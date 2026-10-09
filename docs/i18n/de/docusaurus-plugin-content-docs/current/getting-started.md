@@ -35,7 +35,7 @@ Fügen Sie das Paket zu `pubspec.yaml` hinzu.
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.2
+  misskey_auth: ^0.2.0-beta.3
 ```
 
 Rufen Sie anschließend die Abhängigkeiten ab.
