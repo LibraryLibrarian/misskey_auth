@@ -64,6 +64,14 @@ try {
 | `MiAuthSessionInvalidException` | コールバックが別のセッションのものだった、またはチェック API が 404 か 410 を返した |
 | `MiAuthCheckFailedException` | チェック API がその他のエラーステータスを返した |
 
+### トークンの失効
+
+| 例外 | 返される条件 |
+|---|---|
+| `TokenRevocationException` | サーバーが失効のリクエストにエラーステータス、またはその他の想定外の応答を返した。`details` に HTTP ステータスと、ある場合はサーバーからのエラーが入る |
+
+失効の処理は例外を投げません。`signOut`、`signOutAll`、`MisskeyTokenRevocationClient.revoke` は、原因を `TokenRevocationResult.error` で返します。この値は `NetworkException` や `ResponseParseException` の場合もあります。リクエストに含まれるトークンが露出しないよう、これらの例外は `originalException` を持ちません。[サインアウト](./token-storage.md#signing-out)を参照してください。
+
 ### 現在のバージョンでは投げられない例外
 
 `InvalidAuthConfigException`、`SecureStorageException`、`MiAuthNotSupportedException` は定義されていますが、現在のバージョンでは投げられません。
@@ -74,10 +82,13 @@ try {
 
 `loginWithOAuth` と `loginWithMiAuth` は、トークンを保存してからアカウントをアクティブにします。アカウントをアクティブにする処理だけが失敗した場合、トークンは保存されたままで、アカウントはアクティブになりません。
 
+`signOut` と `signOutAll` は、保存されたトークンを読み取れない場合は例外を投げず、失効させずに削除します。トークンの削除に失敗した場合は例外を投げます。
+
 ## 再試行
 
 - OAuth のサーバー情報の取得と `/api/i` の呼び出しは、タイムアウト、接続エラー、その他の通信エラー、HTTP 429・500・502・503・504 のときに、合計3回まで試行します。
 - トークンの交換と MiAuth のチェック API は再試行しません。認可コードと MiAuth のセッションは一度しか使えず、応答が失われてもサーバー側では処理が済んでいる可能性があるためです。最初から認証をやり直してください。
+- トークンの失効は再試行しません。[タイムアウトと再試行](./token-storage.md#timeout-and-retries)を参照してください。
 
 ## 認証後にログインが失敗した場合
 

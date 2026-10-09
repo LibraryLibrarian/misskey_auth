@@ -44,6 +44,8 @@
     "empty": "ログイン済みのアカウントはありません",
     "savedAt": "保存: $date",
     "delete": "このアカウントを削除",
+    "revokeUnsupported": "この端末から削除しました。このサーバーはトークンの失効に対応していないため、サーバー上のトークンは有効なままです",
+    "revokeFailed": "この端末から削除しましたが、サーバー上のトークンを失効できませんでした",
     "activeChanged": "アクティブなアカウントを変更: $account"
   },
   "validation": {
@@ -52,7 +54,7 @@
   },
   "errors": {
     "userCancelled": "認証がキャンセルされました",
-    "callbackScheme": "コールバックスキームの設定が正しくありません（AndroidManifest/Info.plist を確認してください）",
+    "callbackScheme": "コールバックスキームの設定が正しくありません（Android は AndroidManifest.xml、iOS は Info.plist を確認してください）",
     "authorizationLaunch": "認証画面を起動できませんでした",
     "network": "ネットワークエラーが発生しました",
     "responseParse": "サーバー応答の解析に失敗しました",

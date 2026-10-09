@@ -19,14 +19,16 @@
 - カスタム URL スキームによるアプリへのコールバック
 - `flutter_secure_storage` を使用した安全なトークン保存
 - 複数アカウントのトークン保存と、アクティブなアカウントの切り替え
+- サインアウト時のサーバー側でのトークン失効（Misskey 2026.9.0 以降）
 - 認証の実行とトークンの保存を仲介する高レベル API `MisskeyAuthManager`
-- iOS と Android
+- iOS、Android、macOS
 
 ## 動作要件
 
 - Flutter 3.47.1 以上、Dart 3.13.1 以上 4.0 未満
 - Android API 24 以上、compileSdk 37 以上
 - iOS 15 以上
+- macOS 12.0 以上
 
 以前のバージョンから更新する場合は、先に[更新時の注意](https://librarylibrarian.github.io/misskey_auth/ja/upgrading)を読んでください。Android では再度のサインインが必要です。
 
@@ -34,7 +36,7 @@
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.2
+  misskey_auth: ^0.2.0-beta.3
 ```
 
 ## クイックスタート
@@ -74,7 +76,7 @@ final current = await auth.currentToken();
 このコードを動かすには、次の2つが必要です。
 
 1. **client_id ページ（OAuth のみ）。** `redirect_uri` を `<link rel="redirect_uri">` に記載した HTTPS のページを公開します。[client_id ページ](https://librarylibrarian.github.io/misskey_auth/ja/client-id-page)を参照してください。
-2. **アプリへのカスタム URL スキームの登録。** iOS では `Info.plist` に、Android では `flutter_web_auth_2` の `CallbackActivity` に `yourscheme` を追加します。[プラットフォーム設定](https://librarylibrarian.github.io/misskey_auth/ja/platform-setup)を参照してください。
+2. **アプリへのカスタム URL スキームの登録。** iOS では `Info.plist` に、Android では `flutter_web_auth_2` の `CallbackActivity` に `yourscheme` を追加します。macOS では登録は不要ですが、通信とキーチェーンのための entitlement が必要です。[プラットフォーム設定](https://librarylibrarian.github.io/misskey_auth/ja/platform-setup)を参照してください。
 
 ## ドキュメント
 

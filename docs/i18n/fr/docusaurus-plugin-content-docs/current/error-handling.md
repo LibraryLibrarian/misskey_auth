@@ -64,6 +64,14 @@ Chaque exception possède les propriétés suivantes :
 | `MiAuthSessionInvalidException` | Le rappel concerne une autre session, ou l’API de vérification a renvoyé 404 ou 410 |
 | `MiAuthCheckFailedException` | L’API de vérification a renvoyé un autre statut d’erreur |
 
+### Révocation des jetons
+
+| Exception | Condition de renvoi |
+|---|---|
+| `TokenRevocationException` | Le serveur a répondu à la requête de révocation par un statut d’erreur ou une autre réponse inattendue. `details` contient le statut HTTP et, le cas échéant, l’erreur renvoyée par le serveur |
+
+La révocation ne lève jamais d’exception. `signOut`, `signOutAll` et `MisskeyTokenRevocationClient.revoke` renvoient la cause dans `TokenRevocationResult.error`, qui peut aussi être une `NetworkException` ou une `ResponseParseException`. Ces exceptions ne contiennent pas d’`originalException`, afin de ne pas exposer le jeton présent dans la requête. Consultez [Déconnexion](./token-storage.md#signing-out).
+
 ### Exceptions non levées par la version actuelle
 
 `InvalidAuthConfigException`, `SecureStorageException` et `MiAuthNotSupportedException` sont définies, mais ne sont pas levées par la version actuelle.
@@ -74,10 +82,13 @@ Chaque exception possède les propriétés suivantes :
 
 `loginWithOAuth` et `loginWithMiAuth` enregistrent d’abord le jeton, puis activent le compte. Si seule l’opération d’activation du compte échoue, le jeton reste enregistré, mais le compte n’est pas actif.
 
+`signOut` et `signOutAll` ne lèvent pas d’exception lorsqu’un jeton stocké ne peut pas être lu ; ils le suppriment sans révocation. Ils lèvent en revanche une exception si la suppression du jeton échoue.
+
 ## Nouvelles tentatives
 
 - La récupération des informations du serveur OAuth et l’appel à `/api/i` font jusqu’à trois tentatives au total en cas de délai dépassé, d’erreur de connexion, d’autre erreur de transport ou de réponse HTTP 429, 500, 502, 503 ou 504.
 - L’échange du jeton et l’API de vérification MiAuth ne font pas de nouvelle tentative. Un code d’autorisation et une session MiAuth ne peuvent être utilisés qu’une fois, et le serveur peut avoir traité la requête même si la réponse a été perdue. Recommencez l’authentification depuis le début.
+- La révocation des jetons ne fait pas de nouvelle tentative. Consultez [Délai d’expiration et nouvelles tentatives](./token-storage.md#timeout-and-retries).
 
 ## Échec de connexion après l’authentification
 

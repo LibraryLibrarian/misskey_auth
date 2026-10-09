@@ -7,7 +7,7 @@ title: 플랫폼 설정
 
 인증은 외부 브라우저에서 진행됩니다. 인증이 끝나면 브라우저가 앱의 사용자 지정 스킴 URL을 열고 OS가 해당 URL을 앱에 전달합니다. 스킴은 앱에 등록해야 합니다. 라이브러리가 Manifest나 `Info.plist`에 추가하지는 않습니다.
 
-iOS(`CFBundleURLSchemes`)와 Android(`<data android:scheme="...">`)에 같은 스킴 문자열을 등록하세요. 두 값은 정확히 일치해야 합니다.
+iOS(`CFBundleURLSchemes`)와 Android(`<data android:scheme="...">`)에 같은 스킴 문자열을 등록하세요. 두 값은 정확히 일치해야 합니다. macOS에서는 등록이 필요하지 않습니다([macOS](#macos) 참조).
 
 ## iOS
 
@@ -74,3 +74,48 @@ iOS(`CFBundleURLSchemes`)와 Android(`<data android:scheme="...">`)에 같은 �
 1. 콜백이 앱에 전달되지 않았습니다. `CallbackActivity`에 일치하는 `<intent-filter>`가 있는지 확인하세요.
 2. PWA 또는 다른 앱이 링크를 가로챘습니다.
 3. `redirect_uri`가 client_id 페이지의 `<link rel="redirect_uri">`와 완전히 일치하지 않아 Misskey가 리디렉션하지 않았습니다.
+
+## macOS
+
+macOS에서는 스킴 등록이 필요하지 않습니다. `flutter_web_auth_2`는 `ASWebAuthenticationSession`에서 인증 페이지를 열고 콜백 URL을 직접 받습니다. 따라서 `macos/Runner/Info.plist`에 `CFBundleURLTypes`를 추가하지 않아도 됩니다.
+
+`macos/Runner/DebugProfile.entitlements`와 `macos/Runner/Release.entitlements` 모두에 다음 entitlement를 추가하세요.
+
+```xml
+<!-- 샌드박스 앱에서 Misskey 서버로 보내는 네트워크 요청 -->
+<key>com.apple.security.network.client</key>
+<true/>
+<!-- SecureTokenStore가 기본으로 사용하는 키체인 -->
+<key>keychain-access-groups</key>
+<array/>
+```
+
+전체 설정은 [`example/macos/Runner/`](https://github.com/LibraryLibrarian/misskey_auth/tree/main/example/macos/Runner)에서 확인할 수 있습니다.
+
+참고 사항:
+
+- `keychain-access-groups`를 사용하려면 Apple Developer 팀으로 서명하고 provisioning profile을 준비해야 합니다. Xcode에서 `macos/Runner.xcworkspace`를 열고 Runner target의 Signing & Capabilities에서 팀을 선택하세요. 팀을 선택하지 않으면 Xcode가 이 entitlement를 포함해 서명할 수 없습니다.
+- 무료 Apple Developer 계정의 경우 개발용 provisioning profile로는 앱을 빌드한 Mac에서만 실행할 수 있습니다.
+- `keychain-access-groups`가 없으면 토큰 저장이 코드 `-34018`의 `PlatformException`으로 실패합니다.
+
+### `keychain-access-groups` 없이 토큰 저장하기
+
+이 entitlement를 사용하지 않으려면 데이터 보호 키체인을 사용하지 않는 `FlutterSecureStorage`를 전달하세요. `mOptions`는 macOS에서만 사용되므로 다른 플랫폼에서도 같은 코드를 사용할 수 있습니다.
+
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:misskey_auth/misskey_auth.dart';
+
+final auth = MisskeyAuthManager(
+  miauth: MisskeyMiAuthClient(),
+  oauth: MisskeyOAuthClient(),
+  store: const SecureTokenStore(
+    storage: FlutterSecureStorage(
+      mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+    ),
+  ),
+);
+```
+
+- 한 설정으로 저장한 토큰은 다른 설정에서 읽을 수 없습니다. 배포 후 설정을 전환하면 사용자가 다시 로그인해야 합니다.
+- 이 설정은 토큰 저장 위치만 변경합니다. 앱을 배포할 때는 평소처럼 서명과 공증(notarization)이 필요합니다.

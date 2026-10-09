@@ -129,7 +129,7 @@ MiAuth renvoie les informations utilisateur avec le jeton, et `MisskeyAuthManage
 
 ## Prendre en charge les deux méthodes dans une application
 
-- Enregistrez un seul schéma, par exemple `yourscheme`, dans `Info.plist` et `AndroidManifest.xml`. OAuth et MiAuth peuvent le partager.
+- Enregistrez un seul schéma, par exemple `yourscheme`, dans `Info.plist` et `AndroidManifest.xml`. OAuth et MiAuth peuvent le partager. macOS ne nécessite aucun enregistrement.
 - MiAuth revient uniquement au schéma (`yourscheme://`). Il n’est pas nécessaire de prévoir un chemin tel que `yourscheme://oauth/callback` pour MiAuth.
 - Sur Android, conservez l’intent-filter limité au schéma indiqué dans [Configuration des plateformes](./platform-setup.md#android). Un filtre limité par hôte ou chemin empêche les rappels MiAuth de parvenir à l’application.
 

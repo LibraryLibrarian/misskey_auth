@@ -19,14 +19,16 @@ Eine Flutter-Bibliothek zur Authentifizierung bei [Misskey](https://misskey-hub.
 - Callback zur App über ein benutzerdefiniertes URL-Schema
 - Sichere Token-Speicherung mit `flutter_secure_storage`
 - Token-Speicherung für mehrere Konten und Wechsel des aktiven Kontos
+- Widerruf des Tokens auf dem Server beim Abmelden (Misskey 2026.9.0 und höher)
 - `MisskeyAuthManager`, eine High-Level-API, die Authentifizierungsabläufe ausführt und Tokens speichert
-- iOS und Android
+- iOS, Android und macOS
 
 ## Voraussetzungen
 
 - Flutter 3.47.1 oder höher sowie Dart 3.13.1 oder höher (unter 4.0)
 - Android API 24 oder höher, compileSdk 37 oder höher
 - iOS 15 oder höher
+- macOS 12.0 oder höher
 
 Wenn Sie von einer früheren Version aktualisieren, lesen Sie zuerst die [Hinweise zum Update](https://librarylibrarian.github.io/misskey_auth/de/upgrading). Unter Android ist eine erneute Anmeldung erforderlich.
 
@@ -34,7 +36,7 @@ Wenn Sie von einer früheren Version aktualisieren, lesen Sie zuerst die [Hinwei
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.2
+  misskey_auth: ^0.2.0-beta.3
 ```
 
 ## Schnellstart
@@ -74,7 +76,7 @@ final current = await auth.currentToken();
 Damit dieser Code funktioniert, benötigen Sie zwei Dinge:
 
 1. **Eine client_id-Seite (nur OAuth).** Veröffentlichen Sie eine HTTPS-Seite, auf der Ihre `redirect_uri` in `<link rel="redirect_uri">` eingetragen ist. Siehe [client_id-Seite](https://librarylibrarian.github.io/misskey_auth/de/client-id-page).
-2. **Ein in der App registriertes benutzerdefiniertes URL-Schema.** Fügen Sie `yourscheme` unter iOS zur `Info.plist` und unter Android zur `CallbackActivity` von `flutter_web_auth_2` hinzu. Siehe [Plattformkonfiguration](https://librarylibrarian.github.io/misskey_auth/de/platform-setup).
+2. **Ein in der App registriertes benutzerdefiniertes URL-Schema.** Fügen Sie `yourscheme` unter iOS zur `Info.plist` und unter Android zur `CallbackActivity` von `flutter_web_auth_2` hinzu. Unter macOS ist keine Registrierung erforderlich, aber es werden Entitlements für Netzwerkzugriff und Schlüsselbund benötigt. Siehe [Plattformkonfiguration](https://librarylibrarian.github.io/misskey_auth/de/platform-setup).
 
 ## Dokumentation
 

@@ -18,13 +18,14 @@ misskey_auth is a Flutter library for authenticating with [Misskey](https://miss
 - Secure token storage using `flutter_secure_storage`
 - Token storage for multiple accounts and switching the active account
 - `MisskeyAuthManager`, a high-level API that runs the flows and saves tokens
-- iOS and Android
+- iOS, Android, and macOS
 
 ## Requirements
 
 - Flutter 3.47.1 or later, and Dart 3.13.1 or later (before Dart 4)
 - Android API 24 or later, with compileSdk 37 or later
 - iOS 15 or later
+- macOS 12.0 or later
 
 If you are upgrading from an earlier version, read [Upgrading](./upgrading.md) first. On Android, users must sign in again.
 
@@ -34,7 +35,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.2
+  misskey_auth: ^0.2.0-beta.3
 ```
 
 Then fetch it:
@@ -90,7 +91,7 @@ print(current?.accessToken);
 ## Next Steps
 
 - [client_id Page](./client-id-page.md): the page Misskey requires for OAuth
-- [Platform Setup](./platform-setup.md): iOS and Android configuration
+- [Platform Setup](./platform-setup.md): iOS, Android, and macOS configuration
 - [OAuth and MiAuth](./oauth-and-miauth.md): how the two methods differ, and examples with and without saving tokens
 - [Token Storage](./token-storage.md): multiple accounts, `TokenStore`, and `SecureTokenStore`
 - [Error Handling](./error-handling.md): the exceptions the library throws

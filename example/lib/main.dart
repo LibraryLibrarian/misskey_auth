@@ -757,8 +757,20 @@ class _AuthExamplePageState extends State<AuthExamplePage> {
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () async {
-                          await _auth.signOut(key);
+                          // サーバー上で失効させてから、端末上のトークンを削除する
+                          final result = await _auth.signOut(key);
                           if (mounted) setState(() {});
+                          final message = switch (result.revocation?.status) {
+                            TokenRevocationStatus.unsupported =>
+                              t.accounts.revokeUnsupported,
+                            TokenRevocationStatus.failed =>
+                              t.accounts.revokeFailed,
+                            _ => null,
+                          };
+                          if (message == null || !context.mounted) return;
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
                         },
                         tooltip: t.accounts.delete,
                       ),

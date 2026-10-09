@@ -8,7 +8,7 @@ import 'token_store.dart';
 
 /// `FlutterSecureStorage` を用いた `TokenStore` の実装
 ///
-/// - iOS/Android のキーチェーン/Keystore に保存（平文ファイルは使用しない）
+/// - iOS/macOS のキーチェーン、Android の Keystore に保存（平文ファイルは使用しない）
 /// - 内部インデックス（`_indexKey`）でアカウント一覧を管理
 /// - アクティブアカウントは `_activeKey` に JSON として永続化
 ///
@@ -53,20 +53,27 @@ class SecureTokenStore implements TokenStore {
 
   @override
   /// 保存済みアカウントの一覧を返す
+  ///
+  /// トークンを読み出せないアカウントも、メタ情報なしで一覧に含める
   Future<List<AccountEntry>> list() async {
     final keys = await _readIndex();
     final List<AccountEntry> entries = [];
     for (final k in keys) {
-      final token = await read(k);
       String? userName;
       DateTime? createdAt;
-      if (token != null) {
-        final user = token.user;
-        if (user != null) {
-          userName =
-              (user['name'] ?? user['username'] ?? user['userName']) as String?;
+      try {
+        final token = await read(k);
+        if (token != null) {
+          final user = token.user;
+          if (user != null) {
+            userName =
+                (user['name'] ?? user['username'] ?? user['userName'])
+                    as String?;
+          }
+          createdAt = token.createdAt;
         }
-        createdAt = token.createdAt;
+      } catch (_) {
+        // 1件の破損や読み出し失敗で、他のアカウントを辿れなくしない
       }
       entries.add(AccountEntry(k, userName: userName, createdAt: createdAt));
     }

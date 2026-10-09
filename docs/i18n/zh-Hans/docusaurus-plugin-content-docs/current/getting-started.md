@@ -18,13 +18,14 @@ misskey_auth 是一个用于在 [Misskey](https://misskey-hub.net/en/) 服务器
 - 使用 `flutter_secure_storage` 安全地存储令牌
 - 保存多个账号的令牌，并切换当前活动账号
 - 高级 API `MisskeyAuthManager`，用于执行身份验证并保存令牌
-- iOS 和 Android
+- iOS、Android 和 macOS
 
 ## 运行要求
 
 - Flutter 3.47.1 或更高版本，Dart 3.13.1 或更高版本且低于 4.0
 - Android API 24 或更高版本，compileSdk 37 或更高版本
 - iOS 15 或更高版本
+- macOS 12.0 或更高版本
 
 如果要从较早版本升级，请先阅读[升级说明](./upgrading.md)。在 Android 上，用户必须重新登录。
 
@@ -34,7 +35,7 @@ misskey_auth 是一个用于在 [Misskey](https://misskey-hub.net/en/) 服务器
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.2
+  misskey_auth: ^0.2.0-beta.3
 ```
 
 然后获取依赖：
@@ -90,7 +91,7 @@ print(current?.accessToken);
 ## 后续步骤
 
 - [client_id 页面](./client-id-page.md)：Misskey 对 OAuth 所要求的页面
-- [平台配置](./platform-setup.md)：iOS 和 Android 配置
+- [平台配置](./platform-setup.md)：iOS、Android 和 macOS 配置
 - [OAuth 和 MiAuth](./oauth-and-miauth.md)：两种方式的区别，以及保存和不保存令牌的示例
 - [令牌存储](./token-storage.md)：多个账号、`TokenStore` 和 `SecureTokenStore`
 - [错误处理](./error-handling.md)：库抛出的异常

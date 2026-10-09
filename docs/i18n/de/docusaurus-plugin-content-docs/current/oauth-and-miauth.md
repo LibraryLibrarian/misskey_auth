@@ -129,7 +129,7 @@ MiAuth gibt zusammen mit dem Token Benutzerinformationen zurück. `MisskeyAuthMa
 
 ## Beide Verfahren in einer App unterstützen
 
-- Wenn Sie in `Info.plist` und `AndroidManifest.xml` ein einzelnes Schema wie `yourscheme` registrieren, können OAuth und MiAuth es gemeinsam verwenden.
+- Wenn Sie in `Info.plist` und `AndroidManifest.xml` ein einzelnes Schema wie `yourscheme` registrieren, können OAuth und MiAuth es gemeinsam verwenden. Unter macOS ist keine Registrierung erforderlich.
 - MiAuth kehrt nur zum Schema (`yourscheme://`) zurück. Für MiAuth müssen Sie keinen Pfad wie `yourscheme://oauth/callback` einrichten.
 - Behalten Sie unter Android den intent-filter nur für das Schema aus der [Plattformkonfiguration](./platform-setup.md#android) bei. Bei einem durch host oder path eingeschränkten Filter erreicht der MiAuth-Callback die App nicht.
 

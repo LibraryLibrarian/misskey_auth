@@ -44,6 +44,8 @@
     "empty": "Aucun compte connecté",
     "savedAt": "Enregistré : $date",
     "delete": "Supprimer ce compte",
+    "revokeUnsupported": "Supprimé de cet appareil. Ce serveur ne prend pas en charge la révocation des jetons ; le jeton reste donc valide sur le serveur",
+    "revokeFailed": "Supprimé de cet appareil, mais le jeton n’a pas pu être révoqué sur le serveur",
     "activeChanged": "Compte actif modifié : $account"
   },
   "validation": {
@@ -52,7 +54,7 @@
   },
   "errors": {
     "userCancelled": "L’authentification a été annulée",
-    "callbackScheme": "Le schéma de rappel n’est pas configuré correctement (vérifiez AndroidManifest.xml / Info.plist)",
+    "callbackScheme": "Le schéma de rappel n’est pas configuré correctement (vérifiez AndroidManifest.xml sur Android et Info.plist sur iOS)",
     "authorizationLaunch": "Impossible d’ouvrir l’écran d’authentification",
     "network": "Une erreur réseau s’est produite",
     "responseParse": "Impossible d’analyser la réponse du serveur",

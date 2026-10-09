@@ -15,6 +15,34 @@ title: 업그레이드
 
 안정 버전 `flutter_web_auth_2`가 Kotlin Android 플러그인을 적용하는 동안에는 `android.builtInKotlin=false`와 `android.newDsl=false`를 유지하세요. 플러그인 적용은 유지하되 JVM 대상을 설정하는 코드를 `android.kotlinOptions`에서 `kotlin.compilerOptions`로 변경합니다. 향후 Flutter 버전에서는 종속성의 내장 Kotlin 지원이 필요할 수 있습니다.
 
+## 0.2.0-beta.2에서 업그레이드
+
+### 로그아웃하면 토큰이 폐기됩니다
+
+`signOut`과 `signOutAll`은 이제 기기에서 토큰을 삭제하기 전에 서버에서 토큰을 폐기합니다. 네트워크 요청을 보내므로 요청 시간 초과에 도달할 때까지 시간이 걸릴 수 있습니다. 폐기에 실패하거나 서버가 폐기를 지원하지 않아도 토큰은 기기에서 삭제됩니다.
+
+- 이전 동작을 유지하려면 `mode: SignOutMode.localOnly`를 전달하세요.
+- 대기 시간을 제한하려면 `timeout`을 전달하세요.
+- Misskey 2026.9.0 이전 서버는 폐기를 지원하지 않습니다. 이러한 서버의 토큰은 이전과 마찬가지로 서버에서 계속 유효합니다.
+
+[로그아웃](./token-storage.md#signing-out)을 참조하세요.
+
+### 새 반환 타입
+
+`signOut`은 이제 `Future<SignOutResult>`를, `signOutAll`은 `Future<List<SignOutResult>>`를 반환합니다. 결과를 await하기만 하는 코드는 변경할 필요가 없습니다. `MisskeyAuthManager`를 구현하거나 모킹하는 클래스는 시그니처를 업데이트해야 합니다.
+
+```dart
+Future<SignOutResult> signOut(
+  AccountKey key, {
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+Future<List<SignOutResult>> signOutAll({
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+```
+
 ## 0.2.0-beta.1로 업그레이드
 
 ### Android에서는 다시 로그인해야 합니다

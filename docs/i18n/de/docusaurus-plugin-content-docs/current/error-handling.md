@@ -64,6 +64,14 @@ Jede Ausnahme hat die folgenden Eigenschaften.
 | `MiAuthSessionInvalidException` | Der Callback gehört zu einer anderen Sitzung oder die Prüf-API hat 404 oder 410 zurückgegeben. |
 | `MiAuthCheckFailedException` | Die Prüf-API hat einen anderen Fehlerstatus zurückgegeben. |
 
+### Token-Widerruf
+
+| Ausnahme | Rückgabebedingung |
+|---|---|
+| `TokenRevocationException` | Der Server hat die Widerrufsanfrage mit einem Fehlerstatus oder einer anderen unerwarteten Antwort beantwortet. `details` enthält den HTTP-Status und gegebenenfalls den vom Server gemeldeten Fehler. |
+
+Der Widerruf löst nie eine Ausnahme aus. `signOut`, `signOutAll` und `MisskeyTokenRevocationClient.revoke` geben die Ursache in `TokenRevocationResult.error` zurück. Dabei kann es sich auch um eine `NetworkException` oder eine `ResponseParseException` handeln. Diese Ausnahmen enthalten keine `originalException`, damit das Token in der Anfrage nicht offengelegt wird. Siehe [Abmelden](./token-storage.md#signing-out).
+
 ### In der aktuellen Version nicht ausgelöste Ausnahmen
 
 `InvalidAuthConfigException`, `SecureStorageException` und `MiAuthNotSupportedException` sind definiert, werden in der aktuellen Version jedoch nicht ausgelöst.
@@ -74,10 +82,13 @@ Jede Ausnahme hat die folgenden Eigenschaften.
 
 `loginWithOAuth` und `loginWithMiAuth` speichern das Token und aktivieren anschließend das Konto. Schlägt nur die Aktivierung des Kontos fehl, bleibt das Token gespeichert, das Konto wird jedoch nicht aktiviert.
 
+`signOut` und `signOutAll` lösen keine Ausnahme aus, wenn ein gespeichertes Token nicht gelesen werden kann; sie löschen es ohne Widerruf. Schlägt das Löschen des Tokens fehl, lösen sie dagegen eine Ausnahme aus.
+
 ## Wiederholungsversuche
 
 - OAuth-Abrufe der Serverinformationen und Aufrufe von `/api/i` werden bei Timeouts, Verbindungsfehlern, sonstigen Kommunikationsfehlern und HTTP 429, 500, 502, 503 oder 504 insgesamt bis zu dreimal versucht.
 - Der Token-Austausch und die MiAuth-Prüf-API werden nicht erneut versucht. Autorisierungscodes und MiAuth-Sitzungen können nur einmal verwendet werden. Selbst wenn die Antwort verloren geht, kann der Server den Vorgang bereits abgeschlossen haben. Starten Sie die Authentifizierung von vorn.
+- Der Token-Widerruf wird nicht erneut versucht. Siehe [Timeout und Wiederholungsversuche](./token-storage.md#timeout-and-retries).
 
 ## Wenn die Anmeldung nach der Authentifizierung fehlschlägt
 

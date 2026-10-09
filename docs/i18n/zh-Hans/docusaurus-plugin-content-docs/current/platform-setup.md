@@ -7,7 +7,7 @@ title: 平台配置
 
 身份验证在外部浏览器中进行。完成后，浏览器会打开一个使用应用自定义 scheme 的 URL，操作系统再将该 URL 交给应用。scheme 由应用注册；库不会将其添加到 Manifest 或 `Info.plist` 中。
 
-iOS（`CFBundleURLSchemes`）和 Android（`<data android:scheme="...">`）必须注册相同的 scheme 字符串，且必须完全匹配。
+iOS（`CFBundleURLSchemes`）和 Android（`<data android:scheme="...">`）必须注册相同的 scheme 字符串，且必须完全匹配。macOS 无需注册（请参阅 [macOS](#macos)）。
 
 ## iOS
 
@@ -74,3 +74,48 @@ iOS（`CFBundleURLSchemes`）和 Android（`<data android:scheme="...">`）必�
 1. 回调未到达应用。请检查 `CallbackActivity` 是否有匹配的 `<intent-filter>`。
 2. PWA 或其他应用拦截了链接。
 3. `redirect_uri` 与 client_id 页面上的 `<link rel="redirect_uri">` 不完全匹配，因此 Misskey 没有执行重定向。
+
+## macOS
+
+macOS 无需注册 scheme。`flutter_web_auth_2` 会使用 `ASWebAuthenticationSession` 打开身份验证页面，并直接接收回调 URL。因此，无需在 `macos/Runner/Info.plist` 中添加 `CFBundleURLTypes`。
+
+请将以下 entitlements 添加到 `macos/Runner/DebugProfile.entitlements` 和 `macos/Runner/Release.entitlements`：
+
+```xml
+<!-- 沙盒应用向 Misskey 服务器发出的网络请求 -->
+<key>com.apple.security.network.client</key>
+<true/>
+<!-- SecureTokenStore 默认使用的钥匙串 -->
+<key>keychain-access-groups</key>
+<array/>
+```
+
+完整配置请参阅 [`example/macos/Runner/`](https://github.com/LibraryLibrarian/misskey_auth/tree/main/example/macos/Runner)。
+
+注意事项：
+
+- `keychain-access-groups` 需要使用 Apple Developer 团队签名并准备 provisioning profile。在 Xcode 中打开 `macos/Runner.xcworkspace`，并在 Runner target 的 Signing & Capabilities 中选择团队。未选择团队时，Xcode 无法使用此 entitlement 对应用签名。
+- 使用免费的 Apple Developer 账户时，开发用 provisioning profile 仅允许在构建该应用的 Mac 上启动应用。
+- 如果缺少 `keychain-access-groups`，保存令牌会因 `PlatformException` 而失败，错误代码为 `-34018`。
+
+### 不使用 `keychain-access-groups` 保存令牌
+
+如果不想使用此 entitlement，请传入不使用数据保护钥匙串的 `FlutterSecureStorage`。`mOptions` 仅在 macOS 上生效，因此相同代码也可在其他平台上运行：
+
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:misskey_auth/misskey_auth.dart';
+
+final auth = MisskeyAuthManager(
+  miauth: MisskeyMiAuthClient(),
+  oauth: MisskeyOAuthClient(),
+  store: const SecureTokenStore(
+    storage: FlutterSecureStorage(
+      mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+    ),
+  ),
+);
+```
+
+- 使用一种设置保存的令牌无法通过另一种设置读取。发布后切换设置时，用户必须重新登录。
+- 此设置仅更改令牌的保存位置。分发应用时，仍需像往常一样进行签名和公证（notarization）。

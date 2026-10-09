@@ -1,7 +1,9 @@
 // 実機・エミュレーター上の Keystore / Keychain で SecureTokenStore を検証する
 //
 // 実行: flutter test integration_test -d <device>
-// 端末の既定の保存領域を初期化するため、検証用の端末で実行すること
+// iOS / Android では端末の既定の保存領域を初期化するため、検証用の端末で実行すること。
+// macOS は開発機そのもので実行されるため、example の保存領域とは別の
+// サービス名（kSecAttrService）に分けて実行する
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -10,8 +12,11 @@ import 'package:misskey_auth/misskey_auth.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  const storage = FlutterSecureStorage();
-  const store = SecureTokenStore();
+  const macOsOptions = MacOsOptions(
+    accountName: 'misskey_auth_integration_test',
+  );
+  const storage = FlutterSecureStorage(mOptions: macOsOptions);
+  const store = SecureTokenStore(storage: storage);
   const unrelatedKey = 'integration_unrelated_key';
 
   AccountKey account(int i) =>
@@ -52,9 +57,12 @@ void main() {
     await store.setActive(account(0));
     await Future.wait([
       for (var i = 1; i < 10; i++)
-        SecureTokenStore(storage: const FlutterSecureStorage())
-            .upsert(account(i), token(i)),
-      const SecureTokenStore().delete(account(0)),
+        SecureTokenStore(
+          storage: const FlutterSecureStorage(mOptions: macOsOptions),
+        ).upsert(account(i), token(i)),
+      const SecureTokenStore(
+        storage: FlutterSecureStorage(mOptions: macOsOptions),
+      ).delete(account(0)),
     ]);
     final keys = (await store.list()).map((e) => e.key).toSet();
     expect(keys, {for (var i = 1; i < 10; i++) account(i)});

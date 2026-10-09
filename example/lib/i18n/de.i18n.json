@@ -44,6 +44,8 @@
     "empty": "Keine angemeldeten Konten",
     "savedAt": "Gespeichert: $date",
     "delete": "Dieses Konto entfernen",
+    "revokeUnsupported": "Von diesem Gerät entfernt. Dieser Server unterstützt das Widerrufen von Tokens nicht, daher bleibt das Token auf dem Server gültig",
+    "revokeFailed": "Von diesem Gerät entfernt, aber das Token konnte auf dem Server nicht widerrufen werden",
     "activeChanged": "Aktives Konto geändert: $account"
   },
   "validation": {
@@ -52,7 +54,7 @@
   },
   "errors": {
     "userCancelled": "Die Authentifizierung wurde abgebrochen",
-    "callbackScheme": "Das Callback-Schema ist nicht korrekt konfiguriert (prüfen Sie AndroidManifest.xml / Info.plist)",
+    "callbackScheme": "Das Callback-Schema ist nicht korrekt konfiguriert (prüfen Sie unter Android AndroidManifest.xml und unter iOS Info.plist)",
     "authorizationLaunch": "Der Authentifizierungsbildschirm konnte nicht geöffnet werden",
     "network": "Ein Netzwerkfehler ist aufgetreten",
     "responseParse": "Die Serverantwort konnte nicht ausgewertet werden",

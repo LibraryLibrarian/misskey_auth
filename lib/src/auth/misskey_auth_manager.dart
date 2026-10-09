@@ -2,9 +2,12 @@ import 'package:dio/dio.dart';
 
 import '../api/misskey_miauth_client.dart';
 import '../api/misskey_oauth_client.dart';
+import '../api/misskey_token_revocation_client.dart';
 import '../exceptions/misskey_auth_exception.dart';
 import '../models/miauth_models.dart';
 import '../models/oauth_models.dart';
+import '../models/sign_out_models.dart';
+import '../models/token_revocation_models.dart';
 import '../store/account_key.dart';
 import '../store/secure_token_store.dart';
 import '../store/stored_token.dart';
@@ -23,23 +26,42 @@ class MisskeyAuthManager {
   final TokenStore store;
   final Dio dio;
 
+  /// サインアウト時にサーバー上のトークンを失効させるクライアント
+  final MisskeyTokenRevocationClient revocation;
+
+  /// [revocation] を渡さない場合は、[dio] を使う失効クライアントを組み立てる。
+  /// タイムアウトの引数は、[dio] を渡さない場合に `/api/i` と失効の通信に適用する
   MisskeyAuthManager({
-    required this.miauth,
-    required this.oauth,
-    required this.store,
+    required MisskeyMiAuthClient miauth,
+    required MisskeyOAuthClient oauth,
+    required TokenStore store,
+    MisskeyTokenRevocationClient? revocation,
     Dio? dio,
     Duration? connectTimeout,
     Duration? sendTimeout,
     Duration? receiveTimeout,
-  }) : dio =
-           dio ??
-           Dio(
-             BaseOptions(
-               connectTimeout: connectTimeout ?? const Duration(seconds: 10),
-               sendTimeout: sendTimeout ?? const Duration(seconds: 20),
-               receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
+  }) : this._(
+         miauth,
+         oauth,
+         store,
+         revocation,
+         dio ??
+             Dio(
+               BaseOptions(
+                 connectTimeout: connectTimeout ?? const Duration(seconds: 10),
+                 sendTimeout: sendTimeout ?? const Duration(seconds: 20),
+                 receiveTimeout: receiveTimeout ?? const Duration(seconds: 20),
+               ),
              ),
-           );
+       );
+
+  MisskeyAuthManager._(
+    this.miauth,
+    this.oauth,
+    this.store,
+    MisskeyTokenRevocationClient? revocation,
+    this.dio,
+  ) : revocation = revocation ?? MisskeyTokenRevocationClient(dio: dio);
 
   /// 依存を既定実装で組み立てたインスタンスを返す
   factory MisskeyAuthManager.defaultInstance() => MisskeyAuthManager(
@@ -159,9 +181,160 @@ class MisskeyAuthManager {
   /// 保存済みアカウントの一覧を取得
   Future<List<AccountEntry>> listAccounts() => store.list();
 
-  /// 指定アカウントのトークンを削除（サインアウト相当）
-  Future<void> signOut(AccountKey key) => store.delete(key);
+  /// 指定アカウントをサインアウトする
+  ///
+  /// 既定（[SignOutMode.revokeAndDelete]）では、サーバー上のトークンの失効を
+  /// 試みてから、結果にかかわらず端末上のトークンを削除する。失効の結果は
+  /// 例外ではなく [SignOutResult.revocation] で返す。保存されたトークンが
+  /// 無い、または読み出せない場合は、失効を試みずに削除する。
+  ///
+  /// [timeout] は失効のリクエスト全体の期限。省略時は通信のタイムアウトに従う。
+  /// 端末上の削除に失敗した場合は、ストレージの例外をそのまま投げる
+  Future<SignOutResult> signOut(
+    AccountKey key, {
+    SignOutMode mode = SignOutMode.revokeAndDelete,
+    Duration? timeout,
+  }) async {
+    if (mode == SignOutMode.localOnly) {
+      await store.delete(key);
+      return SignOutResult(
+        key: key,
+        skipReason: RevocationSkipReason.localOnly,
+        deleted: true,
+      );
+    }
+    final attempt = await _revokeStored(key, _remainingOf(timeout));
+    return _deleteAfter(attempt, mode);
+  }
 
-  /// すべてのトークンを削除（全サインアウト）
-  Future<void> signOutAll() => store.clearAll();
+  /// 保存済みのすべてのアカウントをサインアウトする
+  ///
+  /// 各アカウントの扱いは [signOut] と同じ。失効は全アカウントで並列に試み、
+  /// [timeout] は呼び出しの時点から数えた、すべての失効に共通の期限として扱う
+  /// （端末上の読み書きは打ち切らない）。結果は [listAccounts] の順に返す。
+  /// 端末上の削除はすべて試み、失敗したものがあれば最初の例外を最後に投げる
+  Future<List<SignOutResult>> signOutAll({
+    SignOutMode mode = SignOutMode.revokeAndDelete,
+    Duration? timeout,
+  }) async {
+    // 期限はアカウント一覧の読み出しも含め、呼び出しの時点から数える
+    final remaining = _remainingOf(timeout);
+    final entries = await store.list();
+    if (mode == SignOutMode.localOnly) {
+      await store.clearAll();
+      return [
+        for (final entry in entries)
+          SignOutResult(
+            key: entry.key,
+            skipReason: RevocationSkipReason.localOnly,
+            deleted: true,
+          ),
+      ];
+    }
+    final attempts = await Future.wait([
+      for (final entry in entries) _revokeStored(entry.key, remaining),
+    ]);
+    // 失効を待つ間に追加されたアカウントを消さないよう、clearAll は使わない
+    final results = <SignOutResult>[];
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    for (final attempt in attempts) {
+      try {
+        results.add(await _deleteAfter(attempt, mode));
+      } catch (e, st) {
+        firstError ??= e;
+        firstStackTrace ??= st;
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
+    return results;
+  }
+
+  /// [timeout] を起点からの期限とみなし、呼ぶたびに残り時間を返す関数を作る
+  Duration? Function() _remainingOf(Duration? timeout) {
+    if (timeout == null) return () => null;
+    final stopwatch = Stopwatch()..start();
+    return () => timeout - stopwatch.elapsed;
+  }
+
+  /// 保存されたトークンを読み出し、サーバー上で失効を試みる
+  Future<_RevocationAttempt> _revokeStored(
+    AccountKey key,
+    Duration? Function() remaining,
+  ) async {
+    final StoredToken? token;
+    try {
+      token = await store.read(key);
+    } catch (_) {
+      return _RevocationAttempt.skipped(
+        key,
+        RevocationSkipReason.unreadableToken,
+      );
+    }
+    if (token == null) {
+      return _RevocationAttempt.skipped(
+        key,
+        RevocationSkipReason.noStoredToken,
+      );
+    }
+    final result = await revocation.revoke(
+      host: key.host,
+      accessToken: token.accessToken,
+      timeout: remaining(),
+    );
+    return _RevocationAttempt(key, token.accessToken, result);
+  }
+
+  /// 失効の結果と [mode] に従って、端末上のトークンを削除する
+  Future<SignOutResult> _deleteAfter(
+    _RevocationAttempt attempt,
+    SignOutMode mode,
+  ) async {
+    final key = attempt.key;
+    final result = attempt.result;
+    if (result == null) {
+      await store.delete(key);
+      return SignOutResult(
+        key: key,
+        skipReason: attempt.skipReason,
+        deleted: true,
+      );
+    }
+    final keep =
+        (mode == SignOutMode.revokeOrKeep && !result.isInvalidated) ||
+        await _replacedSince(key, attempt.accessToken!);
+    if (!keep) await store.delete(key);
+    return SignOutResult(key: key, revocation: result, deleted: !keep);
+  }
+
+  /// 失効を待つ間に、同じアカウントへ別のトークンが保存されたか
+  ///
+  /// 再ログインで保存されたトークンを、失効させないまま削除しないために確認する
+  Future<bool> _replacedSince(AccountKey key, String accessToken) async {
+    try {
+      final current = await store.read(key);
+      return current != null && current.accessToken != accessToken;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+/// 1アカウント分の失効の試行結果
+class _RevocationAttempt {
+  final AccountKey key;
+
+  /// 失効を試みたトークン。試みなかった場合は `null`
+  final String? accessToken;
+  final TokenRevocationResult? result;
+  final RevocationSkipReason? skipReason;
+
+  const _RevocationAttempt(this.key, this.accessToken, this.result)
+    : skipReason = null;
+
+  const _RevocationAttempt.skipped(this.key, this.skipReason)
+    : accessToken = null,
+      result = null;
 }

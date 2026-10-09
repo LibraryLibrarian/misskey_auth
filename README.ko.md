@@ -19,14 +19,16 @@
 - 사용자 지정 URL 스킴을 통한 앱 콜백
 - `flutter_secure_storage`를 사용한 안전한 토큰 저장
 - 여러 계정의 토큰 저장 및 활성 계정 전환
+- 로그아웃 시 서버에서 토큰 폐기(Misskey 2026.9.0 이상)
 - 인증 흐름 실행과 토큰 저장을 중개하는 고수준 API `MisskeyAuthManager`
-- iOS 및 Android
+- iOS, Android 및 macOS
 
 ## 요구 사항
 
 - Flutter 3.47.1 이상, Dart 3.13.1 이상 4.0 미만
 - Android API 24 이상, compileSdk 37 이상
 - iOS 15 이상
+- macOS 12.0 이상
 
 이전 버전에서 업그레이드하는 경우 먼저 [업그레이드 시 주의 사항](https://librarylibrarian.github.io/misskey_auth/ko/upgrading)을 읽어 주세요. Android에서는 다시 로그인해야 합니다.
 
@@ -34,7 +36,7 @@
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.2
+  misskey_auth: ^0.2.0-beta.3
 ```
 
 ## 빠른 시작
@@ -74,7 +76,7 @@ final current = await auth.currentToken();
 이 코드가 동작하려면 다음 두 가지가 필요합니다.
 
 1. **client_id 페이지(OAuth만 해당).** `redirect_uri`를 `<link rel="redirect_uri">`에 명시한 HTTPS 페이지를 공개합니다. [client_id 페이지](https://librarylibrarian.github.io/misskey_auth/ko/client-id-page)를 참조하세요.
-2. **앱에 사용자 지정 URL 스킴 등록.** iOS에서는 `Info.plist`에, Android에서는 `flutter_web_auth_2`의 `CallbackActivity`에 `yourscheme`을 추가합니다. [플랫폼 설정](https://librarylibrarian.github.io/misskey_auth/ko/platform-setup)을 참조하세요.
+2. **앱에 사용자 지정 URL 스킴 등록.** iOS에서는 `Info.plist`에, Android에서는 `flutter_web_auth_2`의 `CallbackActivity`에 `yourscheme`을 추가합니다. macOS에서는 등록이 필요하지 않지만 네트워크 접근 및 키체인용 entitlement가 필요합니다. [플랫폼 설정](https://librarylibrarian.github.io/misskey_auth/ko/platform-setup)을 참조하세요.
 
 ## 문서
 

@@ -18,13 +18,14 @@ misskey_auth는 [Misskey](https://misskey-hub.net/ko/) 서버 인증을 위한 F
 - `flutter_secure_storage`를 사용한 안전한 토큰 저장
 - 여러 계정의 토큰 저장 및 활성 계정 전환
 - 인증을 수행하고 토큰을 저장하는 고수준 API `MisskeyAuthManager`
-- iOS 및 Android
+- iOS, Android 및 macOS
 
 ## 요구 사항
 
 - Flutter 3.47.1 이상, Dart 3.13.1 이상 4.0 미만
 - Android API 24 이상, compileSdk 37 이상
 - iOS 15 이상
+- macOS 12.0 이상
 
 이전 버전에서 업그레이드하는 경우 먼저 [업그레이드](./upgrading.md)를 읽어 주세요. Android에서는 사용자가 다시 로그인해야 합니다.
 
@@ -34,7 +35,7 @@ misskey_auth는 [Misskey](https://misskey-hub.net/ko/) 서버 인증을 위한 F
 
 ```yaml
 dependencies:
-  misskey_auth: ^0.2.0-beta.2
+  misskey_auth: ^0.2.0-beta.3
 ```
 
 그런 다음 패키지를 가져옵니다.
@@ -90,7 +91,7 @@ print(current?.accessToken);
 ## 다음 단계
 
 - [client_id 페이지](./client-id-page.md): Misskey가 OAuth에 요구하는 페이지
-- [플랫폼 설정](./platform-setup.md): iOS 및 Android 설정
+- [플랫폼 설정](./platform-setup.md): iOS, Android 및 macOS 설정
 - [OAuth와 MiAuth](./oauth-and-miauth.md): 두 방식의 차이와 토큰 저장 여부에 따른 예제
 - [토큰 저장](./token-storage.md): 여러 계정, `TokenStore`, `SecureTokenStore`
 - [오류 처리](./error-handling.md): 라이브러리에서 발생하는 예외

@@ -15,6 +15,34 @@ title: Hinweise zum Upgrade
 
 Solange die stabile Version von `flutter_web_auth_2` das Kotlin-Android-Plugin anwendet, behalten Sie `android.builtInKotlin=false` und `android.newDsl=false` bei. Behalten Sie die Anwendung des Plugins bei und ändern Sie die JVM-Zielkonfiguration von `android.kotlinOptions` zu `kotlin.compilerOptions`. Bei zukünftigen Flutter-Versionen kann es erforderlich sein, dass abhängige Plugins die integrierte Kotlin-Unterstützung verwenden.
 
+## Upgrade von 0.2.0-beta.2
+
+### Beim Abmelden wird das Token widerrufen
+
+`signOut` und `signOutAll` widerrufen das Token jetzt auf dem Server, bevor sie es vom Gerät löschen. Da sie eine Netzwerkanfrage ausführen, kann der Vorgang bis zum Ablauf der Timeouts der Anfrage dauern. Wenn der Widerruf fehlschlägt oder der Server ihn nicht unterstützt, wird das Token trotzdem vom Gerät gelöscht.
+
+- Um das bisherige Verhalten beizubehalten, übergeben Sie `mode: SignOutMode.localOnly`.
+- Um die Wartezeit zu begrenzen, übergeben Sie `timeout`.
+- Server vor Misskey 2026.9.0 unterstützen den Widerruf nicht. Die Token dieser Server bleiben wie bisher auf dem Server gültig.
+
+Siehe [Abmelden](./token-storage.md#signing-out).
+
+### Neue Rückgabetypen
+
+`signOut` gibt jetzt `Future<SignOutResult>` zurück und `signOutAll` gibt `Future<List<SignOutResult>>` zurück. Code, der die Aufrufe nur mit `await` abwartet, muss nicht geändert werden. Klassen, die `MisskeyAuthManager` implementieren oder mocken, müssen die Signaturen anpassen:
+
+```dart
+Future<SignOutResult> signOut(
+  AccountKey key, {
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+Future<List<SignOutResult>> signOutAll({
+  SignOutMode mode = SignOutMode.revokeAndDelete,
+  Duration? timeout,
+});
+```
+
 ## Upgrade auf 0.2.0-beta.1
 
 ### Unter Android ist eine erneute Anmeldung erforderlich

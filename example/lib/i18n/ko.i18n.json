@@ -44,6 +44,8 @@
     "empty": "로그인한 계정이 없습니다",
     "savedAt": "저장됨: $date",
     "delete": "이 계정 삭제",
+    "revokeUnsupported": "이 기기에서 삭제했습니다. 이 서버는 토큰 폐기를 지원하지 않으므로 서버의 토큰은 계속 유효합니다",
+    "revokeFailed": "이 기기에서 삭제했지만 서버의 토큰을 폐기하지 못했습니다",
     "activeChanged": "활성 계정을 변경했습니다: $account"
   },
   "validation": {
@@ -52,7 +54,7 @@
   },
   "errors": {
     "userCancelled": "인증이 취소되었습니다",
-    "callbackScheme": "콜백 스킴 설정이 올바르지 않습니다(AndroidManifest.xml / Info.plist를 확인하세요)",
+    "callbackScheme": "콜백 스킴 설정이 올바르지 않습니다(Android는 AndroidManifest.xml, iOS는 Info.plist를 확인하세요)",
     "authorizationLaunch": "인증 화면을 열지 못했습니다",
     "network": "네트워크 오류가 발생했습니다",
     "responseParse": "서버 응답을 해석하지 못했습니다",
